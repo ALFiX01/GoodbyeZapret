@@ -45,8 +45,8 @@ set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
 set "serviceName=GoodbyeZapret"
 
-set "GoodbyeZapret_Current=None"
-set "GoodbyeZapret_Config=None"
+set "GoodbyeZapret_Current=Не выбран"
+set "GoodbyeZapret_Config=Не выбран"
 
 reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret /v Description >nul 2>&1
 if %errorlevel% equ 0 (
@@ -79,7 +79,6 @@ if errorlevel 1 (
 )
 
 REM Версии GoodbyeZapret
-set "GoodbyeZapretShellVersion=0.7"
 set "GoodbyeZapretVersion_New=%Actual_GZVER%"
 set "GoodbyeZapretVersion=%GZVER_current%"
 set "ListsVersion=%LIST-VER_current%"
@@ -94,7 +93,7 @@ if %errorlevel% equ 0 (
 ) else (
    REM Ключ GoodbyeZapret_Version не найден.
    reg add "HKCU\Software\ASX\Info" /t REG_SZ /v "GoodbyeZapret_Version" /d "%GoodbyeZapretVersion%" /f >nul
-   set "GoodbyeZapret_Version_OLD=None"
+   set "GoodbyeZapret_Version_OLD=Не выбран"
 )
 
 reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Config >nul 2>&1
@@ -176,7 +175,7 @@ set "padding="
 for /l %%A in (1,1,%spaces%) do set "padding=!padding! "
 
 
-if "%GoodbyeZapret_Current%" NEQ "None" (
+if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
     echo                     %COL%[90m===================================================
     echo %COL%[36m!padding!!GoodbyeZapret_Current! %COL%[37m
     echo                     %COL%[90m===================================================%COL%[37m
@@ -187,7 +186,7 @@ echo                     %COL%[91mОболочка находится в ста�
 echo.
 )
 
-echo                        Выберите конфиг для установки в виде службы
+echo                         Выберите конфиг для установки в автозапуск
 echo.
 
 set "counter=0"
@@ -224,13 +223,15 @@ if !counter! lss 10 (
 ) else (
      echo                     %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 )
-if !GZVER_current! NEQ !Actual_GZVER! (
+
+if !GZVER_current! LEQ !Actual_GZVER! (
     if !counter! lss 10 (
         echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GZVER! %COL%[37m
     ) else (
         echo                     %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GZVER! %COL%[37m
     )
 )
+
 
 echo.
 echo.
@@ -249,6 +250,7 @@ if !GZVER_current! NEQ !Actual_GZVER! (
     if "%choice%"=="ud" goto Update
     if "%choice%"=="UD" goto Update
 )
+
 
 set "batFile=!file%choice%!"
 
@@ -340,7 +342,6 @@ echo.
 echo.
 echo   Состояние версий GoodbyeZapret
 echo   %COL%[90m============================%COL%[37m
-echo   Версия Оболочки %COL%[92m%GoodbyeZapretShellVersion% %COL%[37m
 echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[37m
 echo   Версия WinDivert %COL%[92m%WinDivertVersion% %COL%[37m
 echo   Версия Lists %COL%[92m%ListsVersion% %COL%[37m
