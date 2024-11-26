@@ -58,9 +58,10 @@ for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "GZVER_current=%%a"
 for /f "usebackq delims=" %%a in ("%~dp0lists\version.txt") do set "LIST-VER_current=%%a"
 for /f "usebackq delims=" %%a in ("%~dp0bin\version.txt") do set "Winws_current=%%a"
 
+
 :: Загрузка нового файла Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
-curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX-dev/GodbyeZapret/refs/heads/main/GoodbyeZapret_Version_Info" 
+curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version_Info" 
 call:AZ_FileChecker_2
 if not "%CheckStatus%"=="Checked" (
     echo Ошибка: Не удалось провести проверку файла
@@ -374,7 +375,7 @@ if %errorlevel% equ 0 (
 if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
 
 
-curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX-dev/GodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
 
 call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
@@ -532,7 +533,7 @@ if %errorlevel% equ 0 (
 if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
 
 
-curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX-dev/GodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
 
 call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
