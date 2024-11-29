@@ -2,6 +2,7 @@
 
 :: Copyright (C) 2024 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
+mode con: cols=92 lines=43 >nul 2>&1
 
 reg add HKLM /F >nul 2>&1
 if %errorlevel% neq 0 (
@@ -17,12 +18,11 @@ if /I "%WinLang%" NEQ "ru-RU" (
     exit /b
 )
 
+:RR
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
-:RR
 :: Запуск от имени администратора
-mode con: cols=92 lines=43 >nul 2>&1
 chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 
