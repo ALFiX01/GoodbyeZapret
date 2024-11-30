@@ -199,7 +199,6 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
         echo                     %COL%[36m!counter!. %COL%[37m%%~nF
     )
     set "file!counter!=%%~nxF"
-    REM set /a "counter+=1"
 )
 set /a "lastChoice=counter-1"
 
@@ -211,8 +210,6 @@ if !counter! lss 10 (
     echo.
     echo                     %COL%[36mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
 )
-REM set "rs=!counter!"
-REM set /a "counter+=1"
 if !counter! lss 10 (
     echo                       %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
 ) else (
@@ -224,7 +221,7 @@ if !counter! lss 10 (
      echo                     %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 )
 
-if !GZVER_current! LEQ !Actual_GZVER! (
+if !GZVER_current! LSS !Actual_GZVER! (
     if !counter! lss 10 (
         echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GZVER! %COL%[37m
     ) else (
@@ -252,7 +249,17 @@ if !GZVER_current! NEQ !Actual_GZVER! (
 )
 
 
-set "batFile=!file%choice%!"
+set "batFile=!file%choice:~0,-1%!"
+if "%choice:~-1%"=="s" (
+    set "batFile=!file%choice:~0,-1%!"
+    echo Запустите %batFile% Вручную
+    explorer "%sourcePath%Configs"
+    goto :end
+) else (
+    set "batFile=!file%choice%!"
+)
+
+
 
 if not defined batFile (
     echo Неверный выбор. Пожалуйста, попробуйте снова.
@@ -280,7 +287,6 @@ if not defined batFile (
      )
      goto :end
  )
-
 
 
 :remove_service
