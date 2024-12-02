@@ -40,7 +40,7 @@ for %%i in ("%parentDir:~0,-1%") do set parentDir2=%%~dpi
 set parentDir2=%parentDir2:~0,-1%
 
 
-:AntiZapret_Menu
+:GoodbyeZapret_Menu
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
 set "serviceName=GoodbyeZapret"
@@ -324,7 +324,7 @@ goto :end
 :end
 echo Нажмите любую клавишу чтобы продолжить...
 pause >nul 2>&1
-goto AntiZapret_Menu
+goto GoodbyeZapret_Menu
 
 
 :CurrentStatus
@@ -388,7 +388,7 @@ call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
     echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
     pause
-    goto AntiZapret_Menu
+    goto GoodbyeZapret_Menu
 )
     if exist "%parentDir%\GoodbyeZapret_latest.zip" (
         start /wait "" "%~dp0Extract.bat"
@@ -400,7 +400,7 @@ if not "%CheckStatus%"=="Checked" (
     ) else (
         echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
         pause
-        goto AntiZapret_Menu
+        goto GoodbyeZapret_Menu
     )
 
 title Настройка конфига GoodbyeZapret
@@ -417,7 +417,7 @@ if %errorlevel% equ 0 (
 ) else (
     echo Ошибка при запуске службы %serviceName%
 )
-goto AntiZapret_Menu
+goto GoodbyeZapret_Menu
 
 
 :AZ_FileChecker
@@ -497,7 +497,7 @@ curl -g -L -# -o %ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip "https://
 call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
     echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
-    goto AntiZapret_Menu
+    goto GoodbyeZapret_Menu
 )
 
     if exist "%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip" (
@@ -546,7 +546,7 @@ call:AZ_FileChecker
 if not "%CheckStatus%"=="Checked" (
     echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
     pause
-    goto AntiZapret_Menu
+    goto GoodbyeZapret_Menu
 )
     if exist "%parentDir%\GoodbyeZapret_latest.zip" (
         start /wait "" "%~dp0Extract.bat"
@@ -558,7 +558,7 @@ if not "%CheckStatus%"=="Checked" (
     ) else (
         echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
         pause
-        goto AntiZapret_Menu
+        goto GoodbyeZapret_Menu
     )
 
 title Настройка конфига GoodbyeZapret
