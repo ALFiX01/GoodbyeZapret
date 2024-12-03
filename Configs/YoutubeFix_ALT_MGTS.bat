@@ -2,11 +2,22 @@
 chcp 65001 >nul
 :: 65001 - UTF-8
 
-cd /d "%~dp0"
-set BIN=%~dp0bin\
+:: Получаем текущую папку BAT-файла
+set currentDir=%~dp0
+:: Убираем последний слэш
+set currentDir=%currentDir:~0,-1%
+:: Переходим в родительскую папку
+for %%i in ("%currentDir%") do set parentDir=%%~dpi
 
+:: Переходим в родительскую директорию
+cd /d "%parentDir%"
+:: Устанавливаем путь к папке bin
+set BIN=%parentDir%bin\
+
+:: Устанавливаем название программы
 set LIST_TITLE=GoodbyeZapret: YouTube Fix MGTS
-set LIST_PATH=%~dp0lists\list-youtube.txt
+:: Путь к основному списку хостов
+set LIST_PATH=%parentDir%lists\list-youtube.txt
 
 start "%LIST_TITLE%" /min "%BIN%winws.exe" ^
 --wf-tcp=80,443 --wf-udp=443,50000-65535 ^
