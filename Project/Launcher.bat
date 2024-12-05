@@ -221,6 +221,8 @@ if !counter! lss 10 (
      echo                     %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 )
 
+echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
+
 if !GZVER_current! LSS !Actual_GZVER! (
     if !counter! lss 10 (
         echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GZVER! %COL%[37m
@@ -253,7 +255,7 @@ set "batFile=!file%choice:~0,-1%!"
 if "%choice:~-1%"=="s" (
     set "batFile=!file%choice:~0,-1%!"
     echo Запустите %batFile% Вручную
-    explorer "%sourcePath%Configs"
+    explorer "%sourcePath%Configs\%batFile%"
     goto :end
 ) else (
     set "batFile=!file%choice%!"
@@ -563,8 +565,8 @@ if not "%CheckStatus%"=="Checked" (
 
 title Настройка конфига GoodbyeZapret
 
-echo Устанавливаю службу %serviceName% для файла %GoodbyeZapret_Config%...
-pause
+echo Восстанавливаю службу %serviceName% для файла %GoodbyeZapret_Config%...
+
 (
 sc create "%serviceName%" binPath= "cmd.exe /c \"%parentDir%\GoodbyeZapret_!GZVER_newfile!\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
 sc description %serviceName% "%GoodbyeZapret_Config%" ) >nul 2>&1
@@ -573,7 +575,7 @@ sc start "%serviceName%" >nul 2>&1
 if %errorlevel% equ 0 (
     echo Служба %serviceName% успешно запущена %COL%[37m
 ) else (
-    echo Ошибка при запуске службы %serviceName%
+    echo Возможно при запуске службы %serviceName% произошла ошибка
 )
 start "" "%parentDir%\GoodbyeZapret_!GZVER_newfile!\Launcher.bat"
 echo готово
