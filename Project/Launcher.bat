@@ -332,7 +332,7 @@ goto GoodbyeZapret_Menu
 :CurrentStatus
 cls
 echo.
-echo   Состояние служб GoodbyeZapret
+echo   %COL%[37mСостояние служб GoodbyeZapret
 echo   %COL%[90m=============================%COL%[37m
 sc query %serviceName% >nul 2>&1
 if %errorlevel% equ 0 (
@@ -349,7 +349,7 @@ if %errorlevel% equ 0 (
 echo.
 echo.
 echo   Состояние версий GoodbyeZapret
-echo   %COL%[90m============================%COL%[37m
+echo   %COL%[90m==============================%COL%[37m
 echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[37m
 echo   Версия WinDivert %COL%[92m%WinDivertVersion% %COL%[37m
 echo   Версия Lists %COL%[92m%ListsVersion% %COL%[37m
