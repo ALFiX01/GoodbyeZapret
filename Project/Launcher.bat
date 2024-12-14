@@ -1,13 +1,25 @@
 @echo off
-
 :: Copyright (C) 2024 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
-mode con: cols=92 lines=43 >nul 2>&1
 
 reg add HKLM /F >nul 2>&1
 if %errorlevel% neq 0 (
     start "" /wait /I /min powershell -NoProfile -Command "start -verb runas '%~s0'" && exit /b
 )
+
+setlocal EnableDelayedExpansion
+
+set "BatCount=0"
+set "sourcePath=%~dp0"
+for %%f in ("%sourcePath%Configs\*.bat") do (
+    set /a "BatCount+=1"
+)
+
+set /a ListBatCount=BatCount+29
+mode con: cols=92 lines=%ListBatCount% >nul 2>&1
+
+
+
 
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
 for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
@@ -24,7 +36,6 @@ for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1)
 
 :: Запуск от имени администратора
 chcp 65001 >nul 2>&1
-setlocal EnableDelayedExpansion
 
 :: Получаем текущую папку BAT-файла
 set currentDir=%~dp0
@@ -54,7 +65,7 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
-for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "GZVER_current=%%a"
+for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "GoodbyeZapret_version_current=%%a"
 for /f "usebackq delims=" %%a in ("%~dp0lists\version.txt") do set "LIST-VER_current=%%a"
 for /f "usebackq delims=" %%a in ("%~dp0bin\version.txt") do set "Winws_current=%%a"
 
@@ -79,8 +90,8 @@ if errorlevel 1 (
 )
 
 REM Версии GoodbyeZapret
-set "GoodbyeZapretVersion_New=%Actual_GZVER%"
-set "GoodbyeZapretVersion=%GZVER_current%"
+set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
+set "GoodbyeZapretVersion=%GoodbyeZapret_version_current%"
 set "ListsVersion=%LIST-VER_current%"
 set "WinDivertVersion=%Winws_current%"
 cls
@@ -143,8 +154,8 @@ echo                                         ^|___/                  ^|_^|
 echo.
 
 if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
-    echo          %COL%[90mОшибка: Не удалось провести проверку файлов - Скрипт может быть не стабилен%COL%[37m
-    echo.
+REM    echo          %COL%[90mОшибка: Не удалось провести проверку файлов - Скрипт может быть не стабилен%COL%[37m
+    echo                %COL%[90mОшибка: Не удалось проверить файлы - Возможны проблемы в работе%COL%[37m
     echo.
 ) else (
     echo.
@@ -223,11 +234,11 @@ if !counter! lss 10 (
 
 echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
 
-if !GZVER_current! LSS !Actual_GZVER! (
+if !GoodbyeZapret_version_current! LSS !Actual_GoodbyeZapret_version! (
     if !counter! lss 10 (
-        echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GZVER! %COL%[37m
+        echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GoodbyeZapret_version! %COL%[37m
     ) else (
-        echo                     %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GZVER! %COL%[37m
+        echo                     %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GoodbyeZapret_version! %COL%[37m
     )
 )
 
@@ -245,7 +256,7 @@ if "%choice%"=="RC" goto ReInstall_GZ
 if "%choice%"=="rc" goto ReInstall_GZ
 if "%choice%"=="ST" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
-if !GZVER_current! NEQ !Actual_GZVER! (
+if !GoodbyeZapret_version_current! NEQ !Actual_GoodbyeZapret_version! (
     if "%choice%"=="ud" goto Update
     if "%choice%"=="UD" goto Update
 )
@@ -395,10 +406,10 @@ if not "%CheckStatus%"=="Checked" (
     if exist "%parentDir%\GoodbyeZapret_latest.zip" (
         start /wait "" "%~dp0Extract.bat"
         timeout /t 1 >nul
-        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\version.txt") do set "GZVER_newfile=%%a"
-        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_%GZVER_newfile%"
+        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\version.txt") do set "GoodbyeZapret_version_newfile=%%a"
+        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_%GoodbyeZapret_version_newfile%"
         del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-        start "" "%parentDir%\GoodbyeZapret_%GZVER_newfile%"
+        start "" "%parentDir%\GoodbyeZapret_%GoodbyeZapret_version_newfile%"
     ) else (
         echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
         pause
@@ -553,10 +564,10 @@ if not "%CheckStatus%"=="Checked" (
     if exist "%parentDir%\GoodbyeZapret_latest.zip" (
         start /wait "" "%~dp0Extract.bat"
         timeout /t 1 >nul
-        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GZVER_newfile=%%a"
-        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_!GZVER_newfile!"
+        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
+        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_!GoodbyeZapret_version_newfile!"
         del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-        start "" "%parentDir%\GoodbyeZapret_!GZVER_newfile!"
+        start "" "%parentDir%\GoodbyeZapret_!GoodbyeZapret_version_newfile!"
     ) else (
         echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
         pause
@@ -568,7 +579,7 @@ title Настройка конфига GoodbyeZapret
 echo Восстанавливаю службу %serviceName% для файла %GoodbyeZapret_Config%...
 
 (
-sc create "%serviceName%" binPath= "cmd.exe /c \"%parentDir%\GoodbyeZapret_!GZVER_newfile!\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
+sc create "%serviceName%" binPath= "cmd.exe /c \"%parentDir%\GoodbyeZapret_!GoodbyeZapret_version_newfile!\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
 sc description %serviceName% "%GoodbyeZapret_Config%" ) >nul 2>&1
 sc start "%serviceName%" >nul 2>&1
 sc start "%serviceName%" >nul 2>&1
@@ -577,7 +588,7 @@ if %errorlevel% equ 0 (
 ) else (
     echo Возможно при запуске службы %serviceName% произошла ошибка
 )
-start "" "%parentDir%\GoodbyeZapret_!GZVER_newfile!\Launcher.bat"
+start "" "%parentDir%\GoodbyeZapret_!GoodbyeZapret_version_newfile!\Launcher.bat"
 echo готово
 pause
 exit
