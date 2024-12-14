@@ -65,14 +65,16 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
-for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "GoodbyeZapret_version_current=%%a"
-for /f "usebackq delims=" %%a in ("%~dp0lists\version.txt") do set "LIST-VER_current=%%a"
+for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "Current_GoodbyeZapret_version=%%a"
+for /f "usebackq delims=" %%a in ("%~dp0bin\version.txt") do set "Current_Winws_version=%%a"
+for /f "usebackq delims=" %%a in ("%~dp0lists\version.txt") do set "Current_List_version=%%a"
+
 for /f "usebackq delims=" %%a in ("%~dp0bin\version.txt") do set "Winws_current=%%a"
 
 
 :: Загрузка нового файла Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
-curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version_Info" 
+curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
 call:AZ_FileChecker_2
 if not "%CheckStatus%"=="Checked" (
     echo Ошибка: Не удалось провести проверку файла
@@ -91,8 +93,14 @@ if errorlevel 1 (
 
 REM Версии GoodbyeZapret
 set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
-set "GoodbyeZapretVersion=%GoodbyeZapret_version_current%"
-set "ListsVersion=%LIST-VER_current%"
+set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
+
+set "WinwsVersion_New=%Actual_Winws_version%"
+set "WinwsVersion=%Current_Winws_version%"
+
+set "ListsVersion_New=%Actual_List_version%"
+set "ListsVersion=%Current_List_version%"
+
 set "WinDivertVersion=%Winws_current%"
 cls
 title GoodbyeZapret - Launcher
@@ -234,7 +242,7 @@ if !counter! lss 10 (
 
 echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
 
-if !GoodbyeZapret_version_current! LSS !Actual_GoodbyeZapret_version! (
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
     if !counter! lss 10 (
         echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GoodbyeZapret_version! %COL%[37m
     ) else (
@@ -256,7 +264,7 @@ if "%choice%"=="RC" goto ReInstall_GZ
 if "%choice%"=="rc" goto ReInstall_GZ
 if "%choice%"=="ST" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
-if !GoodbyeZapret_version_current! NEQ !Actual_GoodbyeZapret_version! (
+if !Current_GoodbyeZapret_version! NEQ !Actual_GoodbyeZapret_version! (
     if "%choice%"=="ud" goto Update
     if "%choice%"=="UD" goto Update
 )
@@ -361,9 +369,24 @@ echo.
 echo.
 echo   Состояние версий GoodbyeZapret
 echo   %COL%[90m==============================%COL%[37m
-echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[37m
-echo   Версия WinDivert %COL%[92m%WinDivertVersion% %COL%[37m
-echo   Версия Lists %COL%[92m%ListsVersion% %COL%[37m
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+    echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[91m^(Устарела^) %COL%[37m
+) else (
+    echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[37m
+)
+
+
+if !Current_Winws_version! neq !Actual_Winws_version! (
+    echo   Версия Winws %COL%[92m%WinDivertVersion% %COL%[91m^(Устарела^) %COL%[37m
+) else (
+    echo   Версия Winws %COL%[92m%WinDivertVersion% %COL%[37m
+)
+
+if !Current_List_version! neq !Actual_List_version! (
+    echo   Версия Lists %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) %COL%[37m
+) else (
+    echo   Версия Lists %COL%[92m%ListsVersion% %COL%[37m
+)
 echo. 
 echo.
 pause >nul 2>&1
