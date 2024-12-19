@@ -11,9 +11,11 @@ setlocal EnableDelayedExpansion
 
 set "BatCount=0"
 set "sourcePath=%~dp0"
+
 for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
+
 
 set /a ListBatCount=BatCount+29
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
@@ -65,11 +67,10 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
-for /f "usebackq delims=" %%a in ("%~dp0version.txt") do set "Current_GoodbyeZapret_version=%%a"
-for /f "usebackq delims=" %%a in ("%~dp0bin\version.txt") do set "Current_Winws_version=%%a"
-for /f "usebackq delims=" %%a in ("%~dp0lists\version.txt") do set "Current_List_version=%%a"
+for /f "usebackq delims=" %%a in ("%sourcePath%version.txt") do set "Current_GoodbyeZapret_version=%%a"
+for /f "usebackq delims=" %%a in ("%sourcePath%bin\version.txt") do set "Current_Winws_version=%%a"
+for /f "usebackq delims=" %%a in ("%sourcePath%lists\version.txt") do set "Current_List_version=%%a"
 
-for /f "usebackq delims=" %%a in ("%~dp0bin\version.txt") do set "Winws_current=%%a"
 
 
 :: Загрузка нового файла Updater.bat
@@ -101,7 +102,22 @@ set "WinwsVersion=%Current_Winws_version%"
 set "ListsVersion_New=%Actual_List_version%"
 set "ListsVersion=%Current_List_version%"
 
-set "WinDivertVersion=%Winws_current%"
+
+set "UpdateNeed=No"
+set "UpdateNeedLevel=0"
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+)
+if !Current_Winws_version! neq !Actual_Winws_version! (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+)
+if !Current_List_version! neq !Actual_List_version! (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+)
+
 cls
 title GoodbyeZapret - Launcher
 
@@ -242,7 +258,7 @@ if !counter! lss 10 (
 
 echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
 
-if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+if %UpdateNeed% equ Yes (
     if !counter! lss 10 (
         echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до v!Actual_GoodbyeZapret_version! %COL%[37m
     ) else (
@@ -264,9 +280,9 @@ if "%choice%"=="RC" goto ReInstall_GZ
 if "%choice%"=="rc" goto ReInstall_GZ
 if "%choice%"=="ST" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
-if !Current_GoodbyeZapret_version! NEQ !Actual_GoodbyeZapret_version! (
-    if "%choice%"=="ud" goto Update
-    if "%choice%"=="UD" goto Update
+if %UpdateNeed% equ Yes (
+    if "%choice%"=="ud" goto Update_Mode_AutoSelector
+    if "%choice%"=="UD" goto Update_Mode_AutoSelector
 )
 
 
@@ -370,22 +386,22 @@ echo.
 echo   Состояние версий GoodbyeZapret
 echo   %COL%[90m==============================%COL%[37m
 if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
-    echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[91m^(Устарела^) %COL%[37m
+    echo   Версия GodbyeZapret: %COL%[92m%GoodbyeZapretVersion% %COL%[91m^(Устарела^) %COL%[37m
 ) else (
-    echo   Версия GodbyeZapret %COL%[92m%GoodbyeZapretVersion% %COL%[37m
+    echo   Версия GodbyeZapret: %COL%[92m%GoodbyeZapretVersion% %COL%[37m
 )
 
 
 if !Current_Winws_version! neq !Actual_Winws_version! (
-    echo   Версия Winws %COL%[92m%WinDivertVersion% %COL%[91m^(Устарела^) %COL%[37m
+    echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[91m^(Устарела^) %COL%[37m
 ) else (
-    echo   Версия Winws %COL%[92m%WinDivertVersion% %COL%[37m
+    echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[37m
 )
 
 if !Current_List_version! neq !Actual_List_version! (
-    echo   Версия Lists %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) %COL%[37m
+    echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) %COL%[37m
 ) else (
-    echo   Версия Lists %COL%[92m%ListsVersion% %COL%[37m
+    echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[37m
 )
 echo. 
 echo.
@@ -524,37 +540,16 @@ if %FileSize% LSS 15 (
 )
 goto :eof
 
-:GZ_First_launch
-md "%ASX-Directory%\Files\Resources\ASX_GoodbyeZapret" >nul 2>&1
 
-if exist "%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip" del /s /q /f "%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip" >nul 2>&1
-
-curl -g -L -# -o %ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip "https://github.com/ALFiX01/ASX-Hub/raw/main/Files/Utilities/ASX_GoodbyeZapret/ASX_GoodbyeZapret.zip" >nul 2>&1
-call:AZ_FileChecker
-if not "%CheckStatus%"=="Checked" (
-    echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
-    goto GoodbyeZapret_Menu
-)
-
-    if exist "%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip" (
-        chcp 850 >nul 2>&1 
-        powershell -NoProfile Expand-Archive '%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip' -DestinationPath '%ASX-Directory%\Files\Resources\ASX_GoodbyeZapret' >nul 2>&1
-        chcp 65001 >nul 2>&1
-        del "%ASX-Directory%\Files\Downloads\ASX_GoodbyeZapret.zip" >nul 2>&1
-    ) else (
-        echo Ошибка: Не удалось скачать файл ASX_GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.
-		echo [ERROR] %TIME% - Ошибка при загрузке ASX_GoodbyeZapret.zip >> "%ASX-Directory%\Files\Logs\%date%.txt"
-        goto GoBack 
-    )
-
-for %%i in ("DiscordFix.bat" "DiscordFix_Beeline-Rostelekom.bat" "DiscordFix_MGTS.bat" "UltimateFix.bat" "UltimateFix_ALT.bat" "UltimateFix_ALT_v2_MGTS.bat" "UltimateFix_ALT_v2_Beeline-Rostelekom.bat" "UltimateFix_ALT_v2.bat" "UltimateFix_ALT_Beeline-Rostelekom.bat" "UltimateFix_ALT_MGTS.bat" "UltimateFix_Beeline-Rostelekom.bat" "UltimateFix_MGTS.bat" "YoutubeFix.bat" "YoutubeFix_ALT.bat" "YoutubeFix_ALT_MGTS.bat" "YoutubeFix_MGTS.bat") do (
-        title ASX - GoodbyeZapret %%~i
-        curl -g -L -# -o "%ASX-Directory%\Files\Resources\ASX_GoodbyeZapret\%%~i" "https://github.com/ALFiX01/ASX-Hub/raw/refs/heads/main/Files/Utilities/ASX_GoodbyeZapret/GZ-configs/%%~i" >nul 2>&1
-)
-goto :eof
-
-:Update
+:Update_Mode_AutoSelector
 cls
+if %UpdateNeedLevel% GEQ 3 ( echo Обновление %UpdateNeedLevel% && Goto FullUpdate  )
+if %UpdateNeedLevel% LEQ 2 (  echo Обновление %UpdateNeedLevel% && Goto SelectiveUpdate )
+
+goto :RR
+
+:SelectiveUpdate
+
 title Отключение текущего конфига GoodbyeZapret
 net stop %serviceName% >nul 2>&1
 echo %COL%[90mУдаление службы %serviceName%...
@@ -574,7 +569,78 @@ if %errorlevel% equ 0 (
 )
 
 if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
+echo Загрузка файлов.
+curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
 
+call:AZ_FileChecker
+if not "%CheckStatus%"=="Checked" (
+    echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
+    pause
+    goto GoodbyeZapret_Menu
+)
+
+if exist "%parentDir%\GoodbyeZapret_latest.zip" (
+    start /wait "" "%~dp0Extract.bat"
+    timeout /t 1 >nul
+    for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
+
+    if "!Current_List_version!" neq "!Actual_List_version!" (
+        for %%i in ("%~dp0") do set "FullPath=%%~fi"
+        echo !FullPath!list\
+        pause
+        rd /s /q "!FullPath!list" >nul 2>&1
+        move /y "%parentDir%\GoodbyeZapret_latest\list" "!FullPath!" >nul 2>&1
+    )
+
+    del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
+) else (
+    echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
+    pause
+    goto GoodbyeZapret_Menu
+)
+
+
+title Настройка конфига GoodbyeZapret
+
+echo Восстанавливаю службу %serviceName% для файла %GoodbyeZapret_Config%...
+
+
+(
+sc create "%serviceName%" binPath= "cmd.exe /c \"%sourcePath%Configs\%GoodbyeZapret_Config%.bat\"" start= auto
+sc description %serviceName% "%GoodbyeZapret_Config%" ) >nul 2>&1
+sc start "%serviceName%" >nul 2>&1
+sc start "%serviceName%" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Служба %serviceName% успешно запущена %COL%[37m
+) else (
+    echo Ошибка при запуске службы %serviceName%
+)
+echo готово
+pause
+Goto RR
+
+
+:FullUpdate
+
+title Отключение текущего конфига GoodbyeZapret
+net stop %serviceName% >nul 2>&1
+echo %COL%[90mУдаление службы %serviceName%...
+sc delete %serviceName% >nul 2>&1
+echo Файл winws.exe в данный момент выполняется.
+taskkill /F /IM winws.exe >nul 2>&1
+net stop "WinDivert" >nul 2>&1
+sc delete "WinDivert" >nul 2>&1
+net stop "WinDivert14" >nul 2>&1
+sc delete "WinDivert14" >nul 2>&1
+echo Файл winws.exe был остановлен.
+
+reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Config >nul 2>&1
+if %errorlevel% equ 0 (
+   REM Ключ GoodbyeZapret_Version существует.
+   for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
+)
+
+if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
 
 curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
 
