@@ -21,8 +21,6 @@ set /a ListBatCount=BatCount+29
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 
-
-
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
 for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
 if /I "%WinLang%" NEQ "ru-RU" (
@@ -41,8 +39,10 @@ chcp 65001 >nul 2>&1
 
 :: Получаем текущую папку BAT-файла
 set currentDir=%~dp0
+
 :: Убираем последний слэш
 set currentDir=%currentDir:~0,-1%
+
 :: Переходим в родительскую папку
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 set parentDir=%parentDir:~0,-1%
@@ -543,8 +543,8 @@ goto :eof
 
 :Update_Mode_AutoSelector
 cls
-if %UpdateNeedLevel% GEQ 3 ( echo Обновление %UpdateNeedLevel% && Goto FullUpdate  )
-if %UpdateNeedLevel% LEQ 2 (  echo Обновление %UpdateNeedLevel% && Goto SelectiveUpdate )
+if %UpdateNeedLevel% GEQ 3 ( Goto FullUpdate )
+if %UpdateNeedLevel% LEQ 2 ( Goto FullUpdate )
 
 goto :RR
 
@@ -580,6 +580,7 @@ if not "%CheckStatus%"=="Checked" (
 )
 
 if exist "%parentDir%\GoodbyeZapret_latest.zip" (
+
     start /wait "" "%~dp0Extract.bat"
     timeout /t 1 >nul
     for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
