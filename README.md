@@ -1,6 +1,6 @@
 # GoodbyeZapret
 
-GoodbyeZapret is an open-source project designed to bypass DPI (Deep Packet Inspection) blocking, allowing users to access restricted content and websites. This tool is particularly useful in regions where internet censorship is prevalent, providing a means to circumvent these restrictions and promote freedom of information.
+GoodbyeZapret — это проект с открытым исходным кодом, разработанный для обхода блокировки DPI (Deep Packet Inspection), что позволяет пользователям получать доступ к ограниченному контенту и веб-сайтам. Этот инструмент особенно полезен в регионах, где распространена интернет-цензура, предоставляя средства для обхода этих ограничений и продвижения свободы информации.
 
 ---
 
