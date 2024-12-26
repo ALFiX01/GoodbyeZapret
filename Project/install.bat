@@ -80,7 +80,22 @@ echo.
 echo.
 echo.
 echo.
-echo  Вопрос 3: Что вы хотите разблокировать через GoodbyeZapret?
+echo  Вопрос 3: Хотите ли вы чтобы GoodbyeZapret запускался при запуске системы?
+echo.
+echo  %COL%[90m1^) Да%COL%[37m
+echo  %COL%[90m2^) Нет%COL%[37m
+echo.
+set /p choice="%DEL%        >: "
+
+if /i "%choice%"=="1" ( set "AutoStartQuastion=Y" )
+if /i "%choice%"=="2" ( set "AutoStartQuastion=N" )
+
+cls
+echo.
+echo.
+echo.
+echo.
+echo  Вопрос 4: Что вы хотите разблокировать через GoodbyeZapret?
 echo.
 echo  %COL%[90m1^) Только Youtube%COL%[37m
 echo  %COL%[90m2^) Только Discord%COL%[37m
@@ -97,7 +112,7 @@ echo.
 echo.
 echo.
 echo.
-echo  Вопросы закончились.
+echo  %COL%[90mВопросы закончились.
 echo  Подождите пока я выполню установку...
 echo.
 echo.
@@ -130,10 +145,10 @@ if %ProviderQuastion%=="N" (
 )
 
 echo.
-echo Установка завершена.
+echo  Установка завершена.
 echo.
 echo.
-echo Нажмите любую клавишу для автоматической настройки GoodbyeZapret...
+echo  %COL%[90mНажмите любую клавишу для настройки GoodbyeZapret...
 pause >nul
 
 
@@ -142,100 +157,109 @@ echo.
 echo.
 echo.
 echo.
-echo  Установка завершена.
+echo  %COL%[90mУстановка завершена.
 echo  Давай попробуем настроить GoodbyeZapret.
 echo.
 echo.
 
 
-if %ProviderQuastion%=="N" ( goto :Provider_Quastion_no )
-if %ProviderQuastion%=="Y" ( goto :Provider_Quastion_yes )
+
+REM if "%ProviderQuastion%" == "N" ( goto Provider_Quastion_no )
+REM if "%ProviderQuastion%" == "Y" ( goto Provider_Quastion_yes )
+
 
 REM если провайдера нет в списке
 :Provider_Quastion_no
-if %YT-Discord-Quastion%=="YT" (
-    start "" "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
+
+if "%YT-Discord-Quastion%" == "YT" (
+    call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
+    set "batFile=YoutubeFix.bat"
     start https://youtube.com
 
-    echo  Я Запустил тестовый конфиг и запустил Youtube.
+    echo  %COL%[90mЯ запустил тестовый конфиг и запустил Youtube.
     echo  Проверьте, что все работает.
     echo.
-    echo Работает ли Youtube?
+    echo  %COL%[93mРаботает ли Youtube?
     echo.
     echo  %COL%[90m1^) Да%COL%[37m
     echo  %COL%[90m2^) Нет%COL%[37m
     echo.
     set /p choice="%DEL%        >: "
 
-    if /i "%choice%"=="1" ( set "Working=Y" )
-    if /i "%choice%"=="2" ( 
-        start "" "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_ALT.bat"
+    if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+    if /i "%choice%"=="2" ( set "Working=N"
+        call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_ALT.bat"
+        set "batFile=YoutubeFix_ALT.bat"
         start https://youtube.com
         cls
         echo.
         echo.
         echo.
         echo.
-        echo  Я Запустил альтернативный конфиг и запустил Youtube.
+        echo  %COL%[90mЯ запустил альтернативный конфиг и запустил Youtube.
         echo  Проверьте, что все работает.
         echo.
-        echo Работает ли Youtube?
+        echo  %COL%[93mРаботает ли Youtube?
         echo.
         echo  %COL%[90m1^) Да%COL%[37m
         echo  %COL%[90m2^) Нет%COL%[37m
         echo.
         set /p choice="%DEL%        >: "
         
-        if /i "%choice%"=="1" ( set "Working=Y" )
-        if /i "%choice%"=="2" ( set "Working=N" )
+        if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+        if /i "%choice%"=="2" ( set "Working=N" && Goto Complete_NotWorking )
     )
 )
 
-
-if %YT-Discord-Quastion%=="DS" (
-    start "" "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix.bat"
+:DS-Fixing
+if "%YT-Discord-Quastion%" == "DS" (
+    call "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix.bat"
+    set "batFile=DiscordFix.bat"
     start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
     cls
     echo.
     echo.
     echo.
     echo.
-    echo  Я Запустил тестовый конфиг и запустил Discord.
+    echo  %COL%[90mЯ Запустил тестовый конфиг и запустил Discord.
     echo  Проверьте, что все работает.
     echo.
-    echo Работает ли Discord и Войсы в нем?
+    echo  %COL%[93mРаботает ли Discord и Войсы в нем?
     echo.
     echo  %COL%[90m1^) Да%COL%[37m
     echo  %COL%[90m2^) Нет%COL%[37m
     echo.
     set /p choice="%DEL%        >: "
 
-    if /i "%choice%"=="1" ( set "Working=Y" )
-    if /i "%choice%"=="2" ( 
-        start "" "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_ALT.bat"
+    if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+    if /i "%choice%"=="2" ( set "Working=N"
+        call "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_ALT.bat"
+        set "batFile=DiscordFix_ALT.bat"
         start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
         cls
         echo.
         echo.
         echo.
         echo.
-        echo  Я Запустил альтернативный конфиг и запустил Discord.
+        echo  %COL%[90mЯ Запустил альтернативный конфиг и запустил Discord.
         echo  Проверьте, что все работает.
         echo.
-        echo  А щас работает ли Discord и Войсы в нем?
+        echo  %COL%[93mА щас работает ли Discord и Войсы в нем?
         echo.
         echo  %COL%[90m1^) Да%COL%[37m
         echo  %COL%[90m2^) Нет%COL%[37m
         echo.
         set /p choice="%DEL%        >: "
         
-        if /i "%choice%"=="1" ( set "Working=Y" )
-        if /i "%choice%"=="2" ( set "Working=N" )
+        if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+        if /i "%choice%"=="2" ( set "Working=N" && Goto Complete_NotWorking )
     )
 )
 
-if %YT-Discord-Quastion%=="YTDS" (
-    start "" "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix.bat"
+:YTDS-Fixing
+if "%YT-Discord-Quastion%" == "YTDS" (
+    call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix.bat"
+    set "batFile=UltimateFix.bat"
     start https://youtube.com
     start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
     cls
@@ -243,229 +267,20 @@ if %YT-Discord-Quastion%=="YTDS" (
     echo.
     echo.
     echo.
-    echo  Я Запустил тестовый конфиг и запустил Youtube и Discord.
+    echo  %COL%[90mЯ Запустил тестовый конфиг и запустил Youtube и Discord.
     echo  Проверьте, что все работает.
     echo.
-    echo  Работает ли Youtube и Discord?
+    echo  %COL%[93mРаботает ли Youtube и Discord?
     echo.
     echo  %COL%[90m1^) Да%COL%[37m
     echo  %COL%[90m2^) Нет%COL%[37m
     echo.
     set /p choice="%DEL%        >: "
 
-    if /i "%choice%"=="1" ( set "Working=Y" )
-    if /i "%choice%"=="2" ( 
-        start "" "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT.bat"
-        start https://youtube.com
-        start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-        cls
-        echo.
-        echo.
-        echo.
-        echo.
-        echo  Я Запустил альтернативный конфиг и запустил Youtube и Discord.
-        echo  Проверьте, что все работает.
-        echo.
-        echo  А щас работает ли Youtube и Discord?
-        echo.
-        echo  %COL%[90m1^) Да%COL%[37m
-        echo  %COL%[90m2^) Нет%COL%[37m
-        echo.
-        set /p choice="%DEL%        >: "
-        
-        if /i "%choice%"=="1" ( set "Working=Y" )
-        if /i "%choice%"=="2" ( 
-            start "" "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_2.bat"
-            start https://youtube.com
-            start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-            cls
-            echo.
-            echo.
-            echo.
-            echo.
-            echo  Я Запустил другой альтернативный конфиг и запустил Youtube и Discord.
-            echo  Проверьте, что все работает.
-            echo.
-            echo  Теперь работает ли Youtube и Discord?
-            echo.
-            echo  %COL%[90m1^) Да%COL%[37m
-            echo  %COL%[90m2^) Нет%COL%[37m
-            echo.
-            set /p choice="%DEL%        >: "
-            
-            if /i "%choice%"=="1" ( set "Working=Y" )
-            if /i "%choice%"=="2" ( set "Working=N" )
-        )
-    )
-)
-
-REM если провайдер есть в списке
-:Provider_Quastion_yes
-if %ProviderName%=="MGTS" (
-    set "Discord=DiscordFix_MGTS.bat"
-    set "Youtube=YoutubeFix_MGTS.bat"
-    set "Ultimate=UltimateFix_MGTS.bat"
-    set "UltimateALT=UltimateFix_ALT_MGTS.bat"
-)
-
-if %ProviderName%=="Beeline" (
-    set "Discord=DiscordFix_Beeline-Rostelekom.bat"
-    set "Youtube=YoutubeFix.bat"
-    set "Ultimate=UltimateFix_Beeline-Rostelekom.bat"
-    set "UltimateALT=UltimateFix_ALT_Beeline-Rostelekom.bat"
-)
-
-if %ProviderName%=="Rostelecom" (
-    set "Discord=DiscordFix_Beeline-Rostelekom.bat"
-    set "Youtube=YoutubeFix.bat"
-    set "Ultimate=UltimateFix_Beeline-Rostelekom.bat"
-    set "UltimateALT=UltimateFix_ALT_Beeline-Rostelekom.bat"
-)
-
-
-
-if %YT-Discord-Quastion%=="YT" (
-    start "" "%SystemDrive%\GoodbyeZapret\Configs\%Youtube%"
-    start https://youtube.com
-
-    echo  Я Запустил тестовый конфиг и запустил Youtube.
-    echo  Проверьте, что все работает.
-    echo.
-    echo Работает ли Youtube?
-    echo.
-    echo  %COL%[90m1^) Да%COL%[37m
-    echo  %COL%[90m2^) Нет%COL%[37m
-    echo.
-    set /p choice="%DEL%        >: "
-
-    if /i "%choice%"=="1" ( set "Working=Y" )
-    if /i "%choice%"=="2" ( 
-        start "" "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
-        start https://youtube.com
-        cls
-        echo.
-        echo.
-        echo.
-        echo.
-        echo  Я Запустил альтернативный конфиг и запустил Youtube.
-        echo  Проверьте, что все работает.
-        echo.
-        echo Работает ли Youtube?
-        echo.
-        echo  %COL%[90m1^) Да%COL%[37m
-        echo  %COL%[90m2^) Нет%COL%[37m
-        echo.
-        set /p choice="%DEL%        >: "
-        
-        if /i "%choice%"=="1" ( set "Working=Y" )
-        if /i "%choice%"=="2" (
-            start "" "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_ALT.bat"
-            start https://youtube.com
-            cls
-            echo.
-            echo.
-            echo.
-            echo.
-            echo  Я Запустил второй альтернативный конфиг и запустил Youtube.
-            echo  Проверьте, что все работает.
-            echo.
-            echo Работает ли Youtube?
-            echo.
-            echo  %COL%[90m1^) Да%COL%[37m
-            echo  %COL%[90m2^) Нет%COL%[37m
-            echo.
-            set /p choice="%DEL%        >: "
-            
-            if /i "%choice%"=="1" ( set "Working=Y" )
-            if /i "%choice%"=="2" ( set "Working=N" )
-        )
-    )
-)
-
-if %YT-Discord-Quastion%=="DS" (
-    start "" "%SystemDrive%\GoodbyeZapret\Configs\%Discord%"
-    start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-    cls
-    echo.
-    echo.
-    echo.
-    echo.
-    echo  Я Запустил тестовый конфиг и запустил Discord.
-    echo  Проверьте, что все работает.
-    echo.
-    echo Работает ли Discord и Войсы в нем?
-    echo.
-    echo  %COL%[90m1^) Да%COL%[37m
-    echo  %COL%[90m2^) Нет%COL%[37m
-    echo.
-    set /p choice="%DEL%        >: "
-
-    if /i "%choice%"=="1" ( set "Working=Y" )
-    if /i "%choice%"=="2" ( 
-        start "" "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix.bat"
-        start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-        cls
-        echo.
-        echo.
-        echo.
-        echo.
-        echo  Я Запустил альтернативный конфиг и запустил Discord.
-        echo  Проверьте, что все работает.
-        echo.
-        echo  А щас работает ли Discord и Войсы в нем?
-        echo.
-        echo  %COL%[90m1^) Да%COL%[37m
-        echo  %COL%[90m2^) Нет%COL%[37m
-        echo.
-        set /p choice="%DEL%        >: "
-        
-        if /i "%choice%"=="1" ( set "Working=Y" )
-        if /i "%choice%"=="2" ( 
-            start "" "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_ALT.bat"
-            start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-            cls
-            echo.
-            echo.
-            echo.
-            echo.
-            echo  Я Запустил второй альтернативный конфиг и запустил Discord.
-            echo  Проверьте, что все работает.
-            echo.
-            echo  А щас работает ли Discord и Войсы в нем?
-            echo.
-            echo  %COL%[90m1^) Да%COL%[37m
-            echo  %COL%[90m2^) Нет%COL%[37m
-            echo.
-            set /p choice="%DEL%        >: "
-            
-            if /i "%choice%"=="1" ( set "Working=Y" )
-            if /i "%choice%"=="2" ( set "Working=N" )
-        )
-    )
-)
-
-if %YT-Discord-Quastion%=="YTDS" (
-    start "" "%SystemDrive%\GoodbyeZapret\Configs\%Ultimate%"
-    start https://youtube.com
-    start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-    cls
-    echo.
-    echo.
-    echo.
-    echo.
-    echo  Я Запустил тестовый конфиг и запустил Youtube и Discord.
-    echo  Проверьте, что все работает.
-    echo.
-    echo  Работает ли Youtube и Discord?
-    echo.
-    echo  %COL%[90m1^) Да%COL%[37m
-    echo  %COL%[90m2^) Нет%COL%[37m
-    echo.
-    set /p choice="%DEL%        >: "
-
-    if /i "%choice%"=="1" ( set "Working=Y" )
-    if /i "%choice%"=="2" ( 
-        start "" "%SystemDrive%\GoodbyeZapret\Configs\%UltimateALT%"
+    if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+    if /i "%choice%"=="2" ( set "Working=N"
+        call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT.bat"
+        set "batFile=UltimateFix_ALT.bat"
         start https://youtube.com
         start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
         cls
@@ -476,16 +291,17 @@ if %YT-Discord-Quastion%=="YTDS" (
         echo  Я Запустил альтернативный конфиг и запустил Youtube и Discord.
         echo  Проверьте, что все работает.
         echo.
-        echo  А щас работает ли Youtube и Discord?
+        echo  %COL%[93mА щас работает ли Youtube и Discord?
         echo.
         echo  %COL%[90m1^) Да%COL%[37m
         echo  %COL%[90m2^) Нет%COL%[37m
         echo.
         set /p choice="%DEL%        >: "
         
-        if /i "%choice%"=="1" ( set "Working=Y" )
-        if /i "%choice%"=="2" ( 
-            start "" "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT.bat"
+        if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+        if /i "%choice%"=="2" ( set "Working=N"
+            call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_2.bat"
+            set "batFile=UltimateFix_ALT_2.bat"
             start https://youtube.com
             start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
             cls
@@ -496,53 +312,71 @@ if %YT-Discord-Quastion%=="YTDS" (
             echo  Я Запустил другой альтернативный конфиг и запустил Youtube и Discord.
             echo  Проверьте, что все работает.
             echo.
-            echo  Теперь работает ли Youtube и Discord?
+            echo  %COL%[93mТеперь работает ли Youtube и Discord?
             echo.
             echo  %COL%[90m1^) Да%COL%[37m
             echo  %COL%[90m2^) Нет%COL%[37m
             echo.
             set /p choice="%DEL%        >: "
             
-            if /i "%choice%"=="1" ( set "Working=Y" )
-            if /i "%choice%"=="2" ( 
-                start "" "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_2.bat"
-                start https://youtube.com
-                start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
-                cls
-                echo.
-                echo.
-                echo.
-                echo.
-                echo  Я Запустил последний альтернативный конфиг и запустил Youtube и Discord.
-                echo  Проверьте, что все работает.
-                echo.
-                echo  Теперь работает ли Youtube и Discord?
-                echo.
-                echo  %COL%[90m1^) Да%COL%[37m
-                echo  %COL%[90m2^) Нет%COL%[37m
-                echo.
-                set /p choice="%DEL%        >: "
-                
-                if /i "%choice%"=="1" ( set "Working=Y" )
-                if /i "%choice%"=="2" ( set "Working=N" )
-            )
+            if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
+            if /i "%choice%"=="2" ( set "Working=N" && Goto Complete_NotWorking )
         )
     )
 )
 
 
-if %Working%=="Y" (
-    cls
-    echo.
-    echo.
-    echo.
-    echo.
-    echo  Поздравляю! GoodbyeZapret настроен и работает.
-    echo.
-    echo  Если у вас возникли проблемы, пожалуйста, обратитесь к разработчику.
-    echo.
-    echo.
-    echo  Нажмите любую клавишу для завершения...
-    pause >nul
-    exit
+
+:Complete_Working
+if "%AutoStartQuastion%" == "Y" (
+     cls
+     echo.
+     echo Устанавливаю службу GoodbyeZapret для файла %batFile%-%batFile:~0,-4%...
+     echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
+     pause >nul 2>&1
+     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%GoodbyeZapret\Configs\%batFile%" start= auto
+     reg add "HKCU\Software\ASX\Info" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
+     sc description GoodbyeZapret "%batFile:~0,-4%"
+     sc start "GoodbyeZapret" >nul
+     if %errorlevel% equ 0 (
+         echo Запускаю службу GoodbyeZapret...%COL%[92m
+         sc start "GoodbyeZapret" >nul 2>&1
+         if %errorlevel% equ 0 (
+             echo Служба GoodbyeZapret успешно запущена %COL%[37m
+         ) else (
+             echo Ошибка при запуске службы
+         )
+     ) else (
+         echo Ошибка при установке службы. Возможно вы забыли перезагрузить пк.
+     )
 )
+pause
+cls
+echo.
+echo.
+echo.
+echo.
+echo  %COL%[92mПоздравляю. GoodbyeZapret настроен и работает.%COL%[37m
+echo.
+echo  Если у вас возникли проблемы, пожалуйста, обратитесь к разработчику.
+echo.
+echo.
+echo  %COL%[90mНажмите любую клавишу для завершения...
+pause >nul
+exit
+
+
+:Complete_NotWorking
+cls
+echo.
+echo.
+echo.
+echo.
+echo  %COL%[91mК сожалению, мои попытки настроить вам GoodbyeZapret не увенчались успехом.%COL%[37m
+echo.
+echo  Пожалуйста, обратитесь к разработчику.
+echo.
+echo.
+echo  %COL%[90mНажмите любую клавишу для завершения...
+pause >nul
+exit
