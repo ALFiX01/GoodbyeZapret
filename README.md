@@ -1,8 +1,11 @@
 # GoodbyeZapret
 
-GoodbyeZapret is an open-source project designed to bypass DPI (Deep Packet Inspection) blocking, allowing users to access restricted content and websites. This tool is particularly useful in regions where internet censorship is prevalent, providing a means to circumvent these restrictions and promote freedom of information.
+GoodbyeZapret — это проект с открытым исходным кодом, разработанный для обхода блокировки DPI (Deep Packet Inspection), что позволяет пользователям получать доступ к ограниченному контенту и веб-сайтам. Этот инструмент особенно полезен в регионах, где распространена интернет-цензура, предоставляя средства для обхода этих ограничений и продвижения свободы информации.
 
 ---
+
+> [!caution]  
+> **Многие антивирусники** сейчас распознают ***HackTool/RiskTool*** и ***WinDivert*** как угрозы. Это ожидаемая реакция, поскольку программа вмешивается в сетевые пакеты. Что можно сделать? Скомпилировать исполняемые файлы самостоятельно из исходного кода, довериться уже готовым сборкам или отказаться от использования вовсе.
 
 ## Инструкция
 
@@ -13,12 +16,13 @@ GoodbyeZapret is an open-source project designed to bypass DPI (Deep Packet Insp
    - Распакуйте архив в удобное место на компьютере.
 
 3. **Настройка и запуск**
+   - Откройте распакованную папку.
    - Откройте папку **Configs**.
    - Для доступа к YouTube и Discord:
      - Запустите `UltimateFix.bat`.
-     - Если не сработало, попробуйте `UltimateFix_ALF.bat` или `UltimateFix_ALT_2.bat`.
+     - Если не сработало, попробуйте `UltimateFix_ALT.bat` или `UltimateFix_ALT_2.bat`.
    - Для доступа только к YouTube или Discord:
-     - Запустите соответствующий `.bat` файл.
+     - Запустите `.bat` файл с именем, содержащим `DiscordFix` или `YoutubeFix`, в зависимости от требуемого сервиса.  
 
 4. **Автозапуск**
    - Если вам нужно настроить автозапуск, воспользуйтесь `Launcher.bat`, который лежит в папке проекта, и следуйте инструкциям в файле.
@@ -28,5 +32,5 @@ GoodbyeZapret is an open-source project designed to bypass DPI (Deep Packet Insp
 ## Примечания
 
 - Требуются права администратора для запуска `.bat` файлов.
-- Проверьте настройки антивируса или брандмауэра при возникновении проблем.
-- Подробные инструкции и помощь в разделе [Issues](https://github.com/ALFiX01/GoodbyeZapret/issues).
+- Отключите антивирус или брандмауэра при возникновении проблем.
+
