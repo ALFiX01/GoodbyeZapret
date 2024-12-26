@@ -2,12 +2,26 @@
 :: Copyright (C) 2024 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
+:: Запуск от имени администратора
 reg add HKLM /F >nul 2>&1
 if %errorlevel% neq 0 (
     start "" /wait /I /min powershell -NoProfile -Command "start -verb runas '%~s0'" && exit /b
+    exit /b
 )
 
 setlocal EnableDelayedExpansion
+
+:: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
+for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
+if /I "%WinLang%" NEQ "ru-RU" (
+    cls
+    echo.
+    echo   Error 01: Invalid interface language.
+    timeout /t 4 >nul
+    exit /b
+)
+
+:RR
 
 set "BatCount=0"
 set "sourcePath=%~dp0"
@@ -20,21 +34,9 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
 set /a ListBatCount=BatCount+29
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
-
-:: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
-for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
-if /I "%WinLang%" NEQ "ru-RU" (
-    cls
-    echo  Error 01: Invalid interface language.
-    timeout /t 3 >nul
-    exit /b
-)
-
-:RR
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
-:: Запуск от имени администратора
 chcp 65001 >nul 2>&1
 
 :: Получаем текущую папку BAT-файла
@@ -76,13 +78,13 @@ for /f "usebackq delims=" %%a in ("%sourcePath%lists\version.txt") do set "Curre
 :: Загрузка нового файла Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
+if errorlevel 1 (
+    echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
+    
+)
 call:AZ_FileChecker_2
 if not "%CheckStatus%"=="Checked" (
     echo Ошибка: Не удалось провести проверку файла
-    
-)
-if errorlevel 1 (
-    echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
     
 )
 
@@ -237,26 +239,32 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
 )
 set /a "lastChoice=counter-1"
 
-
+echo                     %COL%[90m===================================================
 if !counter! lss 10 (
+    echo.
     echo.
     echo                      %COL%[36mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
 ) else (
     echo.
+    echo.
     echo                     %COL%[36mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
 )
 if !counter! lss 10 (
-    echo                       %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
+    echo                      %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
 ) else (
-     echo                     %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
+    echo                     %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
 )
 if !counter! lss 10 (
-    echo                       %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
+    echo                      %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 ) else (
-     echo                     %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
+    echo                     %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 )
 
-echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
+if !counter! lss 10 (
+    echo                  %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
+) else (
+    echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
+)
 
 if %UpdateNeed% equ Yes (
     if !counter! lss 10 (
@@ -281,8 +289,8 @@ if "%choice%"=="rc" goto ReInstall_GZ
 if "%choice%"=="ST" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
 if %UpdateNeed% equ Yes (
-    if "%choice%"=="ud" goto Update_Mode_AutoSelector
-    if "%choice%"=="UD" goto Update_Mode_AutoSelector
+    if "%choice%"=="ud" goto FullUpdate
+    if "%choice%"=="UD" goto FullUpdate
 )
 
 
@@ -336,24 +344,29 @@ if not defined batFile (
         echo Ошибка при остановке службы или служба уже остановлена.
     )
     echo Удаление службы %serviceName%...
-    sc delete %serviceName% >nul 2>&1
+    sc query "%serviceName%" >nul 2>&1
     if %errorlevel% equ 0 (
-    echo Служба %serviceName% успешно удалена
-    tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe">NUL
-    if "%ERRORLEVEL%"=="0" (
-      echo Файл winws.exe в данный момент выполняется.
-      taskkill /F /IM winws.exe >nul 2>&1
-      net stop "WinDivert" >nul 2>&1
-      sc delete "WinDivert" >nul 2>&1
-      net stop "WinDivert14" >nul 2>&1
-      sc delete "WinDivert14" >nul 2>&1
-      echo Файл winws.exe был остановлен.
+        sc delete "%serviceName%" >nul 2>&1
+        if %errorlevel% equ 0 (
+            echo Служба %serviceName% успешно удалена
+            tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe">NUL
+            if "%ERRORLEVEL%"=="0" (
+                echo Файл winws.exe в данный момент выполняется.
+                taskkill /F /IM winws.exe >nul 2>&1
+                net stop "WinDivert" >nul 2>&1
+                sc delete "WinDivert" >nul 2>&1
+                net stop "WinDivert14" >nul 2>&1
+                sc delete "WinDivert14" >nul 2>&1
+                echo Файл winws.exe был остановлен.
+            ) else (
+                echo Файл winws.exe в данный момент не выполняется.
+            )
+            echo %COL%[92mУдаление успешно завершено. Перезагрузите пк.%COL%[37m
+        ) else (
+            echo Ошибка при удалении службы
+        )
     ) else (
-      echo Файл winws.exe в данный момент не выполняется.
-    )
-        echo %COL%[92mУдаление успешно завершено. Перезагрузите пк.%COL%[37m
-    ) else (
-        echo Ошибка при удалении службы
+        echo Служба %serviceName% не найдена
     )
     reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul 2>&1
 goto :end
@@ -369,7 +382,7 @@ cls
 echo.
 echo   %COL%[37mСостояние служб GoodbyeZapret
 echo   %COL%[90m=============================%COL%[37m
-sc query %serviceName% >nul 2>&1
+sc query "%serviceName%" >nul 2>&1
 if %errorlevel% equ 0 (
     echo   Служба %serviceName%: %COL%[92mУстановлена и работает%COL%[37m
 ) else (
@@ -444,6 +457,11 @@ if not "%CheckStatus%"=="Checked" (
 )
     if exist "%parentDir%\GoodbyeZapret_latest.zip" (
         start /wait "" "%~dp0Extract.bat"
+            if errorlevel 1 (
+                echo     %COL%[91m   Ошибка: Не удалось распаковать файл%COL%[37m
+                pause
+                goto GoodbyeZapret_Menu
+            )
         timeout /t 1 >nul
         for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\version.txt") do set "GoodbyeZapret_version_newfile=%%a"
         ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_%GoodbyeZapret_version_newfile%"
@@ -541,86 +559,6 @@ if %FileSize% LSS 15 (
 goto :eof
 
 
-:Update_Mode_AutoSelector
-cls
-if %UpdateNeedLevel% GEQ 3 ( Goto FullUpdate )
-if %UpdateNeedLevel% LEQ 2 ( Goto FullUpdate )
-
-goto :RR
-
-:SelectiveUpdate
-
-title Отключение текущего конфига GoodbyeZapret
-net stop %serviceName% >nul 2>&1
-echo %COL%[90mУдаление службы %serviceName%...
-sc delete %serviceName% >nul 2>&1
-echo Файл winws.exe в данный момент выполняется.
-taskkill /F /IM winws.exe >nul 2>&1
-net stop "WinDivert" >nul 2>&1
-sc delete "WinDivert" >nul 2>&1
-net stop "WinDivert14" >nul 2>&1
-sc delete "WinDivert14" >nul 2>&1
-echo Файл winws.exe был остановлен.
-
-reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Config >nul 2>&1
-if %errorlevel% equ 0 (
-   REM Ключ GoodbyeZapret_Version существует.
-   for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
-)
-
-if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-echo Загрузка файлов.
-curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
-
-call:AZ_FileChecker
-if not "%CheckStatus%"=="Checked" (
-    echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
-    pause
-    goto GoodbyeZapret_Menu
-)
-
-if exist "%parentDir%\GoodbyeZapret_latest.zip" (
-
-    start /wait "" "%~dp0Extract.bat"
-    timeout /t 1 >nul
-    for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
-
-    if "!Current_List_version!" neq "!Actual_List_version!" (
-        for %%i in ("%~dp0") do set "FullPath=%%~fi"
-        echo !FullPath!list\
-        pause
-        rd /s /q "!FullPath!list" >nul 2>&1
-        move /y "%parentDir%\GoodbyeZapret_latest\list" "!FullPath!" >nul 2>&1
-    )
-
-    del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-) else (
-    echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
-    pause
-    goto GoodbyeZapret_Menu
-)
-
-
-title Настройка конфига GoodbyeZapret
-
-echo Восстанавливаю службу %serviceName% для файла %GoodbyeZapret_Config%...
-
-
-(
-sc create "%serviceName%" binPath= "cmd.exe /c \"%sourcePath%Configs\%GoodbyeZapret_Config%.bat\"" start= auto
-sc description %serviceName% "%GoodbyeZapret_Config%" ) >nul 2>&1
-sc start "%serviceName%" >nul 2>&1
-sc start "%serviceName%" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo Служба %serviceName% успешно запущена %COL%[37m
-) else (
-    echo Ошибка при запуске службы %serviceName%
-)
-echo готово
-pause
-Goto RR
-
-
 :FullUpdate
 
 title Отключение текущего конфига GoodbyeZapret
@@ -653,6 +591,11 @@ if not "%CheckStatus%"=="Checked" (
 )
     if exist "%parentDir%\GoodbyeZapret_latest.zip" (
         start /wait "" "%~dp0Extract.bat"
+            if errorlevel 1 (
+                echo     %COL%[91m   Ошибка: Не удалось распаковать файл%COL%[37m
+                pause
+                goto GoodbyeZapret_Menu
+            )
         timeout /t 1 >nul
         for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
         ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_!GoodbyeZapret_version_newfile!"
