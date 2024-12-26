@@ -41,10 +41,13 @@ youtubecreators.com
 youtubeeducation.com
 youtubeembeddedplayer.googleapis.com
 youtubei.googleapis.com
+ytimg.l.google.com
+jnn-pa.googleapis.com
 youtubekids.com
 yt-video-upload.l.google.com
 yt.be
 yt3.ggpht.com
+yt4.ggpht.com
 ytimg.com
 10tv.app
 7tv.app
