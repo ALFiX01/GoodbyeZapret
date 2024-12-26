@@ -334,7 +334,7 @@ if "%AutoStartQuastion%" == "Y" (
      echo Устанавливаю службу GoodbyeZapret для файла %batFile%-%batFile:~0,-4%...
      echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
      pause >nul 2>&1
-     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%GoodbyeZapret\Configs\%batFile%" start= auto
+     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      reg add "HKCU\Software\ASX\Info" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
      sc description GoodbyeZapret "%batFile:~0,-4%"
      sc start "GoodbyeZapret" >nul
@@ -357,6 +357,7 @@ echo.
 echo.
 echo.
 echo  %COL%[92mПоздравляю. GoodbyeZapret настроен и работает.%COL%[37m
+echo  %COL%[93mПерезагрузите ПК, чтобы служба GoodbyeZapret заработала.%COL%[37m
 echo.
 echo  Если у вас возникли проблемы, пожалуйста, обратитесь к разработчику.
 echo.
