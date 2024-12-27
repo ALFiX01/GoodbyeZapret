@@ -43,9 +43,14 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
+set "UpdaterVersion=0.1"
+
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
+echo.
+echo Updater version: %UpdaterVersion%
+echo.
 timeout /t 4 >nul 2>&1
 title Отключение текущего конфига GoodbyeZapret
 net stop GoodbyeZapret >nul 2>&1
@@ -67,6 +72,15 @@ if %errorlevel% equ 0 (
 
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
 
+for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
+if %FileSize% LSS 100 (
+    echo ERROR - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^)
+    pause
+    del /Q "%TEMP%\GoodbyeZapret.zip"
+    exit
+)
+
+
 if exist "%SystemDrive%\GoodbyeZapret" (
   rd /s /q "%SystemDrive%\GoodbyeZapret" >nul 2>&1
 )
@@ -81,8 +95,6 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-echo GoodbyeZapret_Config-%GoodbyeZapret_Config%
-pause
 
 sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
 sc description GoodbyeZapret "%GoodbyeZapret_Config%" ) >nul 2>&1
@@ -95,4 +107,5 @@ if %errorlevel% equ 0 (
 )
 start "" "%SystemDrive%\GoodbyeZapret\Launcher.bat"
 echo готово
+pause
 

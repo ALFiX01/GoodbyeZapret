@@ -75,10 +75,10 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
-for /f "usebackq delims=" %%a in ("%sourcePath%version.txt") do set "Current_GoodbyeZapret_version=%%a"
-for /f "usebackq delims=" %%a in ("%sourcePath%bin\version.txt") do set "Current_Winws_version=%%a"
-for /f "usebackq delims=" %%a in ("%sourcePath%lists\version.txt") do set "Current_List_version=%%a"
 
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\version.txt") do set "Current_GoodbyeZapret_version=%%a"
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
 
 
 :: Загрузка нового файла Updater.bat
@@ -88,11 +88,19 @@ if errorlevel 1 (
     echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
     
 )
-call:AZ_FileChecker_2
-if not "%CheckStatus%"=="Checked" (
-    echo Ошибка: Не удалось провести проверку файла
-    
+
+
+set FileSize=0
+for %%I in ("%TEMP%\GZ_Updater.bat") do set FileSize=%%~zI
+if %FileSize% LSS 15 (
+    set "CheckStatus=NoChecked"
+    REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
+    echo ERROR - Файл GZ_Updater.bat поврежден или URL не доступен ^(Size %FileSize%^)
+    echo.
+    del /Q "%TEMP%\GZ_Updater.bat"
+    pause
 )
+
 
 :: Выполнение загруженного файла Updater.bat
 call "%TEMP%\GZ_Updater.bat" >nul 2>&1
@@ -429,216 +437,13 @@ goto GZ_loading_procces
 
 
 :ReInstall_GZ
-cls
-title Отключение текущего конфига GoodbyeZapret
-net stop GoodbyeZapret >nul 2>&1
-echo %COL%[90mУдаление службы GoodbyeZapret...
-sc delete GoodbyeZapret >nul 2>&1
-echo Файл winws.exe в данный момент выполняется.
-taskkill /F /IM winws.exe >nul 2>&1
-net stop "WinDivert" >nul 2>&1
-sc delete "WinDivert" >nul 2>&1
-net stop "WinDivert14" >nul 2>&1
-sc delete "WinDivert14" >nul 2>&1
-echo Файл winws.exe был остановлен.
-
-title Переустановка конфигов GoodbyeZapret
-
-reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Config >nul 2>&1
-if %errorlevel% equ 0 (
-   REM Ключ GoodbyeZapret_Version существует.
-   for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
-)
-
-if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-
-
-curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
-
-call:AZ_FileChecker
-if not "%CheckStatus%"=="Checked" (
-    echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
-    pause
-    goto GoodbyeZapret_Menu
-)
-    if exist "%parentDir%\GoodbyeZapret_latest.zip" (
-        start /wait "" "%~dp0Extract.bat"
-            if errorlevel 1 (
-                echo     %COL%[91m   Ошибка: Не удалось распаковать файл%COL%[37m
-                pause
-                goto GoodbyeZapret_Menu
-            )
-        timeout /t 1 >nul
-        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\version.txt") do set "GoodbyeZapret_version_newfile=%%a"
-        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_%GoodbyeZapret_version_newfile%"
-        del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-        start "" "%parentDir%\GoodbyeZapret_%GoodbyeZapret_version_newfile%"
-    ) else (
-        echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
-        pause
-        goto GoodbyeZapret_Menu
-    )
-
-title Настройка конфига GoodbyeZapret
-
-echo Устанавливаю службу GoodbyeZapret для файла %GoodbyeZapret_Config%...
-
-(
-sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
-sc description GoodbyeZapret "%GoodbyeZapret_Config%" ) >nul 2>&1
-sc start "GoodbyeZapret" >nul 2>&1
-sc start "GoodbyeZapret" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo Служба GoodbyeZapret успешно запущена %COL%[37m
-) else (
-    echo Ошибка при запуске службы GoodbyeZapret
-)
-goto GoodbyeZapret_Menu
-
-
-:AZ_FileChecker
-set "FileSize=0"
-set "CheckStatus=Checked"
-REM set "file=%ASX-Directory%\Files\Downloads\%FileName%"
-set "Check_FilePatch=%parentDir%\GoodbyeZapret_latest.zip"
-set "Check_FileName=GoodbyeZapret_latest.zip"
-
-for %%I in ("%Check_FilePatch%") do set FileSize=%%~zI
-
-if not exist "%Check_FilePatch%" ( 
-    set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo ERROR - Не удалось провести проверку файла - %Check_FileName% не найден
-    goto GoBack
-)
-
-if not defined FileSize (
-    set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo ERROR - Не удалось провести проверку файла %Check_FileName%
-    echo.
-    del /Q "%Check_FilePatch%"
-    goto GoBack
-)
-if %FileSize% LSS 100 (
-    set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
-    echo ERROR - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^)
-    echo.
-    del /Q "%Check_FilePatch%"
-    goto GoBack
-)
-goto :eof
-
-:AZ_FileChecker_2
-set "FileSize=0"
-set "CheckStatus=Checked"
-REM set "file=%ASX-Directory%\Files\Downloads\%FileName%"
-set "Check_FilePatch=%TEMP%\GZ_Updater.bat"
-set "Check_FileName=GZ_Updater.bat"
-
-for %%I in ("%Check_FilePatch%") do set FileSize=%%~zI
-
-if not exist "%Check_FilePatch%" ( 
-    set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo ERROR - Не удалось провести проверку файла - %Check_FileName% не найден
-    goto GoBack
-)
-
-if not defined FileSize (
-    set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Не удалось провести проверку файла%COL%[37m
-    echo ERROR - Не удалось провести проверку файла %Check_FileName%
-    echo.
-    del /Q "%Check_FilePatch%"
-    goto GoBack
-)
-if %FileSize% LSS 15 (
-    set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
-    echo ERROR - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^)
-    echo.
-    del /Q "%Check_FilePatch%"
-    goto GoBack
-)
-goto :eof
+start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
+exit
 
 
 :FullUpdate
-
-title Отключение текущего конфига GoodbyeZapret
-net stop GoodbyeZapret >nul 2>&1
-echo %COL%[90mУдаление службы GoodbyeZapret...
-sc delete GoodbyeZapret >nul 2>&1
-echo Файл winws.exe в данный момент выполняется.
-taskkill /F /IM winws.exe >nul 2>&1
-net stop "WinDivert" >nul 2>&1
-sc delete "WinDivert" >nul 2>&1
-net stop "WinDivert14" >nul 2>&1
-sc delete "WinDivert14" >nul 2>&1
-echo Файл winws.exe был остановлен.
-
-reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Config >nul 2>&1
-if %errorlevel% equ 0 (
-   REM Ключ GoodbyeZapret_Version существует.
-   for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
-)
-
-if exist "%parentDir%\GoodbyeZapret_latest.zip" del /s /q /f "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-
-curl -g -L -# -o %parentDir%\GoodbyeZapret_latest.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
-
-call:AZ_FileChecker
-if not "%CheckStatus%"=="Checked" (
-    echo     %COL%[91m   Ошибка: Не удалось провести проверку файла%COL%[37m
-    pause
-    goto GoodbyeZapret_Menu
-)
-    if exist "%parentDir%\GoodbyeZapret_latest.zip" (
-        start /wait "" "%~dp0Extract.bat"
-            if errorlevel 1 (
-                echo     %COL%[91m   Ошибка: Не удалось распаковать файл%COL%[37m
-                pause
-                goto GoodbyeZapret_Menu
-            )
-
-
-
-
-
-
-            
-        timeout /t 1 >nul
-        for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
-        ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_!GoodbyeZapret_version_newfile!"
-        del "%parentDir%\GoodbyeZapret_latest.zip" >nul 2>&1
-        start "" "%parentDir%\GoodbyeZapret_!GoodbyeZapret_version_newfile!"
-    ) else (
-        echo     %COL%[91m   Ошибка: Не удалось скачать файл GoodbyeZapret.zip. Проверьте подключение к интернету и доступность URL.%COL%[37m
-        pause
-        goto GoodbyeZapret_Menu
-    )
-
-title Настройка конфига GoodbyeZapret
-
-echo Восстанавливаю службу GoodbyeZapret для файла %GoodbyeZapret_Config%...
-
-(
-sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%parentDir%\GoodbyeZapret_!GoodbyeZapret_version_newfile!\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
-sc description GoodbyeZapret "%GoodbyeZapret_Config%" ) >nul 2>&1
-sc start "GoodbyeZapret" >nul 2>&1
-sc start "GoodbyeZapret" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo Служба GoodbyeZapret успешно запущена %COL%[37m
-) else (
-    echo Возможно при запуске службы GoodbyeZapret произошла ошибка
-)
-start "" "%parentDir%\GoodbyeZapret_!GoodbyeZapret_version_newfile!\Launcher.bat"
-echo готово
-pause
+start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 exit
-
 
 
 :install_assistant
