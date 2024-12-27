@@ -1,3 +1,36 @@
+::[Bat To Exe Converter]
+::
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCuDJOl7RaKA9quH/eQy7NtmtmmtA9RLEVpWEpCtilLtyFVrAoivE9hTwlDmSZ8u2XRmj9kJAhhQMxOlakInqnxHoWCXPtGZoUHoSUfp
+::YAwzuBVtJxjWCl3EqQJgSA==
+::ZR4luwNxJguZRRnk
+::Yhs/ulQjdF65
+::cxAkpRVqdFKZSDk=
+::cBs/ulQjdF65
+::ZR41oxFsdFKZSDk=
+::eBoioBt6dFKZSDk=
+::cRo6pxp7LAbNWATEpCI=
+::egkzugNsPRvcWATEpCI=
+::dAsiuh18IRvcCxnZtBJQ
+::cRYluBh/LU+EWAnk
+::YxY4rhs+aU+JeA==
+::cxY6rQJ7JhzQF1fEqQJQ
+::ZQ05rAF9IBncCkqN+0xwdVs0
+::ZQ05rAF9IAHYFVzEqQJQ
+::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
+::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
+::cRolqwZ3JBvQF1fEqQJQ
+::dhA7uBVwLU+EWDk=
+::YQ03rBFzNR3SWATElA==
+::dhAmsQZ3MwfNWATElA==
+::ZQ0/vhVqMQ3MEVWAtB9wSA==
+::Zg8zqx1/OA3MEVWAtB9wSA==
+::dhA7pRFwIByZRRnk
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCdRcAG/bwM45GNDpXCAJYmZqwqB
+::YB416Ek+ZW8=
+::
+::
+::978f952a14a936cc963da21a135fa983
 @echo off
 :: Copyright (C) 2024 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
@@ -112,8 +145,8 @@ echo.
 echo.
 echo.
 echo.
-echo  %COL%[90mВопросы закончились.
-echo  Подождите пока я выполню установку...
+echo  %COL%[90mВопросы закончились.%COL%[90m
+echo  %COL%[93mПодождите пока я выполню установку...
 echo.
 echo.
 
@@ -145,7 +178,7 @@ if %ProviderQuastion%=="N" (
 )
 
 echo.
-echo  Установка завершена.
+echo  %COL%[92mУстановка завершена.
 echo.
 echo.
 echo  %COL%[90mНажмите любую клавишу для настройки GoodbyeZapret...
@@ -158,7 +191,7 @@ echo.
 echo.
 echo.
 echo  %COL%[90mУстановка завершена.
-echo  Давай попробуем настроить GoodbyeZapret.
+echo  Давай попробуем настроить GoodbyeZapret...
 echo.
 echo.
 
@@ -175,7 +208,11 @@ if "%YT-Discord-Quastion%" == "YT" (
     call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
     set "batFile=YoutubeFix.bat"
     start https://youtube.com
-
+    cls
+    echo.
+    echo.
+    echo.
+    echo.
     echo  %COL%[90mЯ запустил тестовый конфиг и запустил Youtube.
     echo  Проверьте, что все работает.
     echo.
@@ -330,6 +367,8 @@ if "%YT-Discord-Quastion%" == "YTDS" (
 :Complete_Working
 if "%AutoStartQuastion%" == "Y" (
      cls
+     echo.
+     echo.
      echo.
      echo Устанавливаю службу GoodbyeZapret для файла %batFile%-%batFile:~0,-4%...
      echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
