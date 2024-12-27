@@ -484,7 +484,7 @@ title Настройка конфига GoodbyeZapret
 echo Устанавливаю службу GoodbyeZapret для файла %GoodbyeZapret_Config%...
 
 (
-sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
+sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
 sc description GoodbyeZapret "%GoodbyeZapret_Config%" ) >nul 2>&1
 sc start "GoodbyeZapret" >nul 2>&1
 sc start "GoodbyeZapret" >nul 2>&1
@@ -602,6 +602,13 @@ if not "%CheckStatus%"=="Checked" (
                 pause
                 goto GoodbyeZapret_Menu
             )
+
+
+
+
+
+
+            
         timeout /t 1 >nul
         for /f "usebackq delims=" %%a in ("%parentDir%\GoodbyeZapret_latest\Version.txt") do set "GoodbyeZapret_version_newfile=%%a"
         ren "%parentDir%\GoodbyeZapret_latest" "GoodbyeZapret_!GoodbyeZapret_version_newfile!"
