@@ -1,5 +1,6 @@
 @echo off
 
+chcp 65001 >nul 2>&1
 :: Запуск от имени администратора
 reg add HKLM /F >nul 2>&1
 if %errorlevel% neq 0 (
@@ -7,6 +8,7 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+timeout /t 4 >nul 2>&1
 title Отключение текущего конфига GoodbyeZapret
 net stop GoodbyeZapret >nul 2>&1
 echo %COL%[90mУдаление службы GoodbyeZapret...
