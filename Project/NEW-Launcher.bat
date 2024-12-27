@@ -1,3 +1,36 @@
+::[Bat To Exe Converter]
+::
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7tV8YWuE3NY7V3vmdI/IW/UH2fIAoxDRTm8Rs
+::YAwzuBVtJxjWCl3EqQJgSA==
+::ZR4luwNxJguZRRnk
+::Yhs/ulQjdF65
+::cxAkpRVqdFKZSjk=
+::cBs/ulQjdF65
+::ZR41oxFsdFKZSDk=
+::eBoioBt6dFKZSDk=
+::cRo6pxp7LAbNWATEpCI=
+::egkzugNsPRvcWATEpCI=
+::dAsiuh18IRvcCxnZtBJQ
+::cRYluBh/LU+EWAnk
+::YxY4rhs+aU+JeA==
+::cxY6rQJ7JhzQF1fEqQJQ
+::ZQ05rAF9IBncCkqN+0xwdVs0
+::ZQ05rAF9IAHYFVzEqQJQ
+::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
+::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
+::cRolqwZ3JBvQF1fEqQJQ
+::dhA7uBVwLU+EWDk=
+::YQ03rBFzNR3SWATElA==
+::dhAmsQZ3MwfNWATElA==
+::ZQ0/vhVqMQ3MEVWAtB9wSA==
+::Zg8zqx1/OA3MEVWAtB9wSA==
+::dhA7pRFwIByZRRnk
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCd0fwelbQcxuyBHrmHl
+::YB416Ek+ZW8=
+::
+::
+::978f952a14a936cc963da21a135fa983
 @echo off
 :: Copyright (C) 2024 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
@@ -37,7 +70,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
 )
 
 
-set /a ListBatCount=BatCount+29
+set /a ListBatCount=BatCount+30
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -64,7 +97,6 @@ set parentDir2=%parentDir2:~0,-1%
 :GoodbyeZapret_Menu
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
-set "serviceName=GoodbyeZapret"
 
 set "GoodbyeZapret_Current=Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
@@ -99,6 +131,8 @@ if %FileSize% LSS 15 (
     echo.
     del /Q "%TEMP%\GZ_Updater.bat"
     pause
+) else (
+    set "CheckStatus=Checked"
 )
 
 
@@ -137,21 +171,59 @@ if !Current_List_version! neq !Actual_List_version! (
 cls
 title GoodbyeZapret - Launcher
 
-reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Version >nul 2>&1
-if %errorlevel% equ 0 (
-   REM Ключ GoodbyeZapret_Version существует.
-   for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do set "GoodbyeZapret_Version_OLD=%%b"
-) else (
-   REM Ключ GoodbyeZapret_Version не найден.
-   reg add "HKCU\Software\ASX\Info" /t REG_SZ /v "GoodbyeZapret_Version" /d "%GoodbyeZapretVersion%" /f >nul
-   set "GoodbyeZapret_Version_OLD=Не выбран"
+
+REM Попытка прочитать значение из нового реестра
+for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
+    set "GoodbyeZapret_Config=%%b"
+    goto :end_GoodbyeZapret_Config
 )
 
-reg query HKCU\Software\ASX\Info /v GoodbyeZapret_Config >nul 2>&1
-if %errorlevel% equ 0 (
-   REM Ключ GoodbyeZapret_Version существует.
-   for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
+REM Попытка перенести значение из старого реестра в новый
+for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
+    set "GoodbyeZapret_Config=%%b"
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /t REG_SZ /d "%%b" /f >nul
+    reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul
+    goto :end_GoodbyeZapret_Config
 )
+
+REM Если ключ нигде не найден, установить значение по умолчанию
+set "GoodbyeZapret_Config=Не найден"
+
+:end_GoodbyeZapret_Config
+
+
+REM Попытка прочитать значение из нового реестра
+for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do (
+    set "GoodbyeZapret_Version_OLD=%%b"
+    goto :end_GoodbyeZapret_Version_OLD
+)
+
+REM Попытка перенести значение из старого реестра в новый
+for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do (
+    set "GoodbyeZapret_Version_OLD=%%b"
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%%b" /f >nul
+    reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" /f >nul
+    goto :end_GoodbyeZapret_Version_OLD
+)
+
+REM Если ключ нигде не найден, создать с дефолтным значением
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul
+set "GoodbyeZapret_Version_OLD=Не найден"
+
+:end_GoodbyeZapret_Version_OLD
+
+if not defined GoodbyeZapretVersion (
+    echo ERROR - Не удалось прочитать значение GoodbyeZapret_Version
+    pause
+    exit
+)
+
+if not defined GoodbyeZapret_Config (
+    echo ERROR - Не удалось прочитать значение GoodbyeZapret_Config
+    pause
+    exit
+)
+
 
 reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret /v Description >nul 2>&1
 if %errorlevel% equ 0 (
@@ -161,7 +233,7 @@ if %errorlevel% equ 0 (
 
 
 if defined GoodbyeZapretVersion (
-    reg add "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
 )
 
 
@@ -330,7 +402,7 @@ if not defined batFile (
      echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
      pause >nul 2>&1
      sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
-     reg add "HKCU\Software\ASX\Info" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
+     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
      sc description GoodbyeZapret "%batFile:~0,-4%"
      sc start "GoodbyeZapret" >nul
      if %errorlevel% equ 0 (
@@ -382,7 +454,7 @@ if not defined batFile (
     ) else (
         echo Служба GoodbyeZapret не найдена
     )
-    reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
 goto :end
 
 :end
@@ -447,6 +519,7 @@ exit
 
 
 :install_assistant
+set "Assistant_version=0.1"
 mode con: cols=112 lines=38 >nul 2>&1
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -455,7 +528,7 @@ chcp 65001 >nul 2>&1
 
 
 cls
-title ALFiX, Inc. - Установка программного обеспечения
+title ALFiX, Inc. - Помощник по установке программного обеспечения ALFiX, Inc. (версия %Assistant_version%)
 echo.
 echo.
 
@@ -477,6 +550,7 @@ echo                                         @@@@                     @@@@
 echo                                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
 echo                                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
 
+echo.
 echo.
 echo.
 echo  %COL%[36mВас приветствует установщик программного обеспечения от ALFiX, Inc.%COL%[37m
@@ -786,7 +860,7 @@ if "%AutoStartQuastion%" == "Y" (
      echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
      pause >nul 2>&1
      sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
-     reg add "HKCU\Software\ASX\Info" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
+     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
      sc description GoodbyeZapret "%batFile:~0,-4%"
      sc start "GoodbyeZapret" >nul
      if %errorlevel% equ 0 (
