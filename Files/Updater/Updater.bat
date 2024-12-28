@@ -5,7 +5,7 @@
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSDk=
+::cxAkpRVqdFKZSjk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
 ::eBoioBt6dFKZSDk=
@@ -43,7 +43,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "UpdaterVersion=0.2"
+set "UpdaterVersion=0.3"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -120,7 +120,7 @@ if %errorlevel% equ 0 (
 ) else (
     echo Возможно при запуске службы GoodbyeZapret произошла ошибка
 )
-start "" "%SystemDrive%\GoodbyeZapret\Launcher.bat"
+start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
 echo готово
 pause
 
