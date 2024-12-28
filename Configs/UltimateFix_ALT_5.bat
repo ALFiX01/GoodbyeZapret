@@ -15,7 +15,7 @@ cd /d "%parentDir%"
 set BIN=%parentDir%bin\
 
 :: Устанавливаем название программы
-set LIST_TITLE=GoodbyeZapret: Ultimate Fix ALT
+set LIST_TITLE=GoodbyeZapret: Ultimate Fix ALT 5
 :: Путь к основному списку хостов
 set LIST_PATH=%parentDir%lists\list-ultimate.txt
 :: Путь к списку IP-адресов Discord
