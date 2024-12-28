@@ -85,7 +85,7 @@ set "GoodbyeZapret_Config=Не найден"
 
 
 
-curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
 if %FileSize% LSS 100 (
