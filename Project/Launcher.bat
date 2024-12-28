@@ -654,11 +654,11 @@ echo.
 
 
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
-curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/Updater.exe" >nul 2>&1
+curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
 
 if "%AutoStartQuastion%"=="Y" (
     if not exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/UpdateService.exe" >nul 2>&1
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
         reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" /f >nul 2>&1
     )
 )
