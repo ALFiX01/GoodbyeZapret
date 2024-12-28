@@ -1,11 +1,11 @@
 ::[Bat To Exe Converter]
 ::
-::YAwzoRdxOk+EWAnk
-::fBw5plQjdG8=
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7hXciWO04d7DNiPqHI+9z
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
-::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSDk=
+::Yhs/ulQjdF65
+::cxAkpRVqdFKZSzk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
 ::eBoioBt6dFKZSDk=
@@ -26,7 +26,7 @@
 ::ZQ0/vhVqMQ3MEVWAtB9wSA==
 ::Zg8zqx1/OA3MEVWAtB9wSA==
 ::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCdtbhaqegom52taswQ=
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCdtbhaqegoHrHxUv2eAecKEtm8=
 ::YB416Ek+ZG8=
 ::
 ::
@@ -42,7 +42,74 @@ if %errorlevel% neq 0 (
 )
 
 setlocal EnableDelayedExpansion
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\version.txt") do set "Current_GoodbyeZapret_version=%%a"
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
 
+
+:: Загрузка нового файла Updater.bat
+if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
+curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
+if errorlevel 1 (
+    echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
+    
+)
+
+
+set FileSize=0
+for %%I in ("%TEMP%\GZ_Updater.bat") do set FileSize=%%~zI
+if %FileSize% LSS 15 (
+    set "CheckStatus=NoChecked"
+    REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
+    echo ERROR - Файл GZ_Updater.bat поврежден или URL не доступен ^(Size %FileSize%^)
+    echo.
+    del /Q "%TEMP%\GZ_Updater.bat"
+    pause
+) else (
+    set "CheckStatus=Checked"
+)
+
+
+:: Выполнение загруженного файла Updater.bat
+call "%TEMP%\GZ_Updater.bat" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR - Ошибка при выполнении GZ_Updater.bat
+)
+
+REM Версии GoodbyeZapret
+set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
+set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
+
+set "WinwsVersion_New=%Actual_Winws_version%"
+set "WinwsVersion=%Current_Winws_version%"
+
+set "ListsVersion_New=%Actual_List_version%"
+set "ListsVersion=%Current_List_version%"
+
+
+set "UpdateNeed=No"
+set "UpdateNeedLevel=0"
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+)
+if !Current_Winws_version! neq !Actual_Winws_version! (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+)
+if !Current_List_version! neq !Actual_List_version! (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+)
+
+
+if %UpdateNeed% equ Yes (
+    goto Update
+) else (
+    exit
+)
+
+:Update
 set "UpdaterVersion=0.2"
 
 REM Цветной текст

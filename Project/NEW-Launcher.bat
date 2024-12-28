@@ -464,6 +464,17 @@ goto GoodbyeZapret_Menu
 
 
 :CurrentStatus
+
+
+for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater"') do set GoodbyeZapretUpdaterPath=%%i
+if /I "%GoodbyeZapretUpdaterPath%" NEQ "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
+ set GoodbyeZapretUpdaterService=0
+)
+
+if exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
+    set GoodbyeZapretUpdaterService=1
+)
+
 cls
 echo.
 echo   %COL%[37mСостояние служб GoodbyeZapret
@@ -473,6 +484,11 @@ if %errorlevel% equ 0 (
     echo   Служба GoodbyeZapret: %COL%[92mУстановлена и работает%COL%[37m
 ) else (
     echo   Служба GoodbyeZapret: %COL%[91mНе установлена%COL%[37m
+)
+if !GoodbyeZapretUpdaterService! equ 1 (
+    echo   Служба GoodbyeZapret Updater: %COL%[92mУстановлена и работает%COL%[37m
+) else (
+    echo   Служба GoodbyeZapret Updater: %COL%[91mНе установлена%COL%[37m
 )
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
@@ -638,6 +654,15 @@ echo.
 
 
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/Updater.exe" >nul 2>&1
+
+if "%AutoStartQuastion%"=="Y" (
+    if not exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Project/UpdateService.exe" >nul 2>&1
+        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" /f >nul 2>&1
+    )
+)
+
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
     chcp 850 >nul 2>&1
