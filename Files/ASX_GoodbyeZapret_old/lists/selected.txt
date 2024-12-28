@@ -1,3 +1,0 @@
-list-cloudflare.txt
-list-discord.txt
-list-youtube.txt
