@@ -99,6 +99,7 @@ set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
 
 set "GoodbyeZapret_Current=Не выбран"
+set "GoodbyeZapret_Current_TEXT=Текущий конфиг - Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
 
 reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret /v Description >nul 2>&1
@@ -229,6 +230,8 @@ reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret /v 
 if %errorlevel% equ 0 (
    REM Ключ GoodbyeZapret_Version существует.
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
+   :: Пример содержимого переменной
+    set "GoodbyeZapret_Current_TEXT=Текущий конфиг - %GoodbyeZapret_Current%"
 )
 
 
@@ -278,13 +281,12 @@ REM ============================================================================
 : Длина строки
 set "line_length=90"
 
-:: Пример содержимого переменной
-set "GoodbyeZapret_Current=Текущий конфиг - %GoodbyeZapret_Current%"
+
 
 :: Подсчет длины текста
 set "text_length=0"
 for /l %%A in (1,1,90) do (
-    set "char=!GoodbyeZapret_Current:~%%A,1!"
+    set "char=!GoodbyeZapret_Current_TEXT:~%%A,1!"
     if "!char!"=="" goto :count_done
     set /a text_length+=1
 )
@@ -300,13 +302,14 @@ for /l %%A in (1,1,%spaces%) do set "padding=!padding! "
 
 if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
     echo                     %COL%[90m===================================================
-    echo %COL%[36m!padding!!GoodbyeZapret_Current! %COL%[37m
+    echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
     echo                     %COL%[90m===================================================%COL%[37m
     echo.
 ) else (
-echo                     %COL%[37mДобро пожаловать
-echo                     %COL%[91mОболочка находится в стадии тестирования и может содержать ошибки%COL%[37m
-echo.
+    echo                     %COL%[90m===================================================
+    echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
+    echo                     %COL%[90m===================================================%COL%[37m
+    echo.
 )
 
 echo                         Выберите конфиг для установки в автозапуск
