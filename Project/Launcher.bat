@@ -95,6 +95,15 @@ set parentDir2=%parentDir2:~0,-1%
 
 
 :GoodbyeZapret_Menu
+
+tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe">NUL
+if "%ERRORLEVEL%"=="0" (
+    :: служба GoodbyeZapret уже запущена
+) else (
+    sc start "GoodbyeZapret" >nul 2>&1
+)
+
+
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
 
