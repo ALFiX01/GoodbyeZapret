@@ -95,14 +95,12 @@ set parentDir2=%parentDir2:~0,-1%
 
 
 :GoodbyeZapret_Menu
-
-tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe">NUL
-if "%ERRORLEVEL%"=="0" (
-    :: служба GoodbyeZapret уже запущена
+tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
+if "%ERRORLEVEL%"=="0" ( 
+    REM Процесс winws.exe уже запущен.
 ) else (
     sc start "GoodbyeZapret" >nul 2>&1
 )
-
 
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
@@ -340,42 +338,40 @@ set /a "lastChoice=counter-1"
 echo                     %COL%[90m===================================================
 if !counter! lss 10 (
     echo.
-    echo.
-    echo                      %COL%[36mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
+    echo                      %COL%[96mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
 ) else (
     echo.
-    echo.
-    echo                     %COL%[36mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
+    echo                     %COL%[96mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
 )
 if !counter! lss 10 (
-    echo                      %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
+    echo                      %COL%[96mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
 ) else (
-    echo                     %COL%[36mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
+    echo                     %COL%[96mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
 )
 if !counter! lss 10 (
-    echo                      %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
+    echo                      %COL%[96mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 ) else (
-    echo                     %COL%[36mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
+    echo                     %COL%[96mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
 )
 
 if !counter! lss 10 (
-    echo                  %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
+    echo                  %COL%[96m^(1%COL%[37m-%COL%[96m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
 ) else (
-    echo                %COL%[36m^(%COL%[36m1%COL%[37m-%COL%[36m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
+    echo                %COL%[96m^(1%COL%[37m-%COL%[96m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
 )
 
 if %UpdateNeed% equ Yes (
     if !counter! lss 10 (
-        echo                      %COL%[36mUD %COL%[37m- %COL%[93mОбновить до актульной версии%COL%[37m
+        echo                      %COL%[96mUD %COL%[37m- %COL%[93mОбновить до актульной версии%COL%[37m
     ) else (
-        echo                     %COL%[36mUD %COL%[37m- %COL%[93mОбновить до актульной версии%COL%[37m
+        echo                     %COL%[96mUD %COL%[37m- %COL%[93mОбновить до актульной версии%COL%[37m
     )
 )
 
 
 echo.
 echo.
-echo                                     Введите номер (%COL%[36m1%COL%[37m-%COL%[36m!counter!%COL%[37m)
+echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
 set /p "choice=%DEL%                                            %COL%[90m:> "
 
 if "%choice%"=="B" goto GoBack
@@ -731,10 +727,12 @@ echo.
 REM if "%ProviderQuastion%" == "N" ( goto Provider_Quastion_no )
 REM if "%ProviderQuastion%" == "Y" ( goto Provider_Quastion_yes )
 
-
 REM если провайдера нет в списке
 :Provider_Quastion_no
 
+REM Цветной текст
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+:YT-Fixing
 if "%YT-Discord-Quastion%" == "YT" (
     call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
     set "batFile=YoutubeFix.bat"
@@ -758,7 +756,6 @@ if "%YT-Discord-Quastion%" == "YT" (
     if /i "%choice%"=="2" ( set "Working=N"
         call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_ALT.bat"
         set "batFile=YoutubeFix_ALT.bat"
-        start https://youtube.com
         cls
         echo.
         echo.
@@ -783,7 +780,9 @@ if "%YT-Discord-Quastion%" == "YT" (
 if "%YT-Discord-Quastion%" == "DS" (
     call "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix.bat"
     set "batFile=DiscordFix.bat"
-    start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
+    if exist "%LOCALAPPDATA%\Discord\Update.exe" (
+        start "" "%LOCALAPPDATA%\Discord\Update.exe" --processStart Discord.exe
+    )
     cls
     echo.
     echo.
@@ -803,7 +802,6 @@ if "%YT-Discord-Quastion%" == "DS" (
     if /i "%choice%"=="2" ( set "Working=N"
         call "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_ALT.bat"
         set "batFile=DiscordFix_ALT.bat"
-        start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
         cls
         echo.
         echo.
@@ -829,7 +827,9 @@ if "%YT-Discord-Quastion%" == "YTDS" (
     call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix.bat"
     set "batFile=UltimateFix.bat"
     start https://youtube.com
-    start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
+    if exist "%LOCALAPPDATA%\Discord\Update.exe" (
+        start "" "%LOCALAPPDATA%\Discord\Update.exe" --processStart Discord.exe
+    )
     cls
     echo.
     echo.
@@ -849,8 +849,6 @@ if "%YT-Discord-Quastion%" == "YTDS" (
     if /i "%choice%"=="2" ( set "Working=N"
         call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT.bat"
         set "batFile=UltimateFix_ALT.bat"
-        start https://youtube.com
-        start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
         cls
         echo.
         echo.
@@ -870,8 +868,6 @@ if "%YT-Discord-Quastion%" == "YTDS" (
         if /i "%choice%"=="2" ( set "Working=N"
             call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_2.bat"
             set "batFile=UltimateFix_ALT_2.bat"
-            start https://youtube.com
-            start "" "C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe" --processStart Discord.exe
             cls
             echo.
             echo.
