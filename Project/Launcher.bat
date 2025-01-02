@@ -537,8 +537,16 @@ start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 exit
 
 
+
+
+
+
+
+
+
+REM РЕЖИМ УСТАНОВКИ
 :install_assistant
-set "Assistant_version=0.1"
+set "Assistant_version=0.2"
 mode con: cols=112 lines=38 >nul 2>&1
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -880,6 +888,14 @@ if "%YT-Discord-Quastion%" == "YTDS" (
 
 :Complete_Working
 if "%AutoStartQuastion%" == "Y" (
+     net stop GoodbyeZapret >nul 2>&1
+     sc delete GoodbyeZapret >nul 2>&1
+     taskkill /F /IM winws.exe >nul 2>&1
+     net stop "WinDivert" >nul 2>&1
+     sc delete "WinDivert" >nul 2>&1
+     net stop "WinDivert14" >nul 2>&1
+     sc delete "WinDivert14" >nul 2>&1
+
      cls
      echo.
      echo.
@@ -887,10 +903,10 @@ if "%AutoStartQuastion%" == "Y" (
      echo Устанавливаю службу GoodbyeZapret для файла %batFile%-%batFile:~0,-4%...
      echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
      pause >nul 2>&1
-     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
+     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      sc description GoodbyeZapret "%batFile:~0,-4%"
-     sc start "GoodbyeZapret" >nul
+     sc start "GoodbyeZapret" >nul 2>&1
      if %errorlevel% equ 0 (
          echo Запускаю службу GoodbyeZapret...%COL%[92m
          sc start "GoodbyeZapret" >nul 2>&1
