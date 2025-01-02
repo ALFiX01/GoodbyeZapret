@@ -121,7 +121,7 @@ for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt")
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
 
 
-:: Загрузка нового файла Updater.bat
+:: Загрузка нового файла GZ_Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
 if errorlevel 1 (
@@ -129,6 +129,10 @@ if errorlevel 1 (
     
 )
 
+:: Загрузка нового файла Updater.exe
+if not exist "%SystemDrive%\GoodbyeZapret\Updater.exe" (
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+)
 
 set FileSize=0
 for %%I in ("%TEMP%\GZ_Updater.bat") do set FileSize=%%~zI
