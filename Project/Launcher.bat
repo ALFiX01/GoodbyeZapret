@@ -83,7 +83,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
 )
 
 
-set /a ListBatCount=BatCount+30
+set /a ListBatCount=BatCount+29
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -280,7 +280,6 @@ if not defined GoodbyeZapretVersion (
 )
 
 cls
-echo.
 echo.
 echo           %COL%[90m_____                 _ _                  ______                    _   
 echo          / ____^|               ^| ^| ^|                ^|___  /                   ^| ^|  
