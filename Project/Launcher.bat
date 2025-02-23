@@ -55,9 +55,22 @@ if /I "%WinLang%" NEQ "ru-RU" (
 )
 
 
+ping -n 1 google.ru >nul 2>&1
+IF %ERRORLEVEL% EQU 1 (
+ 	echo [WARN ] %TIME% - Соединение с интернетом отсутствует >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    cls
+    echo.
+    echo   Error 01: No internet connection.
+    timeout /t 4 >nul
+    exit /b
+ ) else (
+ 	set "WiFi=On"		
+)
+
 if Not exist %SystemDrive%\GoodbyeZapret (
     goto install_assistant
 )
+
 
 
 :RR
@@ -596,6 +609,24 @@ echo.
 echo  %COL%[90mНажмите любую клавишу для продолжения...%COL%[37m
 pause >nul
 
+
+
+cls
+echo.
+echo.
+echo.
+echo.
+echo  %COL%[36Выберите метод установки:
+echo.
+echo  %COL%[90m1^) Быстрый%COL%[37m
+echo  %COL%[90m2^) Детальный%COL%[37m
+echo.
+set /p choice="%DEL%        >: "
+
+if /i "%choice%"=="1" ( set "ProviderQuastion=N" && set "ProviderName=Other" && set "AutoUpdateQuastion=N" && set "AutoStartQuastion=N" && set "YT-Discord-Quastion=YTDS" && goto :install_GoodbyeZapret )
+if /i "%choice%"=="2" ( set "ProviderQuastion=Y" && set "ProviderName=Beeline" )
+
+
 cls
 echo.
 echo.
@@ -662,6 +693,7 @@ if /i "%choice%"=="1" ( set "YT-Discord-Quastion=YT" )
 if /i "%choice%"=="2" ( set "YT-Discord-Quastion=DS" )
 if /i "%choice%"=="3" ( set "YT-Discord-Quastion=YTDS" )
 
+:install_GoodbyeZapret
 cls
 echo.
 echo.
@@ -734,13 +766,15 @@ REM if "%ProviderQuastion%" == "Y" ( goto Provider_Quastion_yes )
 REM если провайдера нет в списке
 :Provider_Quastion_no
 
-REM Цветной текст
-for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 :YT-Fixing
 if "%YT-Discord-Quastion%" == "YT" (
     call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
     set "batFile=YoutubeFix.bat"
     start https://youtube.com
+
+    REM Цветной текст
+    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+
     cls
     echo.
     echo.
