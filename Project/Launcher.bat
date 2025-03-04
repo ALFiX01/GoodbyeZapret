@@ -62,15 +62,14 @@ IF %ERRORLEVEL% EQU 1 (
     echo.
     echo   Error 01: No internet connection.
     timeout /t 4 >nul
-    exit /b
+    set "WiFi=Off"
  ) else (
- 	set "WiFi=On"		
+ 	set "WiFi=On"
 )
 
 if Not exist %SystemDrive%\GoodbyeZapret (
     goto install_assistant
 )
-
 
 
 :RR
@@ -121,6 +120,7 @@ set "sourcePath=%~dp0"
 set "GoodbyeZapret_Current=Не выбран"
 set "GoodbyeZapret_Current_TEXT=Текущий конфиг - Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
+set "GoodbyeZapret_Old=Отсутствует"
 
 reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret /v Description >nul 2>&1
 if %errorlevel% equ 0 (
@@ -128,6 +128,12 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
+if %errorlevel% equ 0 (
+   REM Ключ GoodbyeZapret_OldConfig существует.
+   for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b"
+   set "GoodbyeZapret_Old_TEXT=Раньше использовался - %GoodbyeZapret_Old%"
+)
 
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\version.txt") do set "Current_GoodbyeZapret_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
@@ -259,8 +265,15 @@ if %errorlevel% equ 0 (
 )
 
 
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
+if %errorlevel% equ 0 (
+   REM Ключ GoodbyeZapret_OldConfig существует.
+   for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b"
+   set "GoodbyeZapret_Old_TEXT=Раньше использовался - %GoodbyeZapret_Old%"
+)
+
 if defined GoodbyeZapretVersion (
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
+    reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
 )
 
 
@@ -304,8 +317,6 @@ REM ============================================================================
 : Длина строки
 set "line_length=90"
 
-
-
 :: Подсчет длины текста
 set "text_length=0"
 for /l %%A in (1,1,90) do (
@@ -323,6 +334,27 @@ set "padding="
 for /l %%A in (1,1,%spaces%) do set "padding=!padding! "
 
 
+REM ================================================================================================
+: Длина строки
+set "old_line_length=90"
+
+:: Подсчет длины текста
+set "old_text_length=0"
+for /l %%A in (1,1,90) do (
+    set "old_char=!GoodbyeZapret_Old_TEXT:~%%A,1!"
+    if "!old_char!"=="" goto :old_count_done
+    set /a old_text_length+=1
+)
+:old_count_done
+
+:: Расчет количества пробелов
+set /a old_spaces=(old_line_length - old_text_length) / 2
+
+:: Формирование строки с пробелами
+set "old_padding="
+for /l %%A in (1,1,%old_spaces%) do set "old_padding=!old_padding! "
+
+
 if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
     echo                     %COL%[90m===================================================
     echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
@@ -331,6 +363,9 @@ if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
 ) else (
     echo                     %COL%[90m===================================================
     echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
+
+    echo %COL%[90m!old_padding!!GoodbyeZapret_Old_TEXT! %COL%[37m
+    
     echo                     %COL%[90m===================================================%COL%[37m
     echo.
 )
@@ -427,6 +462,7 @@ if not defined batFile (
      pause >nul 2>&1
      sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
+     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
      sc description GoodbyeZapret "%batFile:~0,-4%"
      sc start "GoodbyeZapret" >nul
      if %errorlevel% equ 0 (
@@ -567,6 +603,15 @@ exit
 
 REM РЕЖИМ УСТАНОВКИ
 :install_assistant
+IF "%WiFi%" == "Off" (
+ 	echo [WARN ] %TIME% - Соединение с интернетом отсутствует >> "%ASX-Directory%\Files\Logs\%date%.txt"
+    cls
+    echo.
+    echo   Error 01: No internet connection.
+    timeout /t 4 >nul
+    exit
+)
+
 set "Assistant_version=0.2"
 mode con: cols=112 lines=38 >nul 2>&1
 REM Цветной текст
@@ -946,6 +991,7 @@ if "%AutoStartQuastion%" == "Y" (
      echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
      pause >nul 2>&1
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
+     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
      sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      sc description GoodbyeZapret "%batFile:~0,-4%"
      sc start "GoodbyeZapret" >nul 2>&1
