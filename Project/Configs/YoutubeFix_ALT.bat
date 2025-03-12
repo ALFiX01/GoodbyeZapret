@@ -8,7 +8,7 @@ for %%i in ("%currentDir%") do set parentDir=%%~dpi
 cd /d "%parentDir%"
 set BIN=%parentDir%bin\
 
-set "LIST_TITLE=GoodbyeZapret: YouTube Fix"
+set "LIST_TITLE=GoodbyeZapret: YouTube Fix ALT"
 set "LISTS_FOLDER=%parentDir%lists"
 
 start "%LIST_TITLE%" /min "%BIN%winws.exe" ^

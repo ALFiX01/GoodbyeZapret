@@ -8,7 +8,7 @@ for %%i in ("%currentDir%") do set parentDir=%%~dpi
 cd /d "%parentDir%"
 set BIN=%parentDir%bin\
 
-set "LIST_TITLE=GoodbyeZapret: Ultimate Fix NV TCP 80"
+set "LIST_TITLE=GoodbyeZapret: Ultimate Fix ALT NV - TCP 80"
 set "DISCORD_IPSET_PATH=%parentDir%lists\ipset-discord.txt"
 set "LISTS_FOLDER=%parentDir%lists"
 
