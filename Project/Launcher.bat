@@ -185,6 +185,9 @@ set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 set "WinwsVersion_New=%Actual_Winws_version%"
 set "WinwsVersion=%Current_Winws_version%"
 
+set "ConfigsVersion_New=%Actual_Configs_version%"
+set "ConfigsVersion=%Current_Configs_version%"
+
 set "ListsVersion_New=%Actual_List_version%"
 set "ListsVersion=%Current_List_version%"
 
@@ -283,6 +286,10 @@ if defined GoodbyeZapretVersion (
 
 
 :GZ_loading_procces
+if %UpdateNeedCount% GEQ 3 (
+    goto Update_Need_screen
+)
+:MainMenu
 :: Проверка запущенного процесса
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
@@ -315,10 +322,6 @@ REM    echo          %COL%[90mОшибка: Не удалось провести
     echo.
 ) else (
     echo.
-)
-
-if %UpdateNeedCount% GEQ 3 (
- echo Больше 3 компонентов требуют обновления
 )
 
 REM ================================================================================================
@@ -534,7 +537,6 @@ goto GoodbyeZapret_Menu
 
 :CurrentStatus
 
-
 for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater"') do set GoodbyeZapretUpdaterPath=%%i
 if /I "%GoodbyeZapretUpdaterPath%" NEQ "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
  set GoodbyeZapretUpdaterService=0
@@ -606,11 +608,6 @@ exit
 :FullUpdate
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 exit
-
-
-
-
-
 
 
 
@@ -1052,3 +1049,57 @@ echo.
 echo  %COL%[90mНажмите любую клавишу для завершения...
 pause >nul
 exit
+
+
+:Update_Need_screen
+cls
+mode con: cols=92 lines=30 >nul 2>&1
+echo.
+echo.
+echo.
+cls
+echo.
+echo           %COL%[90m_____                 _ _                  ______                    _   
+echo          / ____^|               ^| ^| ^|                ^|___  /                   ^| ^|  
+echo         ^| ^|  __  ___   ___   __^| ^| ^|__  _   _  ___     / / __ _ _ __  _ __ ___^| ^|_ 
+echo         ^| ^| ^|_ ^|/ _ \ / _ \ / _` ^| '_ \^| ^| ^| ^|/ _ \   / / / _` ^| '_ \^| '__/ _ \ __^|
+echo         ^| ^|__^| ^| ^(_^) ^| ^(_^) ^| ^(_^| ^| ^|_^) ^| ^|_^| ^|  __/  / /_^| ^(_^| ^| ^|_^) ^| ^| ^|  __/ ^|_ 
+echo          \_____^|\___/ \___/ \__,_^|_.__/ \__, ^|\___^| /_____\__,_^| .__/^|_^|  \___^|\__^|
+echo                                          __/ ^|                 ^| ^|                 
+echo                                         ^|___/                  ^|_^|
+echo.
+echo.
+echo                   %COL%[97mДоступны новые версии GoodbyeZapret и других компонентов%COL%[37m
+echo.
+echo.
+echo.
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+    echo                                 GodbyeZapret: %COL%[92m^(v!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!^) %COL%[37m
+)
+if !Current_Winws_version! neq !Actual_Winws_version! (
+    echo                                     Winws: %COL%[92m^(v!Current_Winws_version! → v!Actual_Winws_version!^) %COL%[37m
+)
+
+if !Current_Configs_version! neq !Actual_Configs_version! (
+    echo                                       Configs: %COL%[92m^(v!Current_Configs_version! → v!Actual_Configs_version!^) %COL%[37m
+)
+
+if !Current_List_version! neq !Actual_List_version! (
+    echo                                        Lists: %COL%[92m^(v!Current_List_version! → v!Actual_List_version!^) %COL%[37m
+)
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+
+echo                                %COL%[91mB%COL%[37m - Пропустить  /  %COL%[92mU%COL%[37m - Обновить
+echo.
+set /p "choice=%DEL%                                            %COL%[90m:> "
+if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
+if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
+if /i "%choice%"=="U" goto FullUpdate
+if /i "%choice%"=="г" goto FullUpdate
+goto Update_Need_screen
