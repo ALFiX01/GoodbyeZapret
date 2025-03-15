@@ -138,14 +138,19 @@ if %errorlevel% equ 0 (
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\version.txt") do set "Current_GoodbyeZapret_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
+for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\Configs\version.txt") do set "Current_Configs_version=%%a"
 
+set "UpdateNeedCount=0"
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_Winws_version! neq !Actual_Winws_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_Configs_version! neq !Actual_Configs_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_List_version! neq !Actual_List_version! ( set /a "UpdateNeedCount+=1" )
 
 :: Загрузка нового файла GZ_Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
 if errorlevel 1 (
     echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
-    
 )
 
 :: Загрузка нового файла Updater.exe
@@ -310,6 +315,10 @@ REM    echo          %COL%[90mОшибка: Не удалось провести
     echo.
 ) else (
     echo.
+)
+
+if %UpdateNeedCount% GEQ 3 (
+ echo Больше 3 компонентов требуют обновления
 )
 
 REM ================================================================================================
@@ -566,15 +575,20 @@ if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
     echo   Версия GodbyeZapret: %COL%[92m%GoodbyeZapretVersion% %COL%[37m
 )
 
-
 if !Current_Winws_version! neq !Actual_Winws_version! (
-    echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[91m^(Устарела^) %COL%[37m
+    echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[91m^(Устарела^) ^(!Current_Winws_version! → !Actual_Winws_version!^) %COL%[37m
 ) else (
     echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[37m
 )
 
+if !Current_Configs_version! neq !Actual_Configs_version! (
+    echo   Версия Configs: %COL%[92m%ConfigsVersion% %COL%[91m^(Устарела^) ^(!Current_Configs_version! → !Actual_Configs_version!^) %COL%[37m
+) else (
+    echo   Версия Configs: %COL%[92m%ConfigsVersion% %COL%[37m
+)
+
 if !Current_List_version! neq !Actual_List_version! (
-    echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) %COL%[37m
+    echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) ^(!Current_List_version! → !Actual_List_version!^) %COL%[37m
 ) else (
     echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[37m
 )
