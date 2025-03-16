@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7tV8YWuE3NY7V3vmdI/IW/UH2fIAoxDRTm8Rs
+::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7pEwLXeEwds+TiP3AKeMcig==
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF65
@@ -26,7 +26,7 @@
 ::ZQ0/vhVqMQ3MEVWAtB9wSA==
 ::Zg8zqx1/OA3MEVWAtB9wSA==
 ::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCd0fwelbQcxuyBHrmHl
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7jkwIWuE3fZ2V36yLQA==
 ::YB416Ek+ZW8=
 ::
 ::
@@ -140,11 +140,6 @@ for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt")
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\Configs\version.txt") do set "Current_Configs_version=%%a"
 
-set "UpdateNeedCount=0"
-if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_Winws_version! neq !Actual_Winws_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_Configs_version! neq !Actual_Configs_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_List_version! neq !Actual_List_version! ( set /a "UpdateNeedCount+=1" )
 
 :: Загрузка нового файла GZ_Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
@@ -191,6 +186,11 @@ set "ConfigsVersion=%Current_Configs_version%"
 set "ListsVersion_New=%Actual_List_version%"
 set "ListsVersion=%Current_List_version%"
 
+set "UpdateNeedCount=0"
+if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_Winws_version! neq !Actual_Winws_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_Configs_version! neq !Actual_Configs_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_List_version! neq !Actual_List_version! ( set /a "UpdateNeedCount+=1" )
 
 set "UpdateNeed=No"
 set "UpdateNeedLevel=0"
