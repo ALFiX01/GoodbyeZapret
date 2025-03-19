@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7pEwLXeEwds+TiP3AKeMcig==
+::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7tV8YWuE3NY7V3vmdI/IW/UH2fIAoxDRTm8Rs
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF65
@@ -26,7 +26,7 @@
 ::ZQ0/vhVqMQ3MEVWAtB9wSA==
 ::Zg8zqx1/OA3MEVWAtB9wSA==
 ::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7jkwIWuE3fZ2V36yLQA==
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCd0fwelbQcxuyBHrmHl
 ::YB416Ek+ZW8=
 ::
 ::
@@ -41,6 +41,7 @@ if %errorlevel% neq 0 (
     start "" /wait /I /min powershell -NoProfile -Command "start -verb runas '%~s0'" && exit /b
     exit /b
 )
+
 
 setlocal EnableDelayedExpansion
 
@@ -57,7 +58,6 @@ if /I "%WinLang%" NEQ "ru-RU" (
 
 ping -n 1 google.ru >nul 2>&1
 IF %ERRORLEVEL% EQU 1 (
- 	echo [WARN ] %TIME% - Соединение с интернетом отсутствует >> "%ASX-Directory%\Files\Logs\%date%.txt"
     cls
     echo.
     echo   Error 01: No internet connection.
@@ -71,7 +71,6 @@ if Not exist %SystemDrive%\GoodbyeZapret (
     goto install_assistant
 )
 
-
 :RR
 
 set "BatCount=0"
@@ -81,8 +80,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
 
-
-set /a ListBatCount=BatCount+29
+set /a ListBatCount=BatCount+28
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -146,6 +144,7 @@ if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
 if errorlevel 1 (
     echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
+    
 )
 
 :: Загрузка нового файла Updater.exe
@@ -436,9 +435,6 @@ echo.
 echo.
 echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
 set /p "choice=%DEL%                                            %COL%[90m:> "
-
-if "%choice%"=="B" goto GoBack
-if "%choice%"=="и" goto GoBack
 if "%choice%"=="DS" goto remove_service
 if "%choice%"=="ds" goto remove_service
 if "%choice%"=="RC" goto ReInstall_GZ
@@ -536,14 +532,21 @@ goto GoodbyeZapret_Menu
 
 
 :CurrentStatus
+REM Проверка наличия и корректности пути службы обновления GoodbyeZapret
+set "GoodbyeZapretUpdaterService=0"
 
-for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater"') do set GoodbyeZapretUpdaterPath=%%i
-if /I "%GoodbyeZapretUpdaterPath%" NEQ "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
- set GoodbyeZapretUpdaterService=0
-)
-
-if exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
-    set GoodbyeZapretUpdaterService=1
+REM Проверяем запись в автозагрузке
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=3*" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" 2^>nul ^| find /i "GoodbyeZapret Updater"') do (
+        set "GoodbyeZapretUpdaterPath=%%j"
+        echo "!GoodbyeZapretUpdaterPath!"
+        if /I "!GoodbyeZapretUpdaterPath!" EQU "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
+            if exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
+                set "GoodbyeZapretUpdaterService=1"
+            )
+        )
+    )
 )
 
 cls
@@ -558,8 +561,10 @@ if %errorlevel% equ 0 (
 )
 if !GoodbyeZapretUpdaterService! equ 1 (
     echo   Служба GoodbyeZapret Updater: %COL%[92mУстановлена и работает%COL%[37m
+    set "GoodbyeZapretUpdaterServiceAction=Выключить"
 ) else (
     echo   Служба GoodbyeZapret Updater: %COL%[91mНе установлена%COL%[37m
+    set "GoodbyeZapretUpdaterServiceAction=Включить"
 )
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
@@ -596,21 +601,41 @@ if !Current_List_version! neq !Actual_List_version! (
 )
 echo. 
 echo.
-pause >nul 2>&1
-goto GZ_loading_procces
+echo. 
+echo.
+echo                 %COL%[96mF %COL%[37m- %COL%[93m%GoodbyeZapretUpdaterServiceAction% GoodbyeZapret Updater%COL%[37m / %COL%[96mB %COL%[37m- %COL%[93mВернуться назад%COL%[37m
+echo.
+echo.
+echo                                     Введите букву (%COL%[96mF%COL%[90m/%COL%[96mB%COL%[37m)
+echo.
+set /p "choice=%DEL%                                            %COL%[90m:> "
+
+if /i "%choice%"=="B" goto MainMenu
+if /i "%choice%"=="и" goto MainMenu
+if /i "%choice%"=="F" goto GoodbyeZapretUpdaterService_toggle
+if /i "%choice%"=="а" goto GoodbyeZapretUpdaterService_toggle
+goto CurrentStatus
 
 
 :ReInstall_GZ
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 exit
 
-
 :FullUpdate
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 exit
 
+:GoodbyeZapretUpdaterService_toggle
+if !GoodbyeZapretUpdaterService! equ 1 (
+    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /f >nul 2>&1
+) else (
+    if not exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+    )
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" /f >nul 2>&1
+)
 
-
+goto CurrentStatus
 
 REM РЕЖИМ УСТАНОВКИ
 :install_assistant
@@ -657,96 +682,13 @@ echo                                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo.
 echo.
 echo.
-echo  %COL%[36mВас приветствует установщик программного обеспечения от ALFiX, Inc.%COL%[37m
-echo  Вам нужно ответить на несколько вопросов, чтобы установить и настроить GoodbyeZapret.
+echo  %COL%[36mВас приветствует установщик программного обеспечения от ALFiX, Inc.
+echo  %COL%[37mВам нужно ответить на несколько вопросов, чтобы установить и настроить GoodbyeZapret.
 echo.
 echo.
-echo  %COL%[90mНажмите любую клавишу для продолжения...%COL%[37m
+echo  %COL%[90mНажмите любую клавишу для продолжения...
 pause >nul
 
-
-
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[36Выберите метод установки:
-echo.
-echo  %COL%[90m1^) Быстрый%COL%[37m
-echo  %COL%[90m2^) Детальный%COL%[37m
-echo.
-set /p choice="%DEL%        >: "
-
-if /i "%choice%"=="1" ( set "ProviderQuastion=N" && set "ProviderName=Other" && set "AutoUpdateQuastion=N" && set "AutoStartQuastion=N" && set "YT-Discord-Quastion=YTDS" && goto :install_GoodbyeZapret )
-if /i "%choice%"=="2" ( set "ProviderQuastion=Y" && set "ProviderName=Beeline" )
-
-
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[36mВопрос 1:%COL%[37m Какой у вас провайдер?
-echo.
-echo  %COL%[90m1^) MGTS%COL%[37m
-echo  %COL%[90m2^) Beeline%COL%[37m
-echo  %COL%[90m3^) Rostelecom%COL%[37m
-echo  %COL%[90m4^) Другой провайдер%COL%[37m
-echo.
-set /p choice="%DEL%        >: "
-
-if /i "%choice%"=="1" ( set "ProviderQuastion=Y" && set "ProviderName=MGTS" )
-if /i "%choice%"=="2" ( set "ProviderQuastion=Y" && set "ProviderName=Beeline" )
-if /i "%choice%"=="3" ( set "ProviderQuastion=Y" && set "ProviderName=Rostelecom" )
-if /i "%choice%"=="4" ( set "ProviderQuastion=N" && set "ProviderName=Other" )
-
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[36mВопрос 2:%COL%[37m Хотите ли вы чтобы GoodbyeZapret автоматически обновлялся?
-echo.
-echo  %COL%[90m1^) Да%COL%[37m
-echo  %COL%[90m2^) Нет%COL%[37m
-echo.
-set /p choice="%DEL%        >: "
-
-if /i "%choice%"=="1" ( set "AutoUpdateQuastion=Y" )
-if /i "%choice%"=="2" ( set "AutoUpdateQuastion=N" )
-
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[36mВопрос 3:%COL%[37m Хотите ли вы чтобы GoodbyeZapret запускался при запуске системы?
-echo.
-echo  %COL%[90m1^) Да%COL%[37m
-echo  %COL%[90m2^) Нет%COL%[37m
-echo.
-set /p choice="%DEL%        >: "
-
-if /i "%choice%"=="1" ( set "AutoStartQuastion=Y" )
-if /i "%choice%"=="2" ( set "AutoStartQuastion=N" )
-
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[36mВопрос 4:%COL%[37m Что вы хотите разблокировать через GoodbyeZapret?
-echo.
-echo  %COL%[90m1^) Только Youtube%COL%[37m
-echo  %COL%[90m2^) Только Discord%COL%[37m
-echo  %COL%[90m3^) Youtube, Discord и другие сервисы%COL%[37m
-echo.
-set /p choice="%DEL%        >: "
-
-if /i "%choice%"=="1" ( set "YT-Discord-Quastion=YT" )
-if /i "%choice%"=="2" ( set "YT-Discord-Quastion=DS" )
-if /i "%choice%"=="3" ( set "YT-Discord-Quastion=YTDS" )
 
 :install_GoodbyeZapret
 cls
@@ -754,21 +696,14 @@ echo.
 echo.
 echo.
 echo.
-echo  %COL%[90mВопросы закончились.%COL%[90m
-echo  %COL%[93mПодождите пока я выполню установку...
+echo  %COL%[90m Идет процесс установки.
+echo  %COL%[93m Пожалуйста подождите...
 echo.
 echo.
 
 
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
-
-if "%AutoStartQuastion%"=="Y" (
-    if not exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" (
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
-        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "%SystemDrive%\GoodbyeZapret\GoodbyeZapret Updater.exe" /f >nul 2>&1
-    )
-)
 
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
@@ -784,22 +719,11 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-if %ProviderQuastion%=="N" (
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_Beeline-Rostelekom.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_MGTS.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_Beeline-Rostelekom.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_MGTS.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_Beeline-Rostelekom.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_MGTS.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_ALT_MGTS.bat" >nul 2>&1
-    del /f /q "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_MGTS.bat" >nul 2>&1
-)
-
 echo.
 echo  %COL%[92mУстановка завершена.
 echo.
 echo.
-echo  %COL%[90mНажмите любую клавишу для настройки GoodbyeZapret...
+echo  %COL%[90mНажмите любую клавишу для запуска GoodbyeZapret...
 pause >nul
 
 
@@ -813,242 +737,6 @@ echo  Давай попробуем настроить GoodbyeZapret...
 echo.
 echo.
 
-
-
-REM if "%ProviderQuastion%" == "N" ( goto Provider_Quastion_no )
-REM if "%ProviderQuastion%" == "Y" ( goto Provider_Quastion_yes )
-
-REM если провайдера нет в списке
-:Provider_Quastion_no
-
-:YT-Fixing
-if "%YT-Discord-Quastion%" == "YT" (
-    call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix.bat"
-    set "batFile=YoutubeFix.bat"
-    start https://youtube.com
-
-    REM Цветной текст
-    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-
-    cls
-    echo.
-    echo.
-    echo.
-    echo.
-    echo  %COL%[90mЯ запустил тестовый конфиг и запустил Youtube.
-    echo  Проверьте, что все работает.
-    echo.
-    echo  %COL%[93mРаботает ли Youtube?
-    echo.
-    echo  %COL%[90m1^) Да%COL%[37m
-    echo  %COL%[90m2^) Нет%COL%[37m
-    echo.
-    set /p choice="%DEL%        >: "
-
-    if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-    if /i "%choice%"=="2" ( set "Working=N"
-        call "%SystemDrive%\GoodbyeZapret\Configs\YoutubeFix_ALT.bat"
-        set "batFile=YoutubeFix_ALT.bat"
-        cls
-        echo.
-        echo.
-        echo.
-        echo.
-        echo  %COL%[90mЯ запустил альтернативный конфиг и запустил Youtube.
-        echo  Проверьте, что все работает.
-        echo.
-        echo  %COL%[93mРаботает ли Youtube?
-        echo.
-        echo  %COL%[90m1^) Да%COL%[37m
-        echo  %COL%[90m2^) Нет%COL%[37m
-        echo.
-        set /p choice="%DEL%        >: "
-        
-        if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-        if /i "%choice%"=="2" ( set "Working=N" && Goto Complete_NotWorking )
-    )
-)
-
-:DS-Fixing
-if "%YT-Discord-Quastion%" == "DS" (
-    call "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix.bat"
-    set "batFile=DiscordFix.bat"
-    if exist "%LOCALAPPDATA%\Discord\Update.exe" (
-        start "" "%LOCALAPPDATA%\Discord\Update.exe" --processStart Discord.exe
-    )
-    cls
-    echo.
-    echo.
-    echo.
-    echo.
-    echo  %COL%[90mЯ Запустил тестовый конфиг и запустил Discord.
-    echo  Проверьте, что все работает.
-    echo.
-    echo  %COL%[93mРаботает ли Discord и Войсы в нем?
-    echo.
-    echo  %COL%[90m1^) Да%COL%[37m
-    echo  %COL%[90m2^) Нет%COL%[37m
-    echo.
-    set /p choice="%DEL%        >: "
-
-    if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-    if /i "%choice%"=="2" ( set "Working=N"
-        call "%SystemDrive%\GoodbyeZapret\Configs\DiscordFix_ALT.bat"
-        set "batFile=DiscordFix_ALT.bat"
-        cls
-        echo.
-        echo.
-        echo.
-        echo.
-        echo  %COL%[90mЯ Запустил альтернативный конфиг и запустил Discord.
-        echo  Проверьте, что все работает.
-        echo.
-        echo  %COL%[93mА щас работает ли Discord и Войсы в нем?
-        echo.
-        echo  %COL%[90m1^) Да%COL%[37m
-        echo  %COL%[90m2^) Нет%COL%[37m
-        echo.
-        set /p choice="%DEL%        >: "
-        
-        if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-        if /i "%choice%"=="2" ( set "Working=N" && Goto Complete_NotWorking )
-    )
-)
-
-:YTDS-Fixing
-if "%YT-Discord-Quastion%" == "YTDS" (
-    call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix.bat"
-    set "batFile=UltimateFix.bat"
-    start https://youtube.com
-    if exist "%LOCALAPPDATA%\Discord\Update.exe" (
-        start "" "%LOCALAPPDATA%\Discord\Update.exe" --processStart Discord.exe
-    )
-    cls
-    echo.
-    echo.
-    echo.
-    echo.
-    echo  %COL%[90mЯ Запустил тестовый конфиг и запустил Youtube и Discord.
-    echo  Проверьте, что все работает.
-    echo.
-    echo  %COL%[93mРаботает ли Youtube и Discord?
-    echo.
-    echo  %COL%[90m1^) Да%COL%[37m
-    echo  %COL%[90m2^) Нет%COL%[37m
-    echo.
-    set /p choice="%DEL%        >: "
-
-    if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-    if /i "%choice%"=="2" ( set "Working=N"
-        call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT.bat"
-        set "batFile=UltimateFix_ALT.bat"
-        cls
-        echo.
-        echo.
-        echo.
-        echo.
-        echo  Я Запустил альтернативный конфиг и запустил Youtube и Discord.
-        echo  Проверьте, что все работает.
-        echo.
-        echo  %COL%[93mА щас работает ли Youtube и Discord?
-        echo.
-        echo  %COL%[90m1^) Да%COL%[37m
-        echo  %COL%[90m2^) Нет%COL%[37m
-        echo.
-        set /p choice="%DEL%        >: "
-        
-        if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-        if /i "%choice%"=="2" ( set "Working=N"
-            call "%SystemDrive%\GoodbyeZapret\Configs\UltimateFix_ALT_2.bat"
-            set "batFile=UltimateFix_ALT_2.bat"
-            cls
-            echo.
-            echo.
-            echo.
-            echo.
-            echo  Я Запустил другой альтернативный конфиг и запустил Youtube и Discord.
-            echo  Проверьте, что все работает.
-            echo.
-            echo  %COL%[93mТеперь работает ли Youtube и Discord?
-            echo.
-            echo  %COL%[90m1^) Да%COL%[37m
-            echo  %COL%[90m2^) Нет%COL%[37m
-            echo.
-            set /p choice="%DEL%        >: "
-            
-            if /i "%choice%"=="1" ( set "Working=Y" && goto Complete_Working )
-            if /i "%choice%"=="2" ( set "Working=N" && Goto Complete_NotWorking )
-        )
-    )
-)
-
-
-
-:Complete_Working
-if "%AutoStartQuastion%" == "Y" (
-     net stop GoodbyeZapret >nul 2>&1
-     sc delete GoodbyeZapret >nul 2>&1
-     taskkill /F /IM winws.exe >nul 2>&1
-     net stop "WinDivert" >nul 2>&1
-     sc delete "WinDivert" >nul 2>&1
-     net stop "WinDivert14" >nul 2>&1
-     sc delete "WinDivert14" >nul 2>&1
-
-     cls
-     echo.
-     echo.
-     echo.
-     echo Устанавливаю службу GoodbyeZapret для файла %batFile%-%batFile:~0,-4%...
-     echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
-     pause >nul 2>&1
-     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
-     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
-     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
-     sc description GoodbyeZapret "%batFile:~0,-4%"
-     sc start "GoodbyeZapret" >nul 2>&1
-     if %errorlevel% equ 0 (
-         echo Запускаю службу GoodbyeZapret...%COL%[92m
-         sc start "GoodbyeZapret" >nul 2>&1
-         if %errorlevel% equ 0 (
-             echo Служба GoodbyeZapret успешно запущена %COL%[37m
-         ) else (
-             echo Ошибка при запуске службы
-         )
-     ) else (
-         echo Ошибка при установке службы. Возможно вы забыли перезагрузить пк.
-     )
-)
-pause
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[92mПоздравляю. GoodbyeZapret настроен и работает.%COL%[37m
-echo  %COL%[93mПерезагрузите ПК, чтобы служба GoodbyeZapret заработала.%COL%[37m
-echo.
-echo  Если у вас возникли проблемы, пожалуйста, обратитесь к разработчику.
-echo.
-echo.
-echo  %COL%[90mНажмите любую клавишу для завершения...
-pause >nul
-exit
-
-
-:Complete_NotWorking
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[91mК сожалению, мои попытки настроить вам GoodbyeZapret не увенчались успехом.%COL%[37m
-echo.
-echo  Пожалуйста, обратитесь к разработчику.
-echo.
-echo.
-echo  %COL%[90mНажмите любую клавишу для завершения...
-pause >nul
-exit
 
 
 :Update_Need_screen
