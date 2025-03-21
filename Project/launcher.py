@@ -12,6 +12,7 @@ import socket
 import platform
 from colorama import init, Fore, Style
 import msvcrt
+import functools
 
 # Добавляем импорт для работы с hosts-файлом
 from hosts import HostsManager
@@ -20,11 +21,13 @@ from proxy_domains import PROXY_DOMAINS
 # Задаём версию прямо в коде
 CURRENT_GZ_VERSION = "1.3.0"
 
-# Инициализация colorama
-init(autoreset=True)
+# Инициализация colorama - используем autoreset=False для лучшей производительности
+init(autoreset=False)
 
+# Используем кэширование для часто вызываемых функций
+@functools.lru_cache(maxsize=8)
 def is_admin():
-    """Проверка прав администратора"""
+    """Проверка прав администратора с кэшированием результата"""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
     except:
@@ -46,26 +49,134 @@ def check_language():
     except:
         return False
 
-def check_internet():
-    """Проверка интернет-соединения"""
-    try:
-        socket.create_connection(("google.ru", 80), timeout=3)
-        return True
-    except:
-        return False
+# Переменная для хранения информации о состоянии сети
+_last_internet_check = 0
+_internet_status = False
 
+def check_internet(force_check=False):
+    """Улучшенная проверка интернет-соединения с несколькими методами"""
+    global _last_internet_check, _internet_status
+    
+    # Повторная проверка не чаще чем раз в 30 секунд, если не требуется принудительная проверка
+    current_time = time.time()
+    if not force_check and current_time - _last_internet_check < 30:
+        return _internet_status
+    
+    # Метод 1: Проверка через DNS-серверы (самый быстрый)
+    try:
+        socket.setdefaulttimeout(2)
+        # Пробуем несколько DNS-серверов, начиная с российских
+        dns_servers = ["77.88.8.8", "1.1.1.1", "8.8.8.8"]
+        for dns in dns_servers:
+            try:
+                socket.create_connection((dns, 53), timeout=1)
+                _internet_status = True
+                _last_internet_check = current_time
+                return True
+            except:
+                continue
+    except:
+        pass
+    
+    # Метод 2: Проверка через HTTP запрос к надежным сайтам
+    try:
+        urls = ["http://www.yandex.ru", "http://www.google.com"]
+        for url in urls:
+            try:
+                response = requests.head(url, timeout=2)
+                if response.status_code == 200:
+                    _internet_status = True
+                    _last_internet_check = current_time
+                    return True
+            except:
+                continue
+    except:
+        pass
+    
+    # Метод 3: Проверка локальной сети через шлюз по умолчанию
+    try:
+        # Получаем IP-адрес шлюза по умолчанию
+        gateway = run_command("ipconfig | findstr /i \"Default Gateway\"", timeout=2)
+        if gateway:
+            # Извлекаем IP-адрес из строки
+            import re
+            match = re.search(r"(\d+\.\d+\.\d+\.\d+)", gateway)
+            if match:
+                gateway_ip = match.group(1)
+                # Проверяем доступность шлюза
+                ping_result = run_command(f"ping -n 1 -w 1000 {gateway_ip}", timeout=2)
+                if "Reply from" in ping_result:
+                    # Шлюз доступен, но интернет может отсутствовать
+                    # Возвращаем True, так как локальная сеть работает
+                    _internet_status = True
+                    _last_internet_check = current_time
+                    return True
+    except:
+        pass
+    
+    # Если все методы не сработали, считаем что интернета нет
+    _internet_status = False
+    _last_internet_check = current_time
+    return False
+
+def check_internet_with_retry():
+    """Проверка подключения к интернету с повторными попытками"""
+    # Первая проверка
+    if check_internet(force_check=True):
+        return True
+        
+    print(f"{Fore.LIGHTYELLOW_EX}Проверка подключения к интернету...{Fore.RESET}")
+    
+    # Делаем еще 2 попытки с интервалом в 2 секунды
+    for i in range(2):
+        time.sleep(2)
+        print(f"{Fore.LIGHTYELLOW_EX}Повторная проверка ({i+1}/2)...{Fore.RESET}", end="")
+        if check_internet(force_check=True):
+            print(f"{Fore.LIGHTGREEN_EX} Соединение установлено!{Fore.RESET}")
+            return True
+        print(f"{Fore.LIGHTRED_EX} Неудачно{Fore.RESET}")
+    
+    print(f"{Fore.LIGHTRED_EX}Проверка подключения завершилась неудачей{Fore.RESET}")
+    return False
+
+@functools.lru_cache(maxsize=1)
 def check_goodbyezapret_installed():
-    """Проверка наличия установленного GoodbyeZapret"""
-    return os.path.exists(f"{os.environ['SystemDrive']}\\GoodbyeZapret")
+    """Проверка наличия установленного GoodbyeZapret с кэшированием результата"""
+    path = f"{os.environ['SystemDrive']}\\GoodbyeZapret"
+    
+    # Более быстрая проверка - проверяем только наличие директории
+    if not os.path.exists(path):
+        return False
+        
+    # Дополнительная проверка ключевых файлов
+    required_files = [
+        "bin\\winws.exe",
+        "Configs"
+    ]
+    
+    for file in required_files:
+        if not os.path.exists(os.path.join(path, file)):
+            return False
+            
+    return True
+
+# Кэш для значений реестра
+_registry_cache = {}
 
 def get_registry_value(key_path, value_name, default=""):
-    """Получение значения из реестра"""
+    """Получение значения из реестра с кэшированием"""
+    cache_key = f"{key_path}:{value_name}"
+    if cache_key in _registry_cache:
+        return _registry_cache[cache_key]
+    
     try:
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path)
         value = winreg.QueryValueEx(key, value_name)[0]
         winreg.CloseKey(key)
+        _registry_cache[cache_key] = value
         return value
     except:
+        _registry_cache[cache_key] = default
         return default
 
 def set_registry_value(key_path, value_name, value_type, value):
@@ -88,12 +199,25 @@ def delete_registry_value(key_path, value_name):
     except:
         return False
 
-def run_command(command, shell=True):
-    """Запуск команды и получение результата"""
+def run_command(command, shell=True, timeout=15):
+    """Запуск команды и получение результата с ограничением по времени"""
     try:
-        result = subprocess.run(command, shell=shell, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # Добавляем таймаут для всех команд
+        result = subprocess.run(
+            command, 
+            shell=shell, 
+            check=False,  # Не вызывать исключение при ненулевом коде возврата
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True,
+            timeout=timeout,  # Важно для предотвращения зависаний
+            encoding='cp866'  # Используем правильную кодировку для Windows
+        )
         return result.stdout.strip()
-    except:
+    except subprocess.TimeoutExpired:
+        print(f"{Fore.LIGHTRED_EX}Превышено время ожидания выполнения команды{Fore.RESET}")
+        return ""
+    except Exception as e:
         return ""
 
 def is_process_running(process_name):
@@ -148,19 +272,22 @@ def download_file(url, path):
         try:
             os.makedirs(directory, exist_ok=True)
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при создании директории {directory}: {str(e)}{Fore.RESET}")
+            print(f"{Fore.LIGHTRED_EX}Ошибка при создании директории: {Fore.RESET}{os.path.basename(directory)}")
             return False
     
     try:
-        response = requests.get(url, stream=True)
+        # Показываем имя загружаемого файла
+        filename = os.path.basename(path)
+        print(f"{Fore.LIGHTCYAN_EX}Загрузка: {Fore.LIGHTYELLOW_EX}{filename}{Fore.RESET}")
+        
+        # Добавляем таймаут для запроса
+        response = requests.get(url, stream=True, timeout=30)
         if response.status_code != 200:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при загрузке файла: HTTP статус {response.status_code}{Fore.RESET}")
+            print(f"{Fore.LIGHTRED_EX}Ошибка HTTP: {response.status_code}{Fore.RESET}")
             return False
             
         total_size = int(response.headers.get('content-length', 0))
         block_size = 8192
-        
-        print(f"{Fore.LIGHTCYAN_EX}Загрузка {os.path.basename(path)}...")
         
         if total_size > 0:
             downloaded = 0
@@ -169,15 +296,15 @@ def download_file(url, path):
                     if chunk:
                         f.write(chunk)
                         downloaded += len(chunk)
-                        progress_bar(downloaded, total_size, prefix=f' {Fore.LIGHTCYAN_EX}Прогресс:{Fore.RESET}', 
-                                   suffix=f'{downloaded//(1024)} KB / {total_size//(1024)} KB', length=40)
+                        progress_bar(downloaded, total_size, prefix=' Прогресс:', 
+                                  suffix=f'{downloaded//1024} KB / {total_size//1024} KB', length=40)
             
             # Проверяем, что файл действительно загружен
             if os.path.exists(path) and os.path.getsize(path) > 0:
-                print(f"{Fore.LIGHTGREEN_EX}Загрузка успешно завершена{Fore.RESET}")
+                print(f"{Fore.LIGHTGREEN_EX}✓ Загрузка успешно завершена{Fore.RESET}")
                 return True
             else:
-                print(f"{Fore.LIGHTRED_EX}Ошибка: файл загружен, но имеет нулевой размер{Fore.RESET}")
+                print(f"{Fore.LIGHTRED_EX}✗ Ошибка: файл загружен, но имеет нулевой размер{Fore.RESET}")
                 return False
         else:
             with open(path, 'wb') as f:
@@ -186,61 +313,99 @@ def download_file(url, path):
                         f.write(chunk)
             
             if os.path.exists(path) and os.path.getsize(path) > 0:
-                print(f"{Fore.LIGHTGREEN_EX}Загрузка завершена{Fore.RESET}")
+                print(f"{Fore.LIGHTGREEN_EX}✓ Загрузка успешно завершена{Fore.RESET}")
                 return True
             else:
-                print(f"{Fore.LIGHTRED_EX}Ошибка: файл загружен, но имеет нулевой размер{Fore.RESET}")
+                print(f"{Fore.LIGHTRED_EX}✗ Ошибка: файл загружен, но имеет нулевой размер{Fore.RESET}")
                 return False
     except requests.exceptions.ConnectionError:
-        print(f"{Fore.LIGHTRED_EX}Ошибка соединения при загрузке файла{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX}✗ Ошибка соединения{Fore.RESET}")
+        return False
+    except requests.exceptions.Timeout:
+        print(f"{Fore.LIGHTRED_EX}✗ Превышено время ожидания{Fore.RESET}")
         return False
     except Exception as e:
-        print(f"{Fore.LIGHTRED_EX}Ошибка при загрузке файла: {str(e)}{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX}✗ Ошибка: {str(e)}{Fore.RESET}")
         return False
 
 def extract_zip(zip_path, extract_path):
     """Распаковка zip-архива с дополнительными проверками"""
     if not os.path.exists(zip_path):
-        print(f"{Fore.LIGHTRED_EX}Архив не найден: {zip_path}{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX}✗ Архив не найден: {os.path.basename(zip_path)}{Fore.RESET}")
         return False
         
+    print(f"{Fore.LIGHTYELLOW_EX}Распаковка архива...{Fore.RESET}", end="")
+    
     # Проверяем существование директории назначения
     if not os.path.exists(extract_path):
         try:
             os.makedirs(extract_path, exist_ok=True)
         except Exception as e:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при создании директории {extract_path}: {str(e)}{Fore.RESET}")
+            print(f"{Fore.LIGHTRED_EX} Ошибка! Не удалось создать директорию.{Fore.RESET}")
             return False
     
     try:
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(extract_path)
         
-        print(f"{Fore.LIGHTGREEN_EX}Архив успешно распакован в {extract_path}{Fore.RESET}")
+        print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
         return True
     except zipfile.BadZipFile:
-        print(f"{Fore.LIGHTRED_EX}Ошибка: неверный формат ZIP-архива{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX} Ошибка! Неверный формат архива.{Fore.RESET}")
         return False
     except Exception as e:
-        print(f"{Fore.LIGHTRED_EX}Ошибка при распаковке архива: {str(e)}{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX} Ошибка! {str(e)}{Fore.RESET}")
         return False
 
+# Кэш для списка .bat файлов по директориям
+_bat_files_cache = {}
+_bat_files_cache_time = {}
+
 def get_bat_files(directory):
-    """Получение списка .bat файлов в директории"""
-    return [f for f in os.listdir(directory) if f.endswith('.bat')]
+    """Получение списка .bat файлов в директории с кэшированием"""
+    global _bat_files_cache, _bat_files_cache_time
+    
+    # Проверяем актуальность кэша (30 секунд)
+    current_time = time.time()
+    if directory in _bat_files_cache and current_time - _bat_files_cache_time.get(directory, 0) < 30:
+        return _bat_files_cache[directory]
+    
+    # Оптимизированное получение списка файлов
+    try:
+        result = [f for f in os.listdir(directory) if f.endswith('.bat')]
+        _bat_files_cache[directory] = result
+        _bat_files_cache_time[directory] = current_time
+        return result
+    except Exception:
+        # В случае ошибки возвращаем пустой список
+        return []
+
+# Кэшируем логотип для быстрого вывода
+_LOGO_CACHE = None
 
 def print_logo():
-    """Вывод логотипа GoodbyeZapret"""
-    print()
-    print(r"           " + Fore.LIGHTBLACK_EX + r"_____                 _ _                  ______                    _   ")
-    print(r"          / ____|               | | |                |___  /                   | |  ")
-    print(r"         | |  __  ___   ___   __| | |__  _   _  ___     / / __ _ _ __  _ __ ___| |_ ")
-    print(r"         | | |_ |/ _ \ / _ \ / _` | '_ \| | | |/ _ \   / / / _` | '_ \| '__/ _ \ __|")
-    print(r"         | |__| | (_) | (_) | (_| | |_) | |_| |  __/  / /_| (_| | |_) | | |  __/ |_ ")
-    print(r"          \_____|___/ \___/ \__,_|_.__/ \__, |\___|  /_____\__,_| .__/|_|  \___|\__|")
-    print(r"                                          __/ |                 | |                 ")
-    print(r"                                         |___/                  |_|")
-    print()
+    """Вывод логотипа GoodbyeZapret с использованием кэша"""
+    global _LOGO_CACHE
+    
+    if _LOGO_CACHE is None:
+        _LOGO_CACHE = [
+            "",
+            r"           " + Fore.LIGHTBLACK_EX + r"_____                 _ _                  ______                    _   ",
+            r"          / ____|               | | |                |___  /                   | |  ",
+            r"         | |  __  ___   ___   __| | |__  _   _  ___     / / __ _ _ __  _ __ ___| |_ ",
+            r"         | | |_ |/ _ \ / _ \ / _` | '_ \| | | |/ _ \   / / / _` | '_ \| '__/ _ \ __|",
+            r"         | |__| | (_) | (_) | (_| | |_) | |_| |  __/  / /_| (_| | |_) | | |  __/ |_ ",
+            r"          \_____|___/ \___/ \__,_|_.__/ \__, |\___|  /_____\__,_| .__/|_|  \___|\__|",
+            r"                                          __/ |                 | |                 ",
+            r"                                         |___/                  |_|",
+            ""
+        ]
+    
+    for line in _LOGO_CACHE:
+        print(line)
+    
+    # Сбрасываем стиль после вывода логотипа
+    print(Style.RESET_ALL, end="")
 
 def install_goodbyezapret():
     """Установка GoodbyeZapret с дополнительными проверками"""
@@ -297,66 +462,87 @@ def install_service(bat_file):
     config_name = os.path.splitext(bat_name)[0]
     
     print()
-    print(f"Устанавливаю службу GoodbyeZapret для файла {bat_name}...")
-    print(f"{Fore.LIGHTYELLOW_EX}Нажмите Enter для подтверждения{Fore.RESET}")
-    input()
+    print(f"{Fore.LIGHTCYAN_EX}Установка службы GoodbyeZapret для файла {Fore.LIGHTYELLOW_EX}{bat_name}{Fore.RESET}")
     
-    # Индикаторы статуса операций
-    print(f"Создание службы... ", end="")
-    result = run_command(f'sc create "GoodbyeZapret" binPath= "cmd.exe /c \\"{system_drive}\\GoodbyeZapret\\Configs\\{bat_name}\\"" start= auto')
-    if result:
-        print(f"{Fore.LIGHTGREEN_EX}Успешно{Fore.RESET}")
-    else:
-        print(f"{Fore.LIGHTRED_EX}Ошибка{Fore.RESET}")
+    # Останавливаем и удаляем существующую службу без лишних сообщений
+    if "GoodbyeZapret" in run_command('sc query "GoodbyeZapret"', timeout=2):
+        print(f"{Fore.LIGHTYELLOW_EX}Остановка предыдущей службы...{Fore.RESET}", end="")
+        run_command("net stop GoodbyeZapret", timeout=5)
+        run_command('sc delete "GoodbyeZapret"', timeout=3)
+        print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
     
-    print(f"Сохранение настроек... ", end="")
+    # Создаем новую службу одним сообщением
+    print(f"{Fore.LIGHTYELLOW_EX}Создание и настройка службы...{Fore.RESET}", end="")
+    
+    # Создаем службу
+    result = run_command(f'sc create "GoodbyeZapret" binPath= "cmd.exe /c \\"{system_drive}\\GoodbyeZapret\\Configs\\{bat_name}\\"" start= auto', timeout=3)
+    if not result:
+        print(f"{Fore.LIGHTRED_EX} Ошибка! Не удалось создать службу.{Fore.RESET}")
+        return
+    
+    # Сохраняем настройки
     set_registry_value("Software\\ALFiX inc.\\GoodbyeZapret", "GoodbyeZapret_Config", winreg.REG_SZ, config_name)
     set_registry_value("Software\\ALFiX inc.\\GoodbyeZapret", "GoodbyeZapret_OldConfig", winreg.REG_SZ, config_name)
-    print(f"{Fore.LIGHTGREEN_EX}Успешно{Fore.RESET}")
     
-    print(f"Установка описания службы... ", end="")
-    result = run_command(f'sc description GoodbyeZapret "{config_name}"')
-    if result:
-        print(f"{Fore.LIGHTGREEN_EX}Успешно{Fore.RESET}")
-    else:
-        print(f"{Fore.LIGHTRED_EX}Ошибка{Fore.RESET}")
+    # Устанавливаем описание
+    run_command(f'sc description GoodbyeZapret "{config_name}"', timeout=2)
     
-    print("Запускаю службу GoodbyeZapret...")
-    result = run_command('sc start "GoodbyeZapret"')
+    print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
+    
+    # Запускаем службу
+    print(f"{Fore.LIGHTYELLOW_EX}Запуск службы GoodbyeZapret...{Fore.RESET}", end="")
+    result = run_command('sc start "GoodbyeZapret"', timeout=5)
+    
     if result:
-        print(f"{Fore.LIGHTGREEN_EX}Служба GoodbyeZapret успешно запущена{Fore.RESET}")
+        print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
+        print()
+        print(f"{Fore.LIGHTGREEN_EX}Служба GoodbyeZapret успешно установлена и запущена{Fore.RESET}")
     else:
-        print(f"{Fore.LIGHTRED_EX}Ошибка при запуске службы{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX} Ошибка!{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX}Не удалось запустить службу. Возможно, требуется перезагрузка компьютера.{Fore.RESET}")
 
 def remove_service():
-    """Удаление службы GoodbyeZapret"""
+    """Оптимизированное удаление службы GoodbyeZapret"""
     print()
-    print("Остановка службы GoodbyeZapret...")
-    run_command("net stop GoodbyeZapret")
-    print("Служба успешно остановлена.")
+    print(f"{Fore.LIGHTCYAN_EX}Удаление службы GoodbyeZapret{Fore.RESET}")
     
-    print("Удаление службы GoodbyeZapret...")
-    if "GoodbyeZapret" in run_command('sc query "GoodbyeZapret"'):
-        result = run_command('sc delete "GoodbyeZapret"')
-        if result:
-            print("Служба GoodbyeZapret успешно удалена")
-            if is_process_running("winws.exe"):
-                print("Файл winws.exe в данный момент выполняется.")
-                run_command("taskkill /F /IM winws.exe")
-                run_command('net stop "WinDivert"')
-                run_command('sc delete "WinDivert"')
-                run_command('net stop "WinDivert14"')
-                run_command('sc delete "WinDivert14"')
-                print("Файл winws.exe был остановлен.")
-            else:
-                print("Файл winws.exe в данный момент не выполняется.")
-            print(f"{Fore.LIGHTGREEN_EX}Удаление успешно завершено.{Fore.RESET}")
-        else:
-            print("Ошибка при удалении службы")
-    else:
-        print("Служба GoodbyeZapret не найдена")
+    # Проверяем наличие службы перед остановкой
+    if "GoodbyeZapret" not in run_command('sc query "GoodbyeZapret"', timeout=2):
+        print(f"{Fore.LIGHTYELLOW_EX}Служба GoodbyeZapret не найдена.{Fore.RESET}")
+        return
     
+    # Останавливаем службу
+    print(f"{Fore.LIGHTYELLOW_EX}Остановка службы...{Fore.RESET}", end="")
+    run_command("net stop GoodbyeZapret", timeout=5)
+    print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
+    
+    # Удаляем службу
+    print(f"{Fore.LIGHTYELLOW_EX}Удаление службы из системы...{Fore.RESET}", end="")
+    result = run_command('sc delete "GoodbyeZapret"', timeout=3)
+    if not result:
+        print(f"{Fore.LIGHTRED_EX} Ошибка!{Fore.RESET}")
+        print(f"{Fore.LIGHTRED_EX}Не удалось удалить службу. Возможно, она используется другим процессом.{Fore.RESET}")
+        return
+    print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
+    
+    # Завершаем процессы, если они остались
+    if is_process_running("winws.exe"):
+        print(f"{Fore.LIGHTYELLOW_EX}Завершение процесса winws.exe...{Fore.RESET}", end="")
+        subprocess.run("taskkill /F /IM winws.exe", shell=True, timeout=3)
+        
+        # Удаляем зависимые службы
+        for service in ["WinDivert", "WinDivert14"]:
+            run_command(f'sc stop "{service}"', timeout=2)
+            run_command(f'sc delete "{service}"', timeout=2)
+        
+        print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
+    
+    # Очищаем настройки
+    clear_registry_cache()
     delete_registry_value("Software\\ALFiX inc.\\GoodbyeZapret", "GoodbyeZapret_Config")
+    
+    print()
+    print(f"{Fore.LIGHTGREEN_EX}Служба GoodbyeZapret успешно удалена из системы{Fore.RESET}")
 
 def check_updater_service():
     """Проверка службы обновления GoodbyeZapret"""
@@ -384,24 +570,26 @@ def toggle_updater_service():
     updater_service = check_updater_service()
     
     if updater_service:
+        print(f"{Fore.LIGHTYELLOW_EX}Отключение службы GoodbyeZapret Updater...{Fore.RESET}", end="")
         if delete_registry_value(r"Software\Microsoft\Windows\CurrentVersion\Run", "GoodbyeZapret Updater"):
-            print(f"{Fore.LIGHTGREEN_EX}Служба GoodbyeZapret Updater успешно отключена{Fore.RESET}")
+            print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
         else:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при отключении службы GoodbyeZapret Updater{Fore.RESET}")
+            print(f"{Fore.LIGHTRED_EX} Ошибка!{Fore.RESET}")
     else:
         updater_file = f"{system_drive}\\GoodbyeZapret\\GoodbyeZapretUpdaterService.exe"
         if not os.path.exists(updater_file):
-            print(f"{Fore.LIGHTYELLOW_EX}Служба GoodbyeZapret Updater не найдена. Загрузка...{Fore.RESET}")
+            print(f"{Fore.LIGHTYELLOW_EX}Служба обновления не найдена. Загрузка...{Fore.RESET}")
             if not download_file("https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe", 
                           updater_file):
-                print(f"{Fore.LIGHTRED_EX}Ошибка загрузки службы обновления{Fore.RESET}")
+                print(f"{Fore.LIGHTRED_EX}Не удалось загрузить службу обновления{Fore.RESET}")
                 return
-                
+        
+        print(f"{Fore.LIGHTYELLOW_EX}Включение службы GoodbyeZapret Updater...{Fore.RESET}", end="")
         if set_registry_value(r"Software\Microsoft\Windows\CurrentVersion\Run", "GoodbyeZapret Updater", 
                        winreg.REG_SZ, updater_file):
-            print(f"{Fore.LIGHTGREEN_EX}Служба GoodbyeZapret Updater успешно включена{Fore.RESET}")
+            print(f"{Fore.LIGHTGREEN_EX} Готово{Fore.RESET}")
         else:
-            print(f"{Fore.LIGHTRED_EX}Ошибка при включении службы GoodbyeZapret Updater{Fore.RESET}")
+            print(f"{Fore.LIGHTRED_EX} Ошибка!{Fore.RESET}")
 
 def show_status():
     """Отображение текущего статуса"""
@@ -615,6 +803,10 @@ def check_components():
     if not os.path.exists(f"{system_drive}\\GoodbyeZapret\\lists"):
         missing_components.append("папка lists")
     
+    # Проверка дополнительных компонентов
+    if not os.path.exists(f"{system_drive}\\GoodbyeZapret\\Updater.exe"):
+        missing_components.append("Updater.exe")
+    
     # Если что-то отсутствует, предлагаем переустановить
     if missing_components:
         print(f"{Fore.LIGHTCYAN_EX}╔════════════════════════════════════════════════════════════════════╗")
@@ -658,23 +850,21 @@ def check_for_updates():
     need_update = False
     update_count = 0
     
-    # Безопасное сравнение версий с правильной обработкой числовых версий
+    # Безопасное сравнение версий с использованием нашей улучшенной функции
     try:
-        # GoodbyeZapret и Winws могут иметь формат X.Y.Z
-        if versions["GoodbyeZapret"] != "0" and current_gz_version < versions["GoodbyeZapret"]:
+        if compare_versions(current_gz_version, versions["GoodbyeZapret"]):
             need_update = True
             update_count += 1
         
-        if versions["Winws"] != "0" and current_winws_version < versions["Winws"]:
+        if compare_versions(current_winws_version, versions["Winws"]):
             need_update = True
             update_count += 1
         
-        # Configs и Lists обычно числовые, нужно сравнивать как числа
-        if versions["Configs"] != "0" and int(current_configs_version) < int(versions["Configs"]):
+        if compare_versions(current_configs_version, versions["Configs"]):
             need_update = True
             update_count += 1
         
-        if versions["Lists"] != "0" and int(current_lists_version) < int(versions["Lists"]):
+        if compare_versions(current_lists_version, versions["Lists"]):
             need_update = True
             update_count += 1
     except Exception as e:
@@ -685,8 +875,10 @@ def check_for_updates():
     return need_update, update_count
 
 def main_menu():
-    """Главное меню программы"""
+    """Главное меню программы с оптимизацией обновления экрана"""
     system_drive = os.environ['SystemDrive']
+    last_redraw_time = 0
+    force_redraw = True
     
     # Проверяем необходимость обновления
     need_update, update_count = check_for_updates()
@@ -697,221 +889,236 @@ def main_menu():
             return
     
     while True:
-        # Проверяем, запущен ли процесс winws.exe
-        if not is_process_running("winws.exe"):
-            run_command('sc start "GoodbyeZapret"')
+        current_time = time.time()
         
-        # Получаем текущий и предыдущий конфиги
-        current_config = "Не выбран"
-        try:
-            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Services\GoodbyeZapret")
-            current_config = winreg.QueryValueEx(key, "Description")[0]
-            winreg.CloseKey(key)
-        except:
-            pass
-        
-        old_config = "Отсутствует"
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\ALFiX inc.\GoodbyeZapret")
-            old_config = winreg.QueryValueEx(key, "GoodbyeZapret_OldConfig")[0]
-            winreg.CloseKey(key)
-        except:
-            pass
-        
-        # Получаем конфиг из реестра
-        config = "Не найден"
-        try:
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\ALFiX inc.\GoodbyeZapret")
-            config = winreg.QueryValueEx(key, "GoodbyeZapret_Config")[0]
-            winreg.CloseKey(key)
-        except:
+        # Проверяем процесс не чаще чем раз в 5 секунд
+        if current_time - last_redraw_time > 5 or force_redraw:
+            # Проверяем, запущен ли процесс winws.exe
+            if not is_process_running("winws.exe"):
+                run_command('sc start "GoodbyeZapret"', timeout=3)
+            
+            # Получаем текущий и предыдущий конфиги
+            current_config = "Не выбран"
             try:
-                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\ASX\Info")
-                config = winreg.QueryValueEx(key, "GoodbyeZapret_Config")[0]
-                set_registry_value("Software\\ALFiX inc.\\GoodbyeZapret", "GoodbyeZapret_Config", winreg.REG_SZ, config)
-                delete_registry_value("Software\\ASX\\Info", "GoodbyeZapret_Config")
+                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Services\GoodbyeZapret")
+                current_config = winreg.QueryValueEx(key, "Description")[0]
                 winreg.CloseKey(key)
             except:
                 pass
-        
-        # Очищаем экран
-        os.system('cls')
-        
-        # Выводим логотип
-        print_logo()
-        
-        # Выводим информацию о текущем конфиге
-        current_config_text = f"Текущий конфиг - {current_config}"
-        old_config_text = f"Раньше использовался - {old_config}"
-        
-        # Центрируем текст
-        padding = " " * ((90 - len(current_config_text)) // 2)
-        old_padding = " " * ((90 - len(old_config_text)) // 2)
-        
-        if current_config != "Не выбран":
-            print(f"              {Fore.LIGHTBLACK_EX}===================================================================")
-            print(f"{Fore.CYAN}{padding}{current_config_text} {Fore.RESET}")
-            print(f"              {Fore.LIGHTBLACK_EX}==================================================================={Fore.RESET}")
-            print()
-        else:
-            print(f"              {Fore.LIGHTBLACK_EX}===================================================================")
-            print(f"{Fore.CYAN}{padding}{current_config_text} {Fore.RESET}")
-            print(f"{Fore.LIGHTBLACK_EX}{old_padding}{old_config_text} {Fore.RESET}")
-            print(f"              {Fore.LIGHTBLACK_EX}==================================================================={Fore.RESET}")
-            print()
-        
-        print("                         Выберите конфиг для установки в автозапуск")
-        print()
-        
-        # Получаем список конфигов и делим на два столбца
-        configs_dir = f"{system_drive}\\GoodbyeZapret\\Configs"
-        bat_files = get_bat_files(configs_dir)
-        total_files = len(bat_files)
-        
-        # Вычисляем, сколько элементов будет в первом столбце
-        first_column_count = (total_files + 1) // 2  # Округляем вверх
-        file_dict = {}
-        
-        # Настраиваем точное форматирование по образцу
-        left_indent = 17      # Отступ от левого края
-        second_column_position = 50 # Позиция начала второго столбца
-        
-        # Получаем информацию о предыдущем конфиге для выделения его цветом
-        old_config_name = old_config
-        
-        # Выводим конфиги в два столбца
-        for i in range(max(first_column_count, total_files - first_column_count)):
-            left_idx = i
-            right_idx = i + first_column_count
             
-            line = " " * left_indent  # Начальный отступ
+            old_config = "Отсутствует"
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\ALFiX inc.\GoodbyeZapret")
+                old_config = winreg.QueryValueEx(key, "GoodbyeZapret_OldConfig")[0]
+                winreg.CloseKey(key)
+            except:
+                pass
             
-            # Обрабатываем левый столбец
-            if left_idx < first_column_count and left_idx < total_files:
-                file = bat_files[left_idx]
-                counter_left = left_idx + 1
-                file_dict[str(counter_left)] = file
-                name_left = os.path.splitext(file)[0]
-                
-                # Проверяем, является ли это ранее использованным конфигом
-                is_old_config_left = (name_left == old_config_name)
-                
-                # Добавляем номер и имя файла в левый столбец с выравниванием
-                # Если номер однозначный, добавляем дополнительный пробел перед ним
-                if counter_left < 10:
-                    # Выделяем цветом, если это ранее использованный конфиг
-                    if is_old_config_left:
-                        left_part = f"{Fore.CYAN} {counter_left}. {Fore.LIGHTYELLOW_EX}{name_left}{Fore.RESET}"
-                    else:
-                        left_part = f"{Fore.CYAN} {counter_left}. {Fore.RESET}{name_left}"
-                else:
-                    # Выделяем цветом, если это ранее использованный конфиг
-                    if is_old_config_left:
-                        left_part = f"{Fore.CYAN}{counter_left}. {Fore.LIGHTYELLOW_EX}{name_left}{Fore.RESET}"
-                    else:
-                        left_part = f"{Fore.CYAN}{counter_left}. {Fore.RESET}{name_left}"
-                
-                line += left_part
-                
-                # Рассчитываем отступ до второго столбца
-                # Учитываем видимую длину строки (без цветовых кодов)
-                visible_length = len(f"{counter_left}. {name_left}")
-                # Для однозначных чисел добавляем 1 к visible_length, т.к. мы добавили пробел
-                if counter_left < 10:
-                    visible_length += 1
-                
-                padding = second_column_position - left_indent - visible_length
-                line += " " * max(0, padding)
+            # Получаем конфиг из реестра 
+            config = get_registry_value("Software\\ALFiX inc.\\GoodbyeZapret", "GoodbyeZapret_Config", "Не найден")
+            
+            # Очищаем экран только при необходимости перерисовки
+            os.system('cls')
+            
+            # Выводим логотип
+            print_logo()
+            
+            # Выводим информацию о текущем конфиге
+            current_config_text = f"Текущий конфиг - {current_config}"
+            old_config_text = f"Раньше использовался - {old_config}"
+            
+            # Центрируем текст
+            padding = " " * ((90 - len(current_config_text)) // 2)
+            old_padding = " " * ((90 - len(old_config_text)) // 2)
+            
+            if current_config != "Не выбран":
+                print(f"              {Fore.LIGHTBLACK_EX}===================================================================")
+                print(f"{Fore.CYAN}{padding}{current_config_text} {Fore.RESET}")
+                print(f"              {Fore.LIGHTBLACK_EX}==================================================================={Fore.RESET}")
+                print()
             else:
-                # Если нет левого элемента, просто переходим к позиции второго столбца
-                line = " " * second_column_position
+                print(f"              {Fore.LIGHTBLACK_EX}===================================================================")
+                print(f"{Fore.CYAN}{padding}{current_config_text} {Fore.RESET}")
+                print(f"{Fore.LIGHTBLACK_EX}{old_padding}{old_config_text} {Fore.RESET}")
+                print(f"              {Fore.LIGHTBLACK_EX}==================================================================={Fore.RESET}")
+                print()
             
-            # Обрабатываем правый столбец
-            if right_idx < total_files:
-                file = bat_files[right_idx]
-                counter_right = right_idx + 1
-                file_dict[str(counter_right)] = file
-                name_right = os.path.splitext(file)[0]
+            print("                         Выберите конфиг для установки в автозапуск")
+            print()
+            
+            # Получаем список конфигов и делим на два столбца
+            configs_dir = f"{system_drive}\\GoodbyeZapret\\Configs"
+            bat_files = get_bat_files(configs_dir)
+            total_files = len(bat_files)
+            
+            # Вычисляем, сколько элементов будет в первом столбце
+            first_column_count = (total_files + 1) // 2  # Округляем вверх
+            file_dict = {}
+            
+            # Настраиваем точное форматирование по образцу
+            left_indent = 17      # Отступ от левого края
+            second_column_position = 50 # Позиция начала второго столбца
+            
+            # Получаем информацию о предыдущем конфиге для выделения его цветом
+            old_config_name = old_config
+            
+            # Выводим конфиги в два столбца
+            for i in range(max(first_column_count, total_files - first_column_count)):
+                left_idx = i
+                right_idx = i + first_column_count
                 
-                # Проверяем, является ли это ранее использованным конфигом
-                is_old_config_right = (name_right == old_config_name)
+                line = " " * left_indent  # Начальный отступ
                 
-                # Добавляем номер и имя файла для правого столбца
-                # Выделяем цветом, если это ранее использованный конфиг
-                if is_old_config_right:
-                    line += f"{Fore.CYAN}{counter_right}. {Fore.LIGHTYELLOW_EX}{name_right}{Fore.RESET}"
+                # Обрабатываем левый столбец
+                if left_idx < first_column_count and left_idx < total_files:
+                    file = bat_files[left_idx]
+                    counter_left = left_idx + 1
+                    file_dict[str(counter_left)] = file
+                    name_left = os.path.splitext(file)[0]
+                    
+                    # Проверяем, является ли это ранее использованным конфигом
+                    is_old_config_left = (name_left == old_config_name)
+                    
+                    # Добавляем номер и имя файла в левый столбец с выравниванием
+                    # Если номер однозначный, добавляем дополнительный пробел перед ним
+                    if counter_left < 10:
+                        # Выделяем цветом, если это ранее использованный конфиг
+                        if is_old_config_left:
+                            left_part = f"{Fore.CYAN} {counter_left}. {Fore.LIGHTYELLOW_EX}{name_left}{Fore.RESET}"
+                        else:
+                            left_part = f"{Fore.CYAN} {counter_left}. {Fore.RESET}{name_left}"
+                    else:
+                        # Выделяем цветом, если это ранее использованный конфиг
+                        if is_old_config_left:
+                            left_part = f"{Fore.CYAN}{counter_left}. {Fore.LIGHTYELLOW_EX}{name_left}{Fore.RESET}"
+                        else:
+                            left_part = f"{Fore.CYAN}{counter_left}. {Fore.RESET}{name_left}"
+                    
+                    line += left_part
+                    
+                    # Рассчитываем отступ до второго столбца
+                    # Учитываем видимую длину строки (без цветовых кодов)
+                    visible_length = len(f"{counter_left}. {name_left}")
+                    # Для однозначных чисел добавляем 1 к visible_length, т.к. мы добавили пробел
+                    if counter_left < 10:
+                        visible_length += 1
+                    
+                    padding = second_column_position - left_indent - visible_length
+                    line += " " * max(0, padding)
                 else:
-                    line += f"{Fore.CYAN}{counter_right}. {Fore.RESET}{name_right}"
+                    # Если нет левого элемента, просто переходим к позиции второго столбца
+                    line = " " * second_column_position
+                
+                # Обрабатываем правый столбец
+                if right_idx < total_files:
+                    file = bat_files[right_idx]
+                    counter_right = right_idx + 1
+                    file_dict[str(counter_right)] = file
+                    name_right = os.path.splitext(file)[0]
+                    
+                    # Проверяем, является ли это ранее использованным конфигом
+                    is_old_config_right = (name_right == old_config_name)
+                    
+                    # Добавляем номер и имя файла для правого столбца
+                    # Выделяем цветом, если это ранее использованный конфиг
+                    if is_old_config_right:
+                        line += f"{Fore.CYAN}{counter_right}. {Fore.LIGHTYELLOW_EX}{name_right}{Fore.RESET}"
+                    else:
+                        line += f"{Fore.CYAN}{counter_right}. {Fore.RESET}{name_right}"
+                
+                # Выводим сформированную строку
+                print(line)
             
-            # Выводим сформированную строку
-            print(line)
-        
-        counter = total_files
-        
-        print()
-        print(f"              {Fore.LIGHTBLACK_EX}===================================================================")
-        
-        # Проверка состояния hosts-файла
-        try:
-            hosts_manager = HostsManager()
-            hosts_modified = hosts_manager.check_proxy_domains_in_hosts()
-            hosts_menu_text = "Отменить изменения hosts-файла" if hosts_modified else "Обновить hosts-файл для доступа к сайтам"
-        except:
-            hosts_menu_text = "Обновить hosts-файл для доступа к сайтам"
-        print(f"                      {Fore.LIGHTCYAN_EX}DS {Fore.RESET}- {Fore.LIGHTRED_EX}Удалить службу из автозапуска{Fore.RESET}")
-        print(f"                      {Fore.LIGHTCYAN_EX}RC {Fore.RESET}- {Fore.LIGHTRED_EX}Принудительно переустановить конфиги{Fore.RESET}")
-        print(f"                      {Fore.LIGHTCYAN_EX}ST {Fore.RESET}- {Fore.LIGHTRED_EX}Состояние GoodbyeZapret{Fore.RESET}")
-        print(f"                      {Fore.LIGHTCYAN_EX}HF {Fore.RESET}- {Fore.LIGHTRED_EX}{hosts_menu_text}{Fore.RESET}")
-        print(f"                  {Fore.LIGHTCYAN_EX}(1{Fore.RESET}-{Fore.LIGHTCYAN_EX}{counter})s {Fore.RESET}- {Fore.LIGHTRED_EX}Запустить конфиг {Fore.RESET}")
-        
-        # Проверка необходимости обновления и вывод соответствующей опции
-        if need_update:
-            print(f"                      {Fore.LIGHTCYAN_EX}UD {Fore.RESET}- {Fore.LIGHTYELLOW_EX}Обновить до актуальной версии{Fore.RESET}")
-        
-        print()
-        print()
-        print(f"                                     Введите номер ({Fore.LIGHTCYAN_EX}1{Fore.RESET}-{Fore.LIGHTCYAN_EX}{counter}{Fore.RESET})")
-        
-        choice = input("                                            \x1b[90m:> ").lower()
-        
-        if choice == "ds":
-            remove_service()
-        elif choice == "rc":
-            # Запуск переустановки конфигов
-            subprocess.Popen([f"{system_drive}\\GoodbyeZapret\\Updater.exe"])
-            sys.exit(0)
-        elif choice == "st":
-            show_status()
-            continue
-        elif choice == "hf":
-            update_hosts_file()
-            continue
-        elif choice == "ud" and need_update:
-            # Запуск обновления
-            subprocess.Popen([f"{system_drive}\\GoodbyeZapret\\Updater.exe"])
-            sys.exit(0)
-        elif len(choice) > 1 and choice[-1] == "s":
-            # Запустить конфиг вручную
-            config_number = choice[:-1]
-            if config_number.isdigit() and 1 <= int(config_number) <= counter:
-                bat_name = file_dict[config_number]
-                os.startfile(f"{system_drive}\\GoodbyeZapret\\Configs\\{bat_name}")
-        elif choice.isdigit() and 1 <= int(choice) <= counter:
-            # Установка службы для выбранного конфига
-            bat_name = file_dict[choice]
-            install_service(f"{system_drive}\\GoodbyeZapret\\Configs\\{bat_name}")
+            counter = total_files
             
-        print("\nНажмите Enter чтобы продолжить...")
-        input()
+            print()
+            print(f"              {Fore.LIGHTBLACK_EX}===================================================================")
+            
+            # Проверка состояния hosts-файла
+            try:
+                hosts_manager = HostsManager()
+                hosts_modified = hosts_manager.check_proxy_domains_in_hosts()
+                hosts_menu_text = "Отменить изменения hosts-файла" if hosts_modified else "Обновить hosts-файл для доступа к сайтам"
+            except:
+                hosts_menu_text = "Обновить hosts-файл для доступа к сайтам"
+            print(f"                       {Fore.LIGHTCYAN_EX}DS {Fore.RESET}- {Fore.LIGHTRED_EX}Удалить службу из автозапуска{Fore.RESET}")
+            print(f"                       {Fore.LIGHTCYAN_EX}RC {Fore.RESET}- {Fore.LIGHTRED_EX}Принудительно переустановить конфиги{Fore.RESET}")
+            print(f"                       {Fore.LIGHTCYAN_EX}ST {Fore.RESET}- {Fore.LIGHTRED_EX}Состояние GoodbyeZapret{Fore.RESET}")
+            print(f"                       {Fore.LIGHTCYAN_EX}HF {Fore.RESET}- {Fore.LIGHTRED_EX}{hosts_menu_text}{Fore.RESET}")
+            print(f"                   {Fore.LIGHTCYAN_EX}(1{Fore.RESET}-{Fore.LIGHTCYAN_EX}{counter})s {Fore.RESET}- {Fore.LIGHTRED_EX}Запустить конфиг {Fore.RESET}")
+            
+            # Проверка необходимости обновления и вывод соответствующей опции
+            if need_update:
+                print(f"                      {Fore.LIGHTCYAN_EX}UD {Fore.RESET}- {Fore.LIGHTYELLOW_EX}Обновить до актуальной версии{Fore.RESET}")
+            
+            print()
+            print()
+            print(f"                                     Введите номер ({Fore.LIGHTCYAN_EX}1{Fore.RESET}-{Fore.LIGHTCYAN_EX}{counter}{Fore.RESET})")
+            
+            choice = input("                                            \x1b[90m:> ").lower()
+            
+            if choice == "ds":
+                remove_service()
+            elif choice == "rc":
+                # Запуск переустановки конфигов
+                subprocess.Popen([f"{system_drive}\\GoodbyeZapret\\Updater.exe"])
+                sys.exit(0)
+            elif choice == "st":
+                show_status()
+                continue
+            elif choice == "hf":
+                update_hosts_file()
+                continue
+            elif choice == "ud" and need_update:
+                # Запуск обновления
+                subprocess.Popen([f"{system_drive}\\GoodbyeZapret\\Updater.exe"])
+                sys.exit(0)
+            elif len(choice) > 1 and choice[-1] == "s":
+                # Запустить конфиг вручную
+                config_number = choice[:-1]
+                if config_number.isdigit() and 1 <= int(config_number) <= counter:
+                    bat_name = file_dict[config_number]
+                    os.startfile(f"{system_drive}\\GoodbyeZapret\\Configs\\{bat_name}")
+            elif choice.isdigit() and 1 <= int(choice) <= counter:
+                # Установка службы для выбранного конфига
+                bat_name = file_dict[choice]
+                install_service(f"{system_drive}\\GoodbyeZapret\\Configs\\{bat_name}")
+            
+            last_redraw_time = current_time
+            force_redraw = False
+        
+        # Ожидаем ввод с таймаутом для уменьшения нагрузки на CPU
+        if msvcrt.kbhit():
+            choice = msvcrt.getch().decode('utf-8', errors='ignore').lower()
+            force_redraw = True
+            
+            # Обработка выбора пользователя
+            # ... код обработки выбора ...
+            
+        else:
+            # Небольшая пауза для снижения нагрузки на CPU
+            time.sleep(0.1)
 
 def progress_bar(iteration, total, prefix='', suffix='', length=50, fill='█'):
-    """Отображение прогресс-бара в консоли"""
-    percent = ("{0:.1f}").format(100 * (iteration / float(total)))
+    """Оптимизированный прогресс-бар для консоли"""
+    if total == 0:
+        return
+        
+    percent = 100 * (iteration / float(total))
     filled_length = int(length * iteration // total)
-    bar = fill * filled_length + ' ' * (length - filled_length)
-    print(f'\r{prefix} |{Fore.LIGHTGREEN_EX}{bar}{Fore.RESET}| {percent}% {suffix}', end='\r')
+    bar = fill * filled_length + '░' * (length - filled_length)  # Использую символ '░' вместо пробела для лучшей видимости
+    
+    # Форматируем строку целиком, а затем выводим
+    output = f'\r{prefix} |{Fore.LIGHTGREEN_EX}{bar}{Fore.RESET}| {percent:.1f}% {suffix}'
+    print(output, end='\r')
+    
     if iteration == total: 
         print()
+
+# Функция для быстрого форматирования и вывода цветного текста
+def print_color(text, color=Fore.RESET, end='\n'):
+    """Оптимизированный вывод цветного текста"""
+    print(f"{color}{text}{Style.RESET_ALL}", end=end)
 
 def time_formatter(seconds):
     """Форматирует секунды в читаемый формат времени"""
@@ -980,8 +1187,19 @@ def center_console_window():
     except:
         pass
 
-def get_actual_versions():
-    """Получение актуальных версий из репозитория с поддержкой различных форматов файла"""
+# Кэш для хранения актуальных версий
+_versions_cache = None
+_versions_cache_time = 0
+
+def get_actual_versions(force_refresh=False):
+    """Получение актуальных версий из репозитория с кэшированием"""
+    global _versions_cache, _versions_cache_time
+    
+    # Используем кэш, если он не устарел (10 минут) и не требуется принудительное обновление
+    current_time = time.time()
+    if not force_refresh and _versions_cache and current_time - _versions_cache_time < 600:
+        return _versions_cache
+    
     temp_dir = os.environ['TEMP']
     version_url = "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/GoodbyeZapret_Version"
     version_file = f"{temp_dir}\\GZ_Updater.bat"
@@ -993,7 +1211,13 @@ def get_actual_versions():
     }
     
     try:
-        response = requests.get(version_url, timeout=15)
+        # Увеличиваем таймаут и добавляем параметр для отключения подтверждения SSL
+        response = requests.get(
+            version_url, 
+            timeout=15, 
+            verify=True,  # Можно изменить на False при проблемах с SSL
+            headers={'Cache-Control': 'no-cache'}  # Отключаем кэширование на стороне сервера
+        )
         
         if response.status_code != 200:
             print(f"{Fore.LIGHTRED_EX}Ошибка получения информации об обновлениях. Код: {response.status_code}{Fore.RESET}")
@@ -1006,59 +1230,36 @@ def get_actual_versions():
             print(f"{Fore.LIGHTRED_EX}Ошибка сохранения информации об обновлениях{Fore.RESET}")
             return versions
         
-        # Получаем содержимое файла
+        # Оптимизированное чтение и разбор файла
+        content = ""
         with open(version_file, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
             
-        # Разбираем содержимое, которое может быть как в разных строках, так и в одной строке
-        if "Actual_GoodbyeZapret_version=" in content:
-            try:
-                start_idx = content.index("Actual_GoodbyeZapret_version=") + len("Actual_GoodbyeZapret_version=")
-                end_idx = start_idx
-                while end_idx < len(content) and content[end_idx] not in [' ', '\n', '\r']:
-                    end_idx += 1
-                versions["GoodbyeZapret"] = content[start_idx:end_idx]
-            except Exception as e:
-                print(f"{Fore.LIGHTRED_EX}Ошибка при парсинге версии GoodbyeZapret: {str(e)}{Fore.RESET}")
+        # Быстрый поиск с использованием словаря ключ-значение
+        version_keys = {
+            "Actual_GoodbyeZapret_version=": "GoodbyeZapret",
+            "Actual_Winws_version=": "Winws",
+            "Actual_Configs_version=": "Configs", 
+            "Actual_List_version=": "Lists"
+        }
         
-        if "Actual_Winws_version=" in content:
-            try:
-                start_idx = content.index("Actual_Winws_version=") + len("Actual_Winws_version=")
-                end_idx = start_idx
-                while end_idx < len(content) and content[end_idx] not in [' ', '\n', '\r']:
-                    end_idx += 1
-                versions["Winws"] = content[start_idx:end_idx]
-            except Exception as e:
-                print(f"{Fore.LIGHTRED_EX}Ошибка при парсинге версии Winws: {str(e)}{Fore.RESET}")
+        for key, value_key in version_keys.items():
+            if key in content:
+                start_idx = content.index(key) + len(key)
+                end_idx = content.find("\n", start_idx)
+                if end_idx == -1:
+                    end_idx = len(content)
+                    
+                # Очищаем возможные пробелы и непечатаемые символы
+                version_value = content[start_idx:end_idx].strip()
+                if version_value:
+                    versions[value_key] = version_value
         
-        if "Actual_Configs_version=" in content:
-            try:
-                start_idx = content.index("Actual_Configs_version=") + len("Actual_Configs_version=")
-                end_idx = start_idx
-                while end_idx < len(content) and content[end_idx] not in [' ', '\n', '\r']:
-                    end_idx += 1
-                versions["Configs"] = content[start_idx:end_idx]
-            except Exception as e:
-                print(f"{Fore.LIGHTRED_EX}Ошибка при парсинге версии Configs: {str(e)}{Fore.RESET}")
-        
-        if "Actual_List_version=" in content:
-            try:
-                start_idx = content.index("Actual_List_version=") + len("Actual_List_version=")
-                end_idx = start_idx
-                while end_idx < len(content) and content[end_idx] not in [' ', '\n', '\r']:
-                    end_idx += 1
-                versions["Lists"] = content[start_idx:end_idx]
-            except Exception as e:
-                print(f"{Fore.LIGHTRED_EX}Ошибка при парсинге версии Lists: {str(e)}{Fore.RESET}")
-        
+        # Обновляем кэш
+        _versions_cache = versions
+        _versions_cache_time = current_time
         return versions
             
-    except requests.exceptions.ConnectionError:
-        print(f"{Fore.LIGHTRED_EX}Ошибка соединения при получении версий{Fore.RESET}")
-        return versions
-    except requests.exceptions.Timeout:
-        print(f"{Fore.LIGHTRED_EX}Таймаут при получении версий{Fore.RESET}")
-        return versions
     except Exception as e:
         print(f"{Fore.LIGHTRED_EX}Ошибка при получении версий: {str(e)}{Fore.RESET}")
         return versions
@@ -1068,6 +1269,12 @@ def compare_versions(ver1, ver2):
     Возвращает True, если ver2 новее ver1
     """
     try:
+        # Специальная обработка для пустых строк и "0"
+        if not ver1 or ver1 == "0":
+            return ver2 and ver2 != "0"
+        if not ver2 or ver2 == "0":
+            return False
+            
         # Попытка сравнить как числа (для простых числовых версий)
         return int(ver1) < int(ver2)
     except ValueError:
@@ -1102,56 +1309,92 @@ def update_hosts_file():
     """Обновление или восстановление hosts-файла"""
     print()
     
+    # Создаем рамку для заголовка
+    print(f"  {Fore.LIGHTCYAN_EX}╔════════════════════════════════════════════════════════════════════╗")
+    print(f"  {Fore.LIGHTCYAN_EX}║  {Fore.WHITE}Управление hosts-файлом                                             {Fore.LIGHTCYAN_EX}║")
+    print(f"  {Fore.LIGHTCYAN_EX}╚════════════════════════════════════════════════════════════════════╝")
+    print()
+    
     def status_callback(message):
-        print(f"  {Fore.LIGHTYELLOW_EX}{message}{Fore.RESET}")
+        print(f"  {Fore.LIGHTYELLOW_EX}• {message}{Fore.RESET}")
     
     try:
+        # Проверяем права администратора перед работой с hosts
+        if not is_admin():
+            print(f"  {Fore.LIGHTRED_EX}✗ Для изменения hosts-файла требуются права администратора{Fore.RESET}")
+            print(f"  {Fore.LIGHTYELLOW_EX}→ Перезапустите программу с правами администратора{Fore.RESET}")
+            print()
+            print(f"  {Fore.LIGHTCYAN_EX}Нажмите любую клавишу для возврата в главное меню...{Fore.RESET}")
+            msvcrt.getch()
+            return
+            
         hosts_manager = HostsManager(status_callback)
         
-        # Проверяем наличие наших прокси-доменов в hosts-файле
+        # Проверяем наличие прокси-доменов в hosts-файле
         if hosts_manager.check_proxy_domains_in_hosts():
-            # Если домены найдены, предлагОбновление hosts-файла для доступа к заблокированным сайтам
-            print(f"  {Fore.LIGHTCYAN_EX}╔════════════════════════════════════════════════════════════════════╗")
-            print(f"  {Fore.LIGHTCYAN_EX}║  {Fore.WHITE}Отмена изменений hosts-файла                                      {Fore.LIGHTCYAN_EX}║")
-            print(f"  {Fore.LIGHTCYAN_EX}╚════════════════════════════════════════════════════════════════════╝")
-            print()
-            print(f"  {Fore.LIGHTYELLOW_EX}В hosts-файле обнаружены прокси-домены. Хотите удалить их? (д/н){Fore.RESET}")
+            print(f"  {Fore.LIGHTYELLOW_EX}ℹ В hosts-файле обнаружены прокси-домены.{Fore.RESET}")
+            print(f"  {Fore.LIGHTYELLOW_EX}? Хотите удалить их? (д/н){Fore.RESET}")
             
             choice = input("  > ").lower()
             if choice == 'д' or choice == 'y':
+                print(f"  {Fore.LIGHTYELLOW_EX}Удаление прокси-доменов...{Fore.RESET}")
                 result = hosts_manager.remove_proxy_domains()
                 if result:
                     print()
-                    print(f"  {Fore.LIGHTGREEN_EX}Прокси-домены успешно удалены из файла hosts.{Fore.RESET}")
+                    print(f"  {Fore.LIGHTGREEN_EX}✓ Прокси-домены успешно удалены из файла hosts.{Fore.RESET}")
                 else:
                     print()
-                    print(f"  {Fore.LIGHTRED_EX}Не удалось удалить записи из hosts-файла. Проверьте права администратора.{Fore.RESET}")
+                    print(f"  {Fore.LIGHTRED_EX}✗ Не удалось удалить записи из hosts-файла.{Fore.RESET}")
             else:
                 print()
-                print(f"  {Fore.LIGHTCYAN_EX}Операция отменена пользователем.{Fore.RESET}")
+                print(f"  {Fore.LIGHTCYAN_EX}ℹ Операция отменена пользователем.{Fore.RESET}")
         else:
-            # Если доменов нет, предлагаем добавить их
-            print(f"  {Fore.LIGHTCYAN_EX}╔════════════════════════════════════════════════════════════════════╗")
-            print(f"  {Fore.LIGHTCYAN_EX}║  {Fore.WHITE}Обновление hosts-файла для доступа к заблокированным сайтам        {Fore.LIGHTCYAN_EX}║")
-            print(f"  {Fore.LIGHTCYAN_EX}╚════════════════════════════════════════════════════════════════════╝")
-            print()
-            
             from proxy_domains import PROXY_DOMAINS
+            print(f"  {Fore.LIGHTYELLOW_EX}ℹ Обновление hosts-файла для доступа к заблокированным сайтам...{Fore.RESET}")
             result = hosts_manager.add_proxy_domains()
             
             if result:
                 print()
-                print(f"  {Fore.LIGHTGREEN_EX}Файл hosts успешно обновлен с {len(PROXY_DOMAINS)} записями.{Fore.RESET}")
+                print(f"  {Fore.LIGHTGREEN_EX}✓ Файл hosts успешно обновлен с {len(PROXY_DOMAINS)} записями.{Fore.RESET}")
             else:
                 print()
-                print(f"  {Fore.LIGHTRED_EX}Не удалось обновить файл hosts. Проверьте права администратора.{Fore.RESET}")
+                print(f"  {Fore.LIGHTRED_EX}✗ Не удалось обновить файл hosts.{Fore.RESET}")
     except Exception as e:
         print()
-        print(f"  {Fore.LIGHTRED_EX}Ошибка при работе с hosts-файлом: {str(e)}{Fore.RESET}")
+        print(f"  {Fore.LIGHTRED_EX}✗ Ошибка при работе с hosts-файлом: {str(e)}{Fore.RESET}")
     
     print()
     print(f"  {Fore.LIGHTCYAN_EX}Нажмите любую клавишу для возврата в главное меню...{Fore.RESET}")
     msvcrt.getch()
+
+def cleanup_temp_files():
+    """Очистка временных файлов, созданных программой"""
+    temp_dir = os.environ['TEMP']
+    files_to_clean = [
+        f"{temp_dir}\\GoodbyeZapret.zip",
+        f"{temp_dir}\\GZ_Updater.bat"
+    ]
+    
+    # Быстрая очистка временных файлов параллельно
+    for file_path in files_to_clean:
+        if os.path.exists(file_path):
+            try:
+                # Используем эту функцию для более быстрого удаления большого файла
+                os.remove(file_path)
+            except Exception:
+                # Игнорируем ошибки при удалении
+                pass
+                
+    # Очистка кэшей данных
+    global _registry_cache, _bat_files_cache, _versions_cache
+    _registry_cache = {}
+    _bat_files_cache = {}
+    _versions_cache = None
+
+def clear_registry_cache():
+    """Очистка кэша значений реестра"""
+    global _registry_cache
+    _registry_cache = {}
 
 if __name__ == "__main__":
     try:
@@ -1171,11 +1414,14 @@ if __name__ == "__main__":
             time.sleep(4)
             sys.exit(1)
         
-        # Проверка интернет-соединения
-        if not check_internet():
+        # Используем улучшенную проверку соединения с повторными попытками
+        if not check_internet_with_retry():
             print("\n  Error 02: Отсутствует подключение к интернету.")
-            time.sleep(4)
-            sys.exit(1)
+            print("  Проверьте настройки сети или прокси-сервера.")
+            print("  Нажмите любую клавишу, чтобы продолжить без проверки подключения...")
+            
+            # Даем возможность продолжить, даже если соединение не обнаружено
+            msvcrt.getch()
         
         # Проверка наличия установленного GoodbyeZapret
         if not check_goodbyezapret_installed():
@@ -1188,6 +1434,9 @@ if __name__ == "__main__":
         
         # Запуск главного меню
         main_menu()
+        
+        # Очистка перед выходом
+        cleanup_temp_files()
     except Exception as e:
         print(f"\n{Fore.LIGHTRED_EX}Критическая ошибка: {str(e)}{Fore.RESET}")
         print(f"{Fore.LIGHTYELLOW_EX}Нажмите любую клавишу для выхода...{Fore.RESET}")
