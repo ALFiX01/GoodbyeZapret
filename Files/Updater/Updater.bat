@@ -43,18 +43,18 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "UpdaterVersion=0.3"
+set "UpdaterVersion=0.4"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
 echo.
-echo Updater version: %UpdaterVersion%
+echo Версия Updater: %UpdaterVersion%
 echo.
-timeout /t 3 >nul 2>&1
+timeout /t 2 >nul 2>&1
 title Отключение текущего конфига GoodbyeZapret
 net stop GoodbyeZapret >nul 2>&1
-echo %COL%[90mУдаление службы GoodbyeZapret...
+echo Удаление службы GoodbyeZapret...
 sc delete GoodbyeZapret >nul 2>&1
 echo Файл winws.exe в данный момент выполняется.
 taskkill /F /IM winws.exe >nul 2>&1
@@ -83,8 +83,6 @@ set "GoodbyeZapret_Config=Не найден"
 
 :end_GoodbyeZapret_Config
 
-
-
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
@@ -110,17 +108,20 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-
-sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
-sc description GoodbyeZapret "%GoodbyeZapret_Config%" ) >nul 2>&1
-sc start "GoodbyeZapret" >nul 2>&1
-sc start "GoodbyeZapret" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo Служба GoodbyeZapret успешно запущена %COL%[37m
+if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat" (
+    sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
+    sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
+    sc start "GoodbyeZapret" >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Служба GoodbyeZapret успешно запущена
+    ) else (
+        echo Возможно при запуске службы GoodbyeZapret произошла ошибка
+    )
+    start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+    echo Готово. Обновление завершено.
+    timeout /t 3 >nul 2>&1
 ) else (
-    echo Возможно при запуске службы GoodbyeZapret произошла ошибка
+    echo Файл конфигурации %GoodbyeZapret_Config%.bat не найден
+    timeout /t 5 >nul
+    exit
 )
-start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
-echo готово
-pause
-
