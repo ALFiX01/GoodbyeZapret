@@ -44,7 +44,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.3.0"
+set "Current_GoodbyeZapret_version=1.3.1"
 
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
 for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
@@ -282,7 +282,7 @@ if defined GoodbyeZapretVersion (
 
 
 :GZ_loading_procces
-if %UpdateNeedCount% GEQ 3 (
+if %UpdateNeedCount% GEQ 2 (
     goto Update_Need_screen
 )
 :MainMenu
@@ -775,18 +775,18 @@ echo.
 echo.
 echo.
 if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
-    echo                                 GodbyeZapret: %COL%[92m^(v!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!^) %COL%[37m
+    echo                                  GodbyeZapret: %COL%[92m^(v!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!^) %COL%[37m
 )
 if !Current_Winws_version! neq !Actual_Winws_version! (
-    echo                                     Winws: %COL%[92m^(v!Current_Winws_version! → v!Actual_Winws_version!^) %COL%[37m
+    echo                                  Winws: %COL%[92m^(v!Current_Winws_version! → v!Actual_Winws_version!^) %COL%[37m
 )
 
 if !Current_Configs_version! neq !Actual_Configs_version! (
-    echo                                       Configs: %COL%[92m^(v!Current_Configs_version! → v!Actual_Configs_version!^) %COL%[37m
+    echo                                  Configs: %COL%[92m^(v!Current_Configs_version! → v!Actual_Configs_version!^) %COL%[37m
 )
 
 if !Current_List_version! neq !Actual_List_version! (
-    echo                                        Lists: %COL%[92m^(v!Current_List_version! → v!Actual_List_version!^) %COL%[37m
+    echo                                  Lists: %COL%[92m^(v!Current_List_version! → v!Actual_List_version!^) %COL%[37m
 )
 echo.
 echo.
