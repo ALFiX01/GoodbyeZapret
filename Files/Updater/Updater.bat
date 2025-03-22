@@ -43,7 +43,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "UpdaterVersion=0.4"
+set "UpdaterVersion=0.5"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -64,22 +64,29 @@ net stop "WinDivert14" >nul 2>&1
 sc delete "WinDivert14" >nul 2>&1
 echo Файл winws.exe был остановлен.
 
-REM Попытка прочитать значение из нового реестра
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
-    set "GoodbyeZapret_Config=%%b"
+reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
+        set "GoodbyeZapret_Config=%%b"
+        goto :end_GoodbyeZapret_Config
+    )
+) else (
+    set "GoodbyeZapret_Config=None"
     goto :end_GoodbyeZapret_Config
 )
 
 REM Попытка перенести значение из старого реестра в новый
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
+reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
     set "GoodbyeZapret_Config=%%b"
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /t REG_SZ /d "%%b" /f >nul
     reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul
     goto :end_GoodbyeZapret_Config
+    )
 )
 
 REM Если ключ нигде не найден, установить значение по умолчанию
-set "GoodbyeZapret_Config=Не найден"
 
 :end_GoodbyeZapret_Config
 
@@ -87,7 +94,7 @@ curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZap
 
 for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
 if %FileSize% LSS 100 (
-    echo ERROR - Файл %Check_FileName% поврежден или URL не доступен ^(Size %FileSize%^)
+    echo ERROR - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^)
     pause
     del /Q "%TEMP%\GoodbyeZapret.zip"
     exit
@@ -108,20 +115,27 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat" (
-    sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
-    sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
-    sc start "GoodbyeZapret" >nul 2>&1
-    if %errorlevel% equ 0 (
-        echo Служба GoodbyeZapret успешно запущена
+
+if "%GoodbyeZapret_Config%" NEQ "None" (
+    if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
+        sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
+        sc start "GoodbyeZapret" >nul 2>&1
+        if %errorlevel% equ 0 (
+            echo Служба GoodbyeZapret успешно запущена
+        ) else (
+            echo Возможно при запуске службы GoodbyeZapret произошла ошибка
+        )
+        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        echo Готово. Обновление завершено.
+        timeout /t 3 >nul 2>&1
     ) else (
-        echo Возможно при запуске службы GoodbyeZapret произошла ошибка
+        echo Файл конфигурации %GoodbyeZapret_Config%.bat не найден
+        timeout /t 2 >nul
+        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        timeout /t 2 >nul
+        exit
     )
-    start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
-    echo Готово. Обновление завершено.
-    timeout /t 3 >nul 2>&1
 ) else (
-    echo Файл конфигурации %GoodbyeZapret_Config%.bat не найден
-    timeout /t 5 >nul
-    exit
+    start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
 )
