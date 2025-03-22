@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7tV8YWuE3NY7V3vmdI/IW/UH2fIAoxDRTm8Rs
+::fBw5plQjdCuDJOl7RaKA9quH/eQy7NtmtmmtA9RLEVpWEpCtilLtyFVrAoivE9hTwlDmSZ8u2XRmv8QDCBlBeyiqfh0xvSNss3OhMtSVtAGvQ0uGhg==
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF65
@@ -32,7 +32,7 @@
 ::
 ::978f952a14a936cc963da21a135fa983
 @echo off
-:: Copyright (C) 2024 ALFiX, Inc.
+:: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
 :: Запуск от имени администратора
@@ -42,8 +42,9 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-
 setlocal EnableDelayedExpansion
+
+set "Current_GoodbyeZapret_version=1.3.0"
 
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
 for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
@@ -133,11 +134,9 @@ if %errorlevel% equ 0 (
    set "GoodbyeZapret_Old_TEXT=Раньше использовался - %GoodbyeZapret_Old%"
 )
 
-for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\version.txt") do set "Current_GoodbyeZapret_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\Configs\version.txt") do set "Current_Configs_version=%%a"
-
 
 :: Загрузка нового файла GZ_Updater.bat
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
@@ -187,9 +186,9 @@ set "ListsVersion=%Current_List_version%"
 
 set "UpdateNeedCount=0"
 if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_Winws_version! neq !Actual_Winws_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_Configs_version! neq !Actual_Configs_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_List_version! neq !Actual_List_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_Winws_version! LSS !Actual_Winws_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_Configs_version! LSS !Actual_Configs_version! ( set /a "UpdateNeedCount+=1" )
+if !Current_List_version! LSS !Actual_List_version! ( set /a "UpdateNeedCount+=1" )
 
 set "UpdateNeed=No"
 set "UpdateNeedLevel=0"
@@ -197,11 +196,11 @@ if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
 )
-if !Current_Winws_version! neq !Actual_Winws_version! (
+if !Current_Winws_version! LSS !Actual_Winws_version! (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
 )
-if !Current_List_version! neq !Actual_List_version! (
+if !Current_List_version! LSS !Actual_List_version! (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
 )
@@ -253,13 +252,11 @@ set "GoodbyeZapret_Version_OLD=Не найден"
 if not defined GoodbyeZapretVersion (
     echo ERROR - Не удалось прочитать значение GoodbyeZapret_Version
     pause
-    exit
 )
 
 if not defined GoodbyeZapret_Config (
     echo ERROR - Не удалось прочитать значение GoodbyeZapret_Config
     pause
-    exit
 )
 
 
@@ -388,10 +385,26 @@ set "counter=0"
 for %%F in ("%sourcePath%Configs\*.bat") do (
     set /a "counter+=1"
     set "CurrentCheckFileName=%%~nxF"
-    if !counter! lss 10 (
-        echo                      %COL%[36m!counter!. %COL%[37m%%~nF
+    set "ConfigName=%%~nF"
+    
+    if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
+        if !counter! lss 10 (
+            echo                       %COL%[36m!counter!. %COL%[36m%%~nF
+        ) else (
+            echo                      %COL%[36m!counter!. %COL%[36m%%~nF
+        )
+    ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
+        if !counter! lss 10 (
+            echo                       %COL%[36m!counter!. %COL%[93m%%~nF
+        ) else (
+            echo                      %COL%[36m!counter!. %COL%[93m%%~nF
+        )
     ) else (
-        echo                     %COL%[36m!counter!. %COL%[37m%%~nF
+        if !counter! lss 10 (
+            echo                       %COL%[36m!counter!. %COL%[37m%%~nF
+        ) else (
+            echo                      %COL%[36m!counter!. %COL%[37m%%~nF
+        )
     )
     set "file!counter!=%%~nxF"
 )
@@ -582,19 +595,19 @@ if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
     echo   Версия GodbyeZapret: %COL%[92m%GoodbyeZapretVersion% %COL%[37m
 )
 
-if !Current_Winws_version! neq !Actual_Winws_version! (
+if !Current_Winws_version! LSS !Actual_Winws_version! (
     echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[91m^(Устарела^) ^(!Current_Winws_version! → !Actual_Winws_version!^) %COL%[37m
 ) else (
     echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[37m
 )
 
-if !Current_Configs_version! neq !Actual_Configs_version! (
+if !Current_Configs_version! LSS !Actual_Configs_version! (
     echo   Версия Configs: %COL%[92m%ConfigsVersion% %COL%[91m^(Устарела^) ^(!Current_Configs_version! → !Actual_Configs_version!^) %COL%[37m
 ) else (
     echo   Версия Configs: %COL%[92m%ConfigsVersion% %COL%[37m
 )
 
-if !Current_List_version! neq !Actual_List_version! (
+if !Current_List_version! LSS !Actual_List_version! (
     echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) ^(!Current_List_version! → !Actual_List_version!^) %COL%[37m
 ) else (
     echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[37m
