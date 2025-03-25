@@ -44,7 +44,9 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.3.1"
+set "Current_GoodbyeZapret_version=1.4.0"
+
+REM reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
 
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
 for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
@@ -69,7 +71,7 @@ IF %ERRORLEVEL% EQU 1 (
 )
 
 if Not exist %SystemDrive%\GoodbyeZapret (
-    goto install_assistant
+    goto install_screen
 )
 
 :RR
@@ -88,6 +90,7 @@ REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
 chcp 65001 >nul 2>&1
+
 
 :: Получаем текущую папку BAT-файла
 set currentDir=%~dp0
@@ -364,22 +367,19 @@ for /l %%A in (1,1,%old_spaces%) do set "old_padding=!old_padding! "
 
 
 if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
-    echo                     %COL%[90m===================================================
+    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
     echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
-    echo                     %COL%[90m===================================================%COL%[37m
+    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
     echo.
 ) else (
-    echo                     %COL%[90m===================================================
+    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
     echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
 
     echo %COL%[90m!old_padding!!GoodbyeZapret_Old_TEXT! %COL%[37m
     
-    echo                     %COL%[90m===================================================%COL%[37m
+    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
     echo.
 )
-
-echo                         Выберите конфиг для установки в автозапуск
-echo.
 
 set "counter=0"
 for %%F in ("%sourcePath%Configs\*.bat") do (
@@ -389,15 +389,15 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
     
     if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
         if !counter! lss 10 (
-            echo                       %COL%[36m!counter!. %COL%[36m%%~nF
+            echo                       %COL%[36m!counter!. %COL%[36m%%~nF ^(текущий^)
         ) else (
-            echo                      %COL%[36m!counter!. %COL%[36m%%~nF
+            echo                      %COL%[36m!counter!. %COL%[36m%%~nF ^(текущий^)
         )
     ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
         if !counter! lss 10 (
-            echo                       %COL%[36m!counter!. %COL%[93m%%~nF
+            echo                       %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
         ) else (
-            echo                      %COL%[36m!counter!. %COL%[93m%%~nF
+            echo                      %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
         )
     ) else (
         if !counter! lss 10 (
@@ -409,45 +409,26 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
     set "file!counter!=%%~nxF"
 )
 set /a "lastChoice=counter-1"
-
-echo                     %COL%[90m===================================================
-if !counter! lss 10 (
-    echo.
-    echo                      %COL%[96mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
-) else (
-    echo.
-    echo                     %COL%[96mDS %COL%[37m- %COL%[91mУдалить службу из автозапуска%COL%[37m
-)
-if !counter! lss 10 (
-    echo                      %COL%[96mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
-) else (
-    echo                     %COL%[96mRC %COL%[37m- %COL%[91mПринудительно переустановить конфиги%COL%[37m
-)
-if !counter! lss 10 (
-    echo                      %COL%[96mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
-) else (
-    echo                     %COL%[96mST %COL%[37m- %COL%[91mСостояние GoodbyeZapret%COL%[37m
-)
-
-if !counter! lss 10 (
-    echo                  %COL%[96m^(1%COL%[37m-%COL%[96m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
-) else (
-    echo                %COL%[96m^(1%COL%[37m-%COL%[96m!counter!^)s %COL%[37m- %COL%[91mЗапустить конфиг %COL%[37m
-)
+echo.
+echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
+echo                %COL%[36mДействия:
+echo.
+echo                          %COL%[96m^[ DS ^] %COL%[91mУдалить службу из автозапуска
+echo                          %COL%[96m^[ RC ^] %COL%[91mПереустановить конфиги
+echo                          %COL%[96m^[ ST ^] %COL%[91mСостояние GoodbyeZapret
+echo                          %COL%[96m^[ 1s ^] %COL%[91mЗапустить конфиг
+REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
-    if !counter! lss 10 (
-        echo                      %COL%[96mUD %COL%[37m- %COL%[93mОбновить до актульной версии%COL%[37m
-    ) else (
-        echo                     %COL%[96mUD %COL%[37m- %COL%[93mОбновить до актульной версии%COL%[37m
-    )
+echo                          %COL%[96m^[ UD ^] %COL%[91mОбновить до актульной версии
 )
 
 
 echo.
 echo.
-echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
-set /p "choice=%DEL%                                            %COL%[90m:> "
+REM echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
+echo                              %COL%[37mВведите номер или команду %COL%[90m(1-%counter%):
+set /p "choice=%DEL%                                           %COL%[90m:> "
 if "%choice%"=="DS" goto remove_service
 if "%choice%"=="ds" goto remove_service
 if "%choice%"=="RC" goto ReInstall_GZ
@@ -455,8 +436,8 @@ if "%choice%"=="rc" goto ReInstall_GZ
 if "%choice%"=="ST" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
 if %UpdateNeed% equ Yes (
-    if "%choice%"=="ud" goto FullUpdate
-    if "%choice%"=="UD" goto FullUpdate
+    if "%choice%"=="ud" goto Update_Need_screen
+    if "%choice%"=="UD" goto Update_Need_screen
 )
 
 
@@ -477,83 +458,87 @@ if not defined batFile (
     goto :eof
 )
  if defined batFile (
+    set "ErrorCount=0"
      echo.
-     echo Устанавливаю службу GoodbyeZapret для файла %batFile%...
-     echo %COL%[93mНажмите любую клавишу для подтверждения%COL%[37m
+     echo  Подтвердите установку конфига %batFile% в службу GoodbyeZapret...
+     echo %COL%[93m Нажмите любую клавишу для подтверждения %COL%[37m
      pause >nul 2>&1
      sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
      sc description GoodbyeZapret "%batFile:~0,-4%"
-     sc start "GoodbyeZapret" >nul
+     sc start "GoodbyeZapret" >nul 2>&1
      if %errorlevel% equ 0 (
-         echo Запускаю службу GoodbyeZapret...%COL%[92m
+         echo  Запуск службы GoodbyeZapret...
          sc start "GoodbyeZapret" >nul 2>&1
          if %errorlevel% equ 0 (
-             echo Служба GoodbyeZapret успешно запущена %COL%[37m
+             echo  %COL%[92m Служба GoodbyeZapret успешно запущена %COL%[37m
          ) else (
-             echo Ошибка при запуске службы
+             echo  Ошибка при запуске службы
          )
      ) else (
-         echo Ошибка при установке службы. Возможно вы забыли перезагрузить пк.
+         echo  Ошибка при установке службы.
      )
      goto :end
  )
 
 
 :remove_service
+    REM Цветной текст
+    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+    set "ErrorCount=0"
     echo.
-    echo Остановка службы GoodbyeZapret...
+    echo  Остановка службы GoodbyeZapret...
     net stop GoodbyeZapret >nul 2>&1
     if %errorlevel% equ 0 (
-        echo Служба успешно остановлена.
-    ) else (
-        echo Ошибка при остановке службы или служба уже остановлена.
+        echo  Служба успешно остановлена.
     )
-    echo Удаление службы GoodbyeZapret...
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% equ 0 (
         sc delete "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
-            echo Служба GoodbyeZapret успешно удалена
+            echo  Удаление службы GoodbyeZapret...
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe">NUL
             if "%ERRORLEVEL%"=="0" (
-                echo Файл winws.exe в данный момент выполняется.
                 taskkill /F /IM winws.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
-                echo Файл winws.exe был остановлен.
+                echo  Остановка процессов WinDivert.
             ) else (
-                echo Файл winws.exe в данный момент не выполняется.
+                echo  Файл winws.exe в данный момент не выполняется.
+                set /a "ErrorCount+=1"
             )
-            echo %COL%[92mУдаление успешно завершено. Перезагрузите пк.%COL%[37m
+            echo %COL%[92m Удаление успешно завершено. %COL%[37m
         ) else (
             echo Ошибка при удалении службы
+            set /a "ErrorCount+=1"
         )
     ) else (
         echo Служба GoodbyeZapret не найдена
+        set /a "ErrorCount+=1"
     )
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
 goto :end
 
 :end
-echo Нажмите любую клавишу чтобы продолжить...
-pause >nul 2>&1
-goto GoodbyeZapret_Menu
+if !ErrorCount! equ 0 (
+    goto GoodbyeZapret_Menu
+) else (
+    echo  Нажмите любую клавишу чтобы продолжить...
+    pause >nul 2>&1
+    goto GoodbyeZapret_Menu
+)
 
 
 :CurrentStatus
 REM Проверка наличия и корректности пути службы обновления GoodbyeZapret
 set "GoodbyeZapretUpdaterService=0"
-
-REM Проверяем запись в автозагрузке
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" >nul 2>&1
 if %errorlevel% equ 0 (
     for /f "tokens=3*" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" 2^>nul ^| find /i "GoodbyeZapret Updater"') do (
         set "GoodbyeZapretUpdaterPath=%%j"
-        echo "!GoodbyeZapretUpdaterPath!"
         if /I "!GoodbyeZapretUpdaterPath!" EQU "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
             if exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
                 set "GoodbyeZapretUpdaterService=1"
@@ -563,68 +548,63 @@ if %errorlevel% equ 0 (
 )
 
 cls
+mode con: cols=80 lines=25 >nul 2>&1
+title GoodbyeZapret - Status
 echo.
-echo   %COL%[37mСостояние служб GoodbyeZapret
-echo   %COL%[90m=============================%COL%[37m
+echo   %COL%[36m┌─────────────────── Состояние GoodbyeZapret ───────────────────┐
+echo   ^│ %COL%[37mСлужбы:                                                       %COL%[36m^│
+echo   ^│ %COL%[90m──────────────────────────────────────────────────────────    %COL%[36m^│
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo   Служба GoodbyeZapret: %COL%[92mУстановлена и работает%COL%[37m
+    echo   ^│ %COL%[92m√ %COL%[37mGoodbyeZapret: Установлена и работает                       %COL%[36m^│
 ) else (
-    echo   Служба GoodbyeZapret: %COL%[91mНе установлена%COL%[37m
+    echo   ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлена                               %COL%[36m^│
 )
 if !GoodbyeZapretUpdaterService! equ 1 (
-    echo   Служба GoodbyeZapret Updater: %COL%[92mУстановлена и работает%COL%[37m
+    echo   ^│ %COL%[92m√ %COL%[37mUpdater: Установлена и работает                             %COL%[36m^│
     set "GoodbyeZapretUpdaterServiceAction=Выключить"
 ) else (
-    echo   Служба GoodbyeZapret Updater: %COL%[91mНе установлена%COL%[37m
+    echo   ^│ %COL%[91mX %COL%[37mUpdater: Не установлена                                     %COL%[36m^│
     set "GoodbyeZapretUpdaterServiceAction=Включить"
 )
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
-    echo   Процесс Winws.exe: %COL%[92mЗапущен%COL%[37m
+    echo   ^│ %COL%[92m√ %COL%[37mWinws.exe: Запущен                                          %COL%[36m^│
 ) else (
-    echo   Процесс Winws.exe:  %COL%[91mНе найден%COL%[37m
+    echo   ^│ %COL%[91mX %COL%[37mWinws.exe: Не запущен                                       %COL%[36m^│
 )
-echo.
-echo.
-echo   Состояние версий GoodbyeZapret
-echo   %COL%[90m==============================%COL%[37m
+
+echo   ^│                                                               ^│
+echo   ^│ %COL%[37mВерсии:                                                       %COL%[36m^│
+echo   ^│ %COL%[90m──────────────────────────────────────────────────────────    %COL%[36m^│
 if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
-    echo   Версия GodbyeZapret: %COL%[92m%GoodbyeZapretVersion% %COL%[91m^(Устарела^) %COL%[37m
+    echo   ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
-    echo   Версия GodbyeZapret: %COL%[92m%GoodbyeZapretVersion% %COL%[37m
+    echo   ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                          %COL%[36m^│
 )
-
 if !Current_Winws_version! LSS !Actual_Winws_version! (
-    echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[91m^(Устарела^) ^(!Current_Winws_version! → !Actual_Winws_version!^) %COL%[37m
+    echo   ^│ %COL%[37mWinws:         %COL%[91m%WinwsVersion% %COL%[92m^(→ %Actual_Winws_version%^)                                  %COL%[36m^│
 ) else (
-    echo   Версия Winws: %COL%[92m%WinwsVersion% %COL%[37m
+    echo   ^│ %COL%[37mWinws:         %COL%[92m%WinwsVersion%                                           %COL%[36m^│
 )
-
 if !Current_Configs_version! LSS !Actual_Configs_version! (
-    echo   Версия Configs: %COL%[92m%ConfigsVersion% %COL%[91m^(Устарела^) ^(!Current_Configs_version! → !Actual_Configs_version!^) %COL%[37m
+    echo   ^│ %COL%[37mConfigs:       %COL%[91m%ConfigsVersion% %COL%[92m^(→ %Actual_Configs_version%^)                                      %COL%[36m^│
 ) else (
-    echo   Версия Configs: %COL%[92m%ConfigsVersion% %COL%[37m
+    echo   ^│ %COL%[37mConfigs:       %COL%[92m%ConfigsVersion%                                             %COL%[36m^│
 )
-
 if !Current_List_version! LSS !Actual_List_version! (
-    echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[91m^(Устарела^) ^(!Current_List_version! → !Actual_List_version!^) %COL%[37m
+    echo   ^│ %COL%[37mLists:         %COL%[91m%ListsVersion% %COL%[92m^(→ %Actual_List_version%^)                                        %COL%[36m^│
 ) else (
-    echo   Версия Lists: %COL%[92m%ListsVersion% %COL%[37m
+    echo   ^│ %COL%[37mLists:         %COL%[92m%ListsVersion%                                              %COL%[36m^│
 )
-echo. 
+echo   └───────────────────────────────────────────────────────────────┘
 echo.
-echo. 
+echo   %COL%[36m^[ %COL%[96mF %COL%[36m^] %COL%[93m%GoodbyeZapretUpdaterServiceAction% Updater   %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
 echo.
-echo                 %COL%[96mF %COL%[37m- %COL%[93m%GoodbyeZapretUpdaterServiceAction% GoodbyeZapret Updater%COL%[37m / %COL%[96mB %COL%[37m- %COL%[93mВернуться назад%COL%[37m
-echo.
-echo.
-echo                                     Введите букву (%COL%[96mF%COL%[90m/%COL%[96mB%COL%[37m)
-echo.
-set /p "choice=%DEL%                                            %COL%[90m:> "
-
-if /i "%choice%"=="B" goto MainMenu
-if /i "%choice%"=="и" goto MainMenu
+echo   %COL%[37mВыберите действие %COL%[90m^(F/B^):
+set /p "choice=%DEL%   %COL%[90m:> "
+if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
+if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="F" goto GoodbyeZapretUpdaterService_toggle
 if /i "%choice%"=="а" goto GoodbyeZapretUpdaterService_toggle
 goto CurrentStatus
@@ -651,9 +631,8 @@ if !GoodbyeZapretUpdaterService! equ 1 (
 goto CurrentStatus
 
 REM РЕЖИМ УСТАНОВКИ
-:install_assistant
+:install_screen
 IF "%WiFi%" == "Off" (
- 	echo [WARN ] %TIME% - Соединение с интернетом отсутствует >> "%ASX-Directory%\Files\Logs\%date%.txt"
     cls
     echo.
     echo   Error 01: No internet connection.
@@ -661,146 +640,190 @@ IF "%WiFi%" == "Off" (
     exit
 )
 
-set "Assistant_version=0.2"
-mode con: cols=112 lines=38 >nul 2>&1
+set "Assistant_version=0.3"
+REM mode con: cols=112 lines=38 >nul 2>&1
+mode con: cols=80 lines=25 >nul 2>&1
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-
 chcp 65001 >nul 2>&1
 
-
 cls
-title ALFiX, Inc. - Помощник по установке программного обеспечения ALFiX, Inc. (версия %Assistant_version%)
+title Установщик программного обеспечения от ALFiX, Inc.
 echo.
+echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
+echo         │   %COL%[91m ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗        %COL%[36m │
+echo         │   %COL%[91m ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║        %COL%[36m │
+echo         │   %COL%[91m ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║        %COL%[36m │
+echo         │   %COL%[91m ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║        %COL%[36m │
+echo         │   %COL%[91m ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗   %COL%[36m │
+echo         │   %COL%[91m ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝   %COL%[36m │
+echo         └──────────────────────────────────────────────────────────────┘
 echo.
-
-echo                                                    %COL%[91m@@@@@@@            
-echo                                                    @@@@@@@            
-echo                                                    @@@@@@@            
-echo                                                    @@@@@@@            
-echo                                                    @@@@@@@            
-echo                                                    @@@@@@@            
-echo                                                    @@@@@@@            
-echo                                               @@@@@@@@@@@@@@@@@       
-echo                                               @@@@@@@@@@@@@@@@@       
-echo                                                 @@@@@@@@@@@@@         
-echo                                                  @@@@@@@@@@@          
-echo                                         %COL%[36m@@@@       %COL%[91m@@@@@@@       %COL%[36m@@@@ 
-echo                                         %COL%[36m@@@@         %COL%[91m@@@         %COL%[36m@@@@ 
-echo                                         @@@@                     @@@@ 
-echo                                         @@@@                     @@@@ 
-echo                                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
-echo                                         @@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
-
+echo  %COL%[37m Добро пожаловать в установщик GoodbyeZapret
+echo  %COL%[90m Для корректной работы рекомендуется отключить антивирус
+echo  %COL%[90m ───────────────────────────────────────────────────────────────
 echo.
-echo.
-echo.
-echo  %COL%[36mВас приветствует установщик программного обеспечения от ALFiX, Inc.
-echo  %COL%[37mВам нужно ответить на несколько вопросов, чтобы установить и настроить GoodbyeZapret.
-echo.
-echo.
-echo  %COL%[90mНажмите любую клавишу для продолжения...
+echo  %COL%[36m Нажмите любую клавишу для продолжения...
 pause >nul
 
 
 :install_GoodbyeZapret
 cls
+title Установщик программного обеспечения от ALFiX, Inc.
 echo.
+echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
+echo         │   %COL%[91m ██╗███╗   ██╗███████╗████████╗ █████╗ ██╗     ██╗        %COL%[36m │
+echo         │   %COL%[91m ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██║     ██║        %COL%[36m │
+echo         │   %COL%[91m ██║██╔██╗ ██║███████╗   ██║   ███████║██║     ██║        %COL%[36m │
+echo         │   %COL%[91m ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║     ██║        %COL%[36m │
+echo         │   %COL%[91m ██║██║ ╚████║███████║   ██║   ██║  ██║███████╗███████╗   %COL%[36m │
+echo         │   %COL%[91m ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝   %COL%[36m │
+echo         └──────────────────────────────────────────────────────────────┘
 echo.
+echo  %COL%[37m Добро пожаловать в установщик GoodbyeZapret
+echo  %COL%[90m Для корректной работы рекомендуется отключить антивирус
+echo  %COL%[90m ───────────────────── ВЫПОЛНЯЕТСЯ УСТАНОВКА ─────────────────────
 echo.
-echo.
-echo  %COL%[90m Идет процесс установки.
-echo  %COL%[93m Пожалуйста подождите...
-echo.
-echo.
-
-
+if not exist "%SystemDrive%\GoodbyeZapret" (
+    md %SystemDrive%\GoodbyeZapret
+)
+echo  ^[*^] Скачивание файлов
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
 
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
+    echo  ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
     powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%SystemDrive%\GoodbyeZapret' >nul 2>&1
     chcp 65001 >nul 2>&1
     if exist "%SystemDrive%\GoodbyeZapret" (
-        echo  GoodbyeZapret будет находиться по пути: %SystemDrive%\GoodbyeZapret
+        echo  ^[*^] Местоположение GoodbyeZapret: %SystemDrive%\GoodbyeZapret
     )
 ) else (
-    Echo Error: File not found: %TEMP%\GoodbyeZapret.zip
+    echo %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
     exit
 )
 
 echo.
-echo  %COL%[92mУстановка завершена.
+echo   %COL%[92m√ Установка успешно завершена
+echo   %COL%[90m───────────────────────────────────────────────────────────────
 echo.
-echo.
-echo  %COL%[90mНажмите любую клавишу для запуска GoodbyeZapret...
+echo   %COL%[36mНажмите любую клавишу для запуска GoodbyeZapret...
 pause >nul
-
-
-cls
-echo.
-echo.
-echo.
-echo.
-echo  %COL%[90mУстановка завершена.
-echo  Давай попробуем настроить GoodbyeZapret...
-echo.
-echo.
-
+goto RR
 
 
 :Update_Need_screen
+REM Цветной текст
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 cls
-mode con: cols=92 lines=30 >nul 2>&1
-echo.
-echo.
-echo.
+mode con: cols=80 lines=25 >nul 2>&1
+chcp 65001 >nul 2>&1
+
 cls
 echo.
-echo           %COL%[90m_____                 _ _                  ______                    _   
-echo          / ____^|               ^| ^| ^|                ^|___  /                   ^| ^|  
-echo         ^| ^|  __  ___   ___   __^| ^| ^|__  _   _  ___     / / __ _ _ __  _ __ ___^| ^|_ 
-echo         ^| ^| ^|_ ^|/ _ \ / _ \ / _` ^| '_ \^| ^| ^| ^|/ _ \   / / / _` ^| '_ \^| '__/ _ \ __^|
-echo         ^| ^|__^| ^| ^(_^) ^| ^(_^) ^| ^(_^| ^| ^|_^) ^| ^|_^| ^|  __/  / /_^| ^(_^| ^| ^|_^) ^| ^| ^|  __/ ^|_ 
-echo          \_____^|\___/ \___/ \__,_^|_.__/ \__, ^|\___^| /_____\__,_^| .__/^|_^|  \___^|\__^|
-echo                                          __/ ^|                 ^| ^|                 
-echo                                         ^|___/                  ^|_^|
+echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
+echo         │     %COL%[91m ██╗   ██╗██████╗ ██████╗  █████╗ ████████╗███████╗     %COL%[36m │
+echo         │     %COL%[91m ██║   ██║██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔════╝     %COL%[36m │
+echo         │     %COL%[91m ██║   ██║██████╔╝██║  ██║███████║   ██║   █████╗       %COL%[36m │
+echo         │     %COL%[91m ██║   ██║██╔═══╝ ██║  ██║██╔══██║   ██║   ██╔══╝       %COL%[36m │
+echo         │     %COL%[91m ╚██████╔╝██║     ██████╔╝██║  ██║   ██║   ███████╗     %COL%[36m │
+echo         │     %COL%[91m  ╚═════╝ ╚═╝     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝     %COL%[36m │
+echo         └──────────────────────────────────────────────────────────────┘
 echo.
+echo  %COL%[37m Доступны обновления компонентов:
+echo  %COL%[90m ───────────────────────────────────────────────────────────────
 echo.
-echo                   %COL%[97mДоступны новые версии GoodbyeZapret и других компонентов%COL%[37m
-echo.
-echo.
-echo.
+
+set "OnlyWinwsUpdate=1"
 if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
-    echo                                  GodbyeZapret: %COL%[92m^(v!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!^) %COL%[37m
+    echo   %COL%[37mGoodbyeZapret: %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
+    set "OnlyWinwsUpdate=0"
 )
 if !Current_Winws_version! neq !Actual_Winws_version! (
-    echo                                  Winws: %COL%[92m^(v!Current_Winws_version! → v!Actual_Winws_version!^) %COL%[37m
+    echo   %COL%[37mWinws:         %COL%[92mv!Current_Winws_version! → v!Actual_Winws_version!
 )
-
 if !Current_Configs_version! neq !Actual_Configs_version! (
-    echo                                  Configs: %COL%[92m^(v!Current_Configs_version! → v!Actual_Configs_version!^) %COL%[37m
+    echo   %COL%[37mConfigs:       %COL%[92mv!Current_Configs_version! → v!Actual_Configs_version!
+    set "OnlyWinwsUpdate=0"
 )
-
 if !Current_List_version! neq !Actual_List_version! (
-    echo                                  Lists: %COL%[92m^(v!Current_List_version! → v!Actual_List_version!^) %COL%[37m
+    echo   %COL%[37mLists:         %COL%[92mv!Current_List_version! → v!Actual_List_version!
+    set "OnlyWinwsUpdate=0"
 )
 echo.
+echo  %COL%[90m ───────────────────────────────────────────────────────────────
+echo  %COL%[37m Выберите действие:
+echo  %COL%[91m ^[B^]%COL%[37m Пропустить       %COL%[92m ^[U^]%COL%[37m Обновить
 echo.
-echo.
-echo.
-echo.
-echo.
-echo.
-
-echo                                %COL%[91mB%COL%[37m - Пропустить  /  %COL%[92mU%COL%[37m - Обновить
-echo.
-set /p "choice=%DEL%                                            %COL%[90m:> "
+set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
-if /i "%choice%"=="U" goto FullUpdate
-if /i "%choice%"=="г" goto FullUpdate
+if /i "%choice%"=="U" (
+    if !OnlyWinwsUpdate! equ 1 (
+        goto WinwsUpdate
+    ) else (
+        goto FullUpdate
+    )
+)
+if /i "%choice%"=="г" (
+    if !OnlyWinwsUpdate! equ 1 (
+        goto WinwsUpdate
+    ) else (
+        goto FullUpdate
+    )
+)
 goto Update_Need_screen
+
+:WinwsUpdate
+echo.
+echo  Обновление компонента winws...
+curl -g -L -# -o "%TEMP%\WinwsUpdateFiles.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/WinwsUpdateFiles.zip" >nul 2>&1
+if exist "%TEMP%\WinwsUpdateFiles.zip" (
+    echo  Распаковка файлов...
+    chcp 850 >nul 2>&1
+    powershell -NoProfile -Command "Expand-Archive -Path '%TEMP%\WinwsUpdateFiles.zip' -DestinationPath '%TEMP%\WinwsUpdate' -Force" >nul 2>&1
+    if not exist "%SystemDrive%\GoodbyeZapret\bin\" mkdir "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
+    
+    echo  Остановка и удаление служб...
+    taskkill /F /IM winws.exe >nul 2>&1
+    net stop "WinDivert" >nul 2>&1
+    sc delete "WinDivert" >nul 2>&1
+    net stop "WinDivert14" >nul 2>&1
+    sc delete "WinDivert14" >nul 2>&1
+    
+    echo  Удаление старых файлов...
+    if exist "%SystemDrive%\GoodbyeZapret\bin\cygwin1.dll" del /f /q "%SystemDrive%\GoodbyeZapret\bin\cygwin1.dll" >nul 2>&1
+    if exist "%SystemDrive%\GoodbyeZapret\bin\WinDivert.dll" del /f /q "%SystemDrive%\GoodbyeZapret\bin\WinDivert.dll" >nul 2>&1
+    if exist "%SystemDrive%\GoodbyeZapret\bin\WinDivert64.sys" del /f /q "%SystemDrive%\GoodbyeZapret\bin\WinDivert64.sys" >nul 2>&1
+    if exist "%SystemDrive%\GoodbyeZapret\bin\winws.exe" del /f /q "%SystemDrive%\GoodbyeZapret\bin\winws.exe" >nul 2>&1
+    
+    echo  Перемещение новых файлов...
+    move /y "%TEMP%\WinwsUpdate\cygwin1.dll" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
+    move /y "%TEMP%\WinwsUpdate\WinDivert.dll" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
+    move /y "%TEMP%\WinwsUpdate\WinDivert64.sys" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
+    move /y "%TEMP%\WinwsUpdate\winws.exe" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
+    
+    chcp 65001 >nul 2>&1
+    del /f /q "%TEMP%\WinwsUpdateFiles.zip" >nul 2>&1
+    rd /s /q "%TEMP%\WinwsUpdate" >nul 2>&1
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "Winws_version" /d "!Actual_Winws_version!" /f >nul 2>&1
+    
+    echo  Обновление файла версии...
+    echo !Actual_Winws_version! > "%SystemDrive%\GoodbyeZapret\bin\version.txt"
+    
+    echo  Перезапуск службы GoodbyeZapret...
+    sc start "GoodbyeZapret" >nul 2>&1
+    
+    echo  %COL%[92mОбновление winws успешно завершено%COL%[37m
+    timeout /t 1 >nul
+    mode con: cols=92 lines=%ListBatCount% >nul 2>&1
+    goto MainMenu
+) else (
+    echo  %COL%[91mОшибка: Не удалось загрузить файл обновления winws%COL%[37m
+    timeout /t 1 >nul
+    mode con: cols=92 lines=%ListBatCount% >nul 2>&1
+    goto MainMenu
+)

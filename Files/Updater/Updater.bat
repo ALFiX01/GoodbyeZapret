@@ -43,26 +43,42 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "UpdaterVersion=0.5"
+mode con: cols=80 lines=25 >nul 2>&1
+
+set "UpdaterVersion=1.0"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
+cls
+title Установщик программного обеспечения от ALFiX, Inc. (v%UpdaterVersion%)
 echo.
-echo Версия Updater: %UpdaterVersion%
+echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
+echo         ^│     %COL%[91m ██╗   ██╗██████╗ ██████╗  █████╗ ████████╗███████╗     %COL%[36m ^│
+echo         ^│     %COL%[91m ██║   ██║██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔════╝     %COL%[36m ^│
+echo         ^│     %COL%[91m ██║   ██║██████╔╝██║  ██║███████║   ██║   █████╗       %COL%[36m ^│
+echo         ^│     %COL%[91m ██║   ██║██╔═══╝ ██║  ██║██╔══██║   ██║   ██╔══╝       %COL%[36m ^│
+echo         ^│     %COL%[91m ╚██████╔╝██║     ██████╔╝██║  ██║   ██║   ███████╗     %COL%[36m ^│
+echo         ^│     %COL%[91m  ╚═════╝ ╚═╝     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝     %COL%[36m ^│
+echo         └──────────────────────────────────────────────────────────────┘
 echo.
-timeout /t 2 >nul 2>&1
-title Отключение текущего конфига GoodbyeZapret
+echo  %COL%[37m Добро пожаловать в программу обновления GoodbyeZapret
+echo  %COL%[90m Для корректной работы рекомендуется отключить антивирус
+echo  %COL%[37m ──────────────────── ВЫПОЛНЯЕТСЯ ОБНОВЛЕНИЕ ───────────────────── %COL%[90m
+echo.
+
+
+timeout /t 1 >nul 2>&1
+echo  ^[*^] Отключение текущего конфига GoodbyeZapret
 net stop GoodbyeZapret >nul 2>&1
-echo Удаление службы GoodbyeZapret...
+echo  ^[*^] Удаление службы GoodbyeZapret
 sc delete GoodbyeZapret >nul 2>&1
-echo Файл winws.exe в данный момент выполняется.
+echo  ^[*^] Остановка процессов WinDivert
 taskkill /F /IM winws.exe >nul 2>&1
 net stop "WinDivert" >nul 2>&1
 sc delete "WinDivert" >nul 2>&1
 net stop "WinDivert14" >nul 2>&1
 sc delete "WinDivert14" >nul 2>&1
-echo Файл winws.exe был остановлен.
 
 reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -89,12 +105,12 @@ if %errorlevel% equ 0 (
 REM Если ключ нигде не найден, установить значение по умолчанию
 
 :end_GoodbyeZapret_Config
-
+echo  ^[*^] Скачивание файлов
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
 if %FileSize% LSS 100 (
-    echo ERROR - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^)
+    echo %COL%[91m ^[*^] Error - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^) %COL%[90m
     pause
     del /Q "%TEMP%\GoodbyeZapret.zip"
     exit
@@ -106,11 +122,12 @@ if exist "%SystemDrive%\GoodbyeZapret" (
 )
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
+    echo  ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
     powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%SystemDrive%\GoodbyeZapret' >nul 2>&1
     chcp 65001 >nul 2>&1
 ) else (
-    Echo Error: File not found: %TEMP%\GoodbyeZapret.zip
+    echo %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
     exit
 )
@@ -122,18 +139,17 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
-            echo Служба GoodbyeZapret успешно запущена
-        ) else (
-            echo Возможно при запуске службы GoodbyeZapret произошла ошибка
+            echo  ^[*^] Служба GoodbyeZapret успешно запущена
         )
+        echo  ^[*^] Обновление завершено
         start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
-        echo Готово. Обновление завершено.
-        timeout /t 3 >nul 2>&1
+        timeout /t 2 >nul 2>&1
+        exit
     ) else (
-        echo Файл конфигурации %GoodbyeZapret_Config%.bat не найден
+        echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
         start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
-        timeout /t 2 >nul
+        timeout /t 1 >nul
         exit
     )
 ) else (
