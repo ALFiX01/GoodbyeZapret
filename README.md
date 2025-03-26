@@ -1,6 +1,6 @@
 # GoodbyeZapret
 
-GoodbyeZapret — это новая <оболочка> на обход DPI блокировок через Winws.
+GoodbyeZapret — это новая "оболочка" на обход DPI блокировок через Winws.
 
 ---
 
