@@ -8,24 +8,6 @@
   <br />
   <p><strong>Инструмент с открытым исходным кодом для обхода DPI-блокировок в Windows.</strong></p>
 
-  <!-- Бейджи -->
-  <a href="https://github.com/ALFiX01/GoodbyeZapret/releases/latest">
-    <img src="https://img.shields.io/github/v/release/ALFiX01/GoodbyeZapret?label=Последний%20релиз&style=flat-square" alt="Последний релиз">
-  </a>
-  <a href="https://github.com/ALFiX01/GoodbyeZapret/issues">
-    <img src="https://img.shields.io/github/issues/ALFiX01/GoodbyeZapret?style=flat-square&label=Проблемы" alt="Проблемы">
-  </a>
-  <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers">
-    <img src="https://img.shields.io/github/stars/ALFiX01/GoodbyeZapret?style=flat-square&label=Звезды" alt="Звезды">
-  </a>
-  <a href="https://github.com/ALFiX01/GoodbyeZapret/network/members">
-    <img src="https://img.shields.io/github/forks/ALFiX01/GoodbyeZapret?style=flat-square&label=Форки" alt="Форки">
-  </a>
-  <!-- Замените 'YOUR_LICENSE' на тип вашей лицензии (например, MIT, GPL-3.0) и убедитесь, что файл LICENSE существует -->
-  <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/ALFiX01/GoodbyeZapret?style=flat-square&label=Лицензия" alt="Лицензия">
-  </a>
-
 </div>
 
 ---
