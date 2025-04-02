@@ -1,5 +1,13 @@
 # GoodbyeZapret
 
+<div align="center">
+  <!-- Уменьшил ширину изображения для лучшей адаптивности -->
+  <a href="https://github.com/ALFiX01/GoodbyeZapret">
+    <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/Design.png?raw=true" alt="ASX Hub Logo Banner" width="800">
+  </a>
+
+  <br />
+
 [![Latest Release](https://img.shields.io/github/v/release/ALFiX01/GoodbyeZapret?label=Последний%20релиз)](https://github.com/ALFiX01/GoodbyeZapret/releases/latest)
 <!-- Примечание: Убедитесь, что тег релиза соответствует формату vX.Y.Z, чтобы значок работал -->
 
