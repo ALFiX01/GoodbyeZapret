@@ -10,10 +10,9 @@
 
   <!-- Бейджи отлично смотрятся здесь -->
   <p>
-    <a href="https://github.com/ALFiX01/GoodbyeZapret/releases/latest"><img src="https://img.shields.io/github/v/release/ALFiX01/ASX-Hub?style=plastic" alt="GitHub Release"></a>
-    <a href="https://github.com/ALFiX01/GoodbyeZapret/commits/main"><img src="https://img.shields.io/github/last-commit/ALFiX01/ASX-Hub?style=plastic" alt="GitHub Last Commit"></a>
-    <a href="https://github.com/ALFiX01/GoodbyeZapret/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ALFiX01/ASX-Hub?style=plastic" alt="GitHub License"></a>
-    <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers"><img src="https://img.shields.io/github/stars/ALFiX01/ASX-Hub?style=plastic" alt="GitHub Stars"></a>
+    <a href="https://github.com/ALFiX01/GoodbyeZapret/releases/latest"><img src="https://img.shields.io/github/v/release/ALFiX01/GoodbyeZapret?style=plastic" alt="GitHub Release"></a>
+    <a href="https://github.com/ALFiX01/GoodbyeZapret/commits/main"><img src="https://img.shields.io/github/last-commit/ALFiX01/GoodbyeZapret?style=plastic" alt="GitHub Last Commit"></a>
+    <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers"><img src="https://img.shields.io/github/stars/ALFiX01/GoodbyeZapret?style=plastic" alt="GitHub Stars"></a>
     <!-- Можно добавить счетчик загрузок, если настроить -->
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/total?style=plastic" alt="GitHub Downloads"></a>
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a> 
@@ -89,7 +88,6 @@ GoodbyeZapret использует мощную библиотеку [**bol-van/
 1.  **Скачайте архив:** Загрузите последнюю версию `GoodbyeZapret.zip` со страницы [**Релизы**](https://github.com/ALFiX01/GoodbyeZapret/releases/latest).
 2.  **Распакуйте архив:** Извлеките содержимое архива.
 
-    > [!IMPORTANT]
     > **Критически важно:** Распакуйте архив **строго на системный диск** (обычно это диск `C:`). Рекомендуется использовать короткий путь без пробелов и кириллицы, например:
     >
     > *   ✅ **Правильно:** `C:\GoodbyeZapret`
