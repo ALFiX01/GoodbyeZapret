@@ -36,38 +36,60 @@
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
 :: Запуск от имени администратора
-reg add HKLM /F >nul 2>&1
+net session >nul 2>&1
 if %errorlevel% neq 0 (
-    start "" /wait /I /min powershell -NoProfile -Command "start -verb runas '%~s0'" && exit /b
+    echo Requesting administrative privileges...
+    start "" /wait /I /min powershell -NoProfile -Command "Start-Process -FilePath '%~s0' -Verb RunAs"
     exit /b
 )
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.4.0"
+set "Current_GoodbyeZapret_version=1.5.0"
 
 REM reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
 
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
-for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName"') do set WinLang=%%i
+for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName" ^| findstr /i "LocaleName"') do set "WinLang=%%i"
 if /I "%WinLang%" NEQ "ru-RU" (
     cls
     echo.
-    echo   Error 01: Invalid interface language.
+    echo   Error 01: Invalid interface language. Requires ru-RU. Current: %WinLang%
     timeout /t 4 >nul
     exit /b
 )
 
 
-ping -n 1 google.ru >nul 2>&1
-IF %ERRORLEVEL% EQU 1 (
+set "WiFi=Off"
+set "CheckURL=https://raw.githubusercontent.com"
+
+echo Checking connectivity to update server ^(%CheckURL%^)...
+:: Используем curl для проверки доступности основного хоста обновлений
+:: -s: Silent mode (без прогресс-бара)
+:: -L: Следовать редиректам
+:: --head: Получить только заголовки (быстрее, меньше данных)
+:: -m 10: Таймаут 10 секунд
+:: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
+curl -s -L --head -m 10 -o NUL "%CheckURL%"
+
+IF %ERRORLEVEL% EQU 0 (
+    REM Успешно, сервер доступен
+    echo Connection successful.
+    set "WiFi=On"
+) ELSE (
+    REM Попытка не удалась
     cls
     echo.
-    echo   Error 01: No internet connection.
-    timeout /t 4 >nul
+    echo   Error 01: Cannot reach the update server.
+    echo   Connection check to %CheckURL% failed ^(curl errorlevel: %ERRORLEVEL%^).
+    echo   Please check your internet connection, firewall settings,
+    echo   or if %CheckURL% is accessible from your network.
     set "WiFi=Off"
- ) else (
- 	set "WiFi=On"
+    timeout /t 5 >nul
+    REM ВАЖНО: Решите, должен ли скрипт завершаться при отсутствии связи.
+    REM Если установка/обновление невозможны без сети, то лучше выйти.
+    REM Раскомментируйте следующую строку, если выход необходим:
+    REM exit /b 1
 )
 
 if Not exist %SystemDrive%\GoodbyeZapret (
@@ -91,30 +113,13 @@ for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1)
 
 chcp 65001 >nul 2>&1
 
-
-:: Получаем текущую папку BAT-файла
-set currentDir=%~dp0
-
-:: Убираем последний слэш
-set currentDir=%currentDir:~0,-1%
-
-:: Переходим в родительскую папку
-for %%i in ("%currentDir%") do set parentDir=%%~dpi
-set parentDir=%parentDir:~0,-1%
-
-:: Переходим в родительскую папку родительской папки
-for %%i in ("%parentDir:~0,-1%") do set parentDir2=%%~dpi
-
-set parentDir2=%parentDir2:~0,-1%
-
-
 :GoodbyeZapret_Menu
-tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
-if "%ERRORLEVEL%"=="0" ( 
+:: tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
+:: if "%ERRORLEVEL%"=="0" ( 
     REM Процесс winws.exe уже запущен.
-) else (
-    sc start "GoodbyeZapret" >nul 2>&1
-)
+:: ) else (
+::     sc start "GoodbyeZapret" >nul 2>&1
+:: )
 
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
@@ -188,25 +193,30 @@ set "ListsVersion_New=%Actual_List_version%"
 set "ListsVersion=%Current_List_version%"
 
 set "UpdateNeedCount=0"
-if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_Winws_version! LSS !Actual_Winws_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_Configs_version! LSS !Actual_Configs_version! ( set /a "UpdateNeedCount+=1" )
-if !Current_List_version! LSS !Actual_List_version! ( set /a "UpdateNeedCount+=1" )
+call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
+if "!comparisonResult!"=="-1" ( set /a "UpdateNeedCount+=1" )
+call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
+if "!comparisonResult!"=="-1" ( set /a "UpdateNeedCount+=1" )
+if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( set /a "UpdateNeedCount+=1" )
+if "!Current_List_version!" LSS "!Actual_List_version!" ( set /a "UpdateNeedCount+=1" )
 
 set "UpdateNeed=No"
 set "UpdateNeedLevel=0"
-if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
+if "!comparisonResult!"=="-1" (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
 )
-if !Current_Winws_version! LSS !Actual_Winws_version! (
+call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
+if "!comparisonResult!"=="-1" (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
 )
-if !Current_List_version! LSS !Actual_List_version! (
+if "!Current_List_version!" LSS "!Actual_List_version!" (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
 )
+REM Сравнение Configs не влияло на UpdateNeedLevel в оригинале, поэтому здесь его нет
 
 cls
 title GoodbyeZapret - Launcher
@@ -215,14 +225,6 @@ title GoodbyeZapret - Launcher
 REM Попытка прочитать значение из нового реестра
 for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
     set "GoodbyeZapret_Config=%%b"
-    goto :end_GoodbyeZapret_Config
-)
-
-REM Попытка перенести значение из старого реестра в новый
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
-    set "GoodbyeZapret_Config=%%b"
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /t REG_SZ /d "%%b" /f >nul
-    reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul
     goto :end_GoodbyeZapret_Config
 )
 
@@ -289,12 +291,19 @@ if %UpdateNeedCount% GEQ 2 (
     goto Update_Need_screen
 )
 :MainMenu
+
 :: Проверка запущенного процесса
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
     echo Процесс %ProcessName% запущен.
+    cls
+    echo.
+    echo           %COL%[92m  ______                ____            _____                         __ 
 ) else (
     echo Процесс %ProcessName% не найден.
+    cls
+    echo.
+    echo           %COL%[90m  ______                ____            _____                         __ 
 )
 
 if not defined GoodbyeZapretVersion (
@@ -303,16 +312,13 @@ if not defined GoodbyeZapretVersion (
     title GoodbyeZapret - Launcher
 )
 
-cls
-echo.
-echo           %COL%[90m_____                 _ _                  ______                    _   
-echo          / ____^|               ^| ^| ^|                ^|___  /                   ^| ^|  
-echo         ^| ^|  __  ___   ___   __^| ^| ^|__  _   _  ___     / / __ _ _ __  _ __ ___^| ^|_ 
-echo         ^| ^| ^|_ ^|/ _ \ / _ \ / _` ^| '_ \^| ^| ^| ^|/ _ \   / / / _` ^| '_ \^| '__/ _ \ __^|
-echo         ^| ^|__^| ^| ^(_^) ^| ^(_^) ^| ^(_^| ^| ^|_^) ^| ^|_^| ^|  __/  / /_^| ^(_^| ^| ^|_^) ^| ^| ^|  __/ ^|_ 
-echo          \_____^|\___/ \___/ \__,_^|_.__/ \__, ^|\___^| /_____\__,_^| .__/^|_^|  \___^|\__^|
-echo                                          __/ ^|                 ^| ^|                 
-echo                                         ^|___/                  ^|_^|
+
+
+echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_  
+echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/  
+echo                                       /____/               /_/                     
 echo.
 
 if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
@@ -380,7 +386,7 @@ if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
     echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
     echo.
 )
-
+set "choice="
 set "counter=0"
 for %%F in ("%sourcePath%Configs\*.bat") do (
     set /a "counter+=1"
@@ -439,7 +445,7 @@ if %UpdateNeed% equ Yes (
     if "%choice%"=="ud" goto Update_Need_screen
     if "%choice%"=="UD" goto Update_Need_screen
 )
-
+if "%choice%"=="" goto MainMenu
 
 set "batFile=!file%choice:~0,-1%!"
 if "%choice:~-1%"=="s" (
@@ -452,52 +458,45 @@ if "%choice:~-1%"=="s" (
 )
 
 
-
 if not defined batFile (
     echo Неверный выбор. Пожалуйста, попробуйте снова.
     goto :eof
 )
  if defined batFile (
-    set "ErrorCount=0"
      echo.
-     echo  Подтвердите установку конфига %batFile% в службу GoodbyeZapret...
+     echo  Подтвердите установку %batFile% в службу GoodbyeZapret...
      echo %COL%[93m Нажмите любую клавишу для подтверждения %COL%[37m
      pause >nul 2>&1
      sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
-     sc description GoodbyeZapret "%batFile:~0,-4%"
-     sc start "GoodbyeZapret" >nul 2>&1
+     sc description GoodbyeZapret "%batFile:~0,-4%" >nul
+     sc start "GoodbyeZapret" >nul
      if %errorlevel% equ 0 (
-         echo  Запуск службы GoodbyeZapret...
          sc start "GoodbyeZapret" >nul 2>&1
          if %errorlevel% equ 0 (
-             echo  %COL%[92m Служба GoodbyeZapret успешно запущена %COL%[37m
+             echo  Служба GoodbyeZapret успешно запущена %COL%[37m
          ) else (
              echo  Ошибка при запуске службы
          )
-     ) else (
-         echo  Ошибка при установке службы.
      )
+     echo %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
      goto :end
  )
 
-
 :remove_service
-    REM Цветной текст
-    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-    set "ErrorCount=0"
     echo.
-    echo  Остановка службы GoodbyeZapret...
     net stop GoodbyeZapret >nul 2>&1
     if %errorlevel% equ 0 (
         echo  Служба успешно остановлена.
+    ) else (
+        echo  Ошибка при остановке службы или служба уже остановлена.
     )
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% equ 0 (
         sc delete "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
-            echo  Удаление службы GoodbyeZapret...
+            echo %COL%[92m Служба GoodbyeZapret успешно удалена %COL%[37m
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe">NUL
             if "%ERRORLEVEL%"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
@@ -505,19 +504,14 @@ if not defined batFile (
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
-                echo  Остановка процессов WinDivert.
-            ) else (
-                echo  Файл winws.exe в данный момент не выполняется.
-                set /a "ErrorCount+=1"
+                echo  Файл winws.exe остановлен.
             )
-            echo %COL%[92m Удаление успешно завершено. %COL%[37m
+            echo %COL%[92m Удаление успешно завершено %COL%[37m
         ) else (
-            echo Ошибка при удалении службы
-            set /a "ErrorCount+=1"
+            echo  Ошибка при удалении службы
         )
     ) else (
-        echo Служба GoodbyeZapret не найдена
-        set /a "ErrorCount+=1"
+        echo  Служба GoodbyeZapret не найдена
     )
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
 goto :end
@@ -528,6 +522,7 @@ if !ErrorCount! equ 0 (
 ) else (
     echo  Нажмите любую клавишу чтобы продолжить...
     pause >nul 2>&1
+    set "batFile="
     goto GoodbyeZapret_Menu
 )
 
@@ -561,10 +556,10 @@ if %errorlevel% equ 0 (
     echo   ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлена                               %COL%[36m^│
 )
 if !GoodbyeZapretUpdaterService! equ 1 (
-    echo   ^│ %COL%[92m√ %COL%[37mUpdater: Установлена и работает                             %COL%[36m^│
+    echo   ^│ %COL%[92m√ %COL%[37mUpdater: Установлен и работает                              %COL%[36m^│
     set "GoodbyeZapretUpdaterServiceAction=Выключить"
 ) else (
-    echo   ^│ %COL%[91mX %COL%[37mUpdater: Не установлена                                     %COL%[36m^│
+    echo   ^│ %COL%[91mX %COL%[37mUpdater: Не установлен                                      %COL%[36m^│
     set "GoodbyeZapretUpdaterServiceAction=Включить"
 )
 tasklist | find /i "Winws.exe" >nul
@@ -577,22 +572,24 @@ if %errorlevel% equ 0 (
 echo   ^│                                                               ^│
 echo   ^│ %COL%[37mВерсии:                                                       %COL%[36m^│
 echo   ^│ %COL%[90m──────────────────────────────────────────────────────────    %COL%[36m^│
-if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
+if "!comparisonResult!"=="-1" (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                          %COL%[36m^│
 )
-if !Current_Winws_version! LSS !Actual_Winws_version! (
+call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
+if "!comparisonResult!"=="-1" (
     echo   ^│ %COL%[37mWinws:         %COL%[91m%WinwsVersion% %COL%[92m^(→ %Actual_Winws_version%^)                                  %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mWinws:         %COL%[92m%WinwsVersion%                                           %COL%[36m^│
 )
-if !Current_Configs_version! LSS !Actual_Configs_version! (
+if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( 
     echo   ^│ %COL%[37mConfigs:       %COL%[91m%ConfigsVersion% %COL%[92m^(→ %Actual_Configs_version%^)                                      %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mConfigs:       %COL%[92m%ConfigsVersion%                                             %COL%[36m^│
 )
-if !Current_List_version! LSS !Actual_List_version! (
+if "!Current_List_version!" LSS "!Actual_List_version!" ( 
     echo   ^│ %COL%[37mLists:         %COL%[91m%ListsVersion% %COL%[92m^(→ %Actual_List_version%^)                                        %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mLists:         %COL%[92m%ListsVersion%                                              %COL%[36m^│
@@ -687,9 +684,19 @@ echo.
 if not exist "%SystemDrive%\GoodbyeZapret" (
     md %SystemDrive%\GoodbyeZapret
 )
-echo  ^[*^] Скачивание файлов
-curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
-curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+echo  ^[*^] Скачивание файлов GoodbyeZapret...
+curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
+if errorlevel 1 (
+    echo %COL%[91m ^[*^] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
+)
+
+echo  ^[*^] Скачивание Updater.exe...
+curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+ if errorlevel 1 (
+    echo %COL%[91m ^[*^] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
+    echo %COL%[93m ^[*^] Установка продолжится, но обновление может не работать.%COL%[90m
+    REM Не выходим, так как основной zip скачался
+)
 
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
@@ -738,18 +745,20 @@ echo  %COL%[90m ─────────────────────�
 echo.
 
 set "OnlyWinwsUpdate=1"
-if !Current_GoodbyeZapret_version! LSS !Actual_GoodbyeZapret_version! (
+call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
+if "!comparisonResult!"=="-1" ( :: Оригинал использовал LSS
     echo   %COL%[37mGoodbyeZapret: %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
     set "OnlyWinwsUpdate=0"
 )
-if !Current_Winws_version! neq !Actual_Winws_version! (
+call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
+if "!comparisonResult!" neq "0" ( :: Оригинал использовал NEQ
     echo   %COL%[37mWinws:         %COL%[92mv!Current_Winws_version! → v!Actual_Winws_version!
 )
-if !Current_Configs_version! neq !Actual_Configs_version! (
+if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( 
     echo   %COL%[37mConfigs:       %COL%[92mv!Current_Configs_version! → v!Actual_Configs_version!
     set "OnlyWinwsUpdate=0"
 )
-if !Current_List_version! neq !Actual_List_version! (
+if "!Current_List_version!" LSS "!Actual_List_version!" ( 
     echo   %COL%[37mLists:         %COL%[92mv!Current_List_version! → v!Actual_List_version!
     set "OnlyWinwsUpdate=0"
 )
@@ -779,28 +788,25 @@ goto Update_Need_screen
 
 :WinwsUpdate
 echo.
-echo  Обновление компонента winws...
 curl -g -L -# -o "%TEMP%\WinwsUpdateFiles.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/WinwsUpdateFiles.zip" >nul 2>&1
 if exist "%TEMP%\WinwsUpdateFiles.zip" (
-    echo  Распаковка файлов...
+    echo   ^[*^] Распаковка файлов...
     chcp 850 >nul 2>&1
     powershell -NoProfile -Command "Expand-Archive -Path '%TEMP%\WinwsUpdateFiles.zip' -DestinationPath '%TEMP%\WinwsUpdate' -Force" >nul 2>&1
     if not exist "%SystemDrive%\GoodbyeZapret\bin\" mkdir "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
     
-    echo  Остановка и удаление служб...
+    echo   ^[*^] Остановка и удаление служб...
     taskkill /F /IM winws.exe >nul 2>&1
     net stop "WinDivert" >nul 2>&1
     sc delete "WinDivert" >nul 2>&1
     net stop "WinDivert14" >nul 2>&1
     sc delete "WinDivert14" >nul 2>&1
     
-    echo  Удаление старых файлов...
     if exist "%SystemDrive%\GoodbyeZapret\bin\cygwin1.dll" del /f /q "%SystemDrive%\GoodbyeZapret\bin\cygwin1.dll" >nul 2>&1
     if exist "%SystemDrive%\GoodbyeZapret\bin\WinDivert.dll" del /f /q "%SystemDrive%\GoodbyeZapret\bin\WinDivert.dll" >nul 2>&1
     if exist "%SystemDrive%\GoodbyeZapret\bin\WinDivert64.sys" del /f /q "%SystemDrive%\GoodbyeZapret\bin\WinDivert64.sys" >nul 2>&1
     if exist "%SystemDrive%\GoodbyeZapret\bin\winws.exe" del /f /q "%SystemDrive%\GoodbyeZapret\bin\winws.exe" >nul 2>&1
     
-    echo  Перемещение новых файлов...
     move /y "%TEMP%\WinwsUpdate\cygwin1.dll" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
     move /y "%TEMP%\WinwsUpdate\WinDivert.dll" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
     move /y "%TEMP%\WinwsUpdate\WinDivert64.sys" "%SystemDrive%\GoodbyeZapret\bin\" >nul 2>&1
@@ -809,21 +815,55 @@ if exist "%TEMP%\WinwsUpdateFiles.zip" (
     chcp 65001 >nul 2>&1
     del /f /q "%TEMP%\WinwsUpdateFiles.zip" >nul 2>&1
     rd /s /q "%TEMP%\WinwsUpdate" >nul 2>&1
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "Winws_version" /d "!Actual_Winws_version!" /f >nul 2>&1
     
-    echo  Обновление файла версии...
     echo !Actual_Winws_version! > "%SystemDrive%\GoodbyeZapret\bin\version.txt"
     
-    echo  Перезапуск службы GoodbyeZapret...
+    echo   ^[*^] Запуск службы GoodbyeZapret...
     sc start "GoodbyeZapret" >nul 2>&1
     
-    echo  %COL%[92mОбновление winws успешно завершено%COL%[37m
+    echo %COL%[92m ^[*^] Обновление winws успешно завершено %COL%[37m
     timeout /t 1 >nul
     mode con: cols=92 lines=%ListBatCount% >nul 2>&1
     goto MainMenu
 ) else (
-    echo  %COL%[91mОшибка: Не удалось загрузить файл обновления winws%COL%[37m
+    echo %COL%[91m ^[*^]  Ошибка: Не удалось загрузить файл обновления winws %COL%[37m
     timeout /t 1 >nul
     mode con: cols=92 lines=%ListBatCount% >nul 2>&1
     goto MainMenu
 )
+
+
+:: ==============================
+:: ПОДПРОГРАММЫ
+:: ==============================
+
+:CompareVersions <Version1> <Version2> <ResultVarName>
+:: Сравнивает две версии в формате X.Y.Z[.N] с помощью PowerShell.
+:: Устанавливает переменную с именем %3 в:
+::   -1, если Version1 < Version2
+::    0, если Version1 == Version2
+::    1, если Version1 > Version2
+::   99, если произошла ошибка сравнения (неверный формат)
+setlocal EnableDelayedExpansion
+set "v1=%~1"
+set "v2=%~2"
+set "outputVar=%~3"
+set "psResult=99" :: По умолчанию - ошибка
+
+:: Проверка на пустые строки, чтобы PowerShell не ругался
+if not defined v1 set "v1=0.0.0"
+if not defined v2 set "v2=0.0.0"
+
+:: Команда PowerShell для сравнения версий
+set "psCmd=$v1Str = '!v1!'; $v2Str = '!v2!'; try { $v1 = [version]$v1Str; $v2 = [version]$v2Str; if ($v1 -lt $v2) { Write-Host -NoNewline -1 } elseif ($v1 -gt $v2) { Write-Host -NoNewline 1 } else { Write-Host -NoNewline 0 } } catch { Write-Host -NoNewline 99 }"
+
+:: Выполняем PowerShell и получаем результат
+chcp 850 >nul 2>&1
+for /f %%r in ('powershell -NoProfile -Command "!psCmd!"') do set "psResult=%%r"
+chcp 65001 >nul 2>&1
+
+:: Возвращаем результат в переменную вызывающей стороны
+endlocal & set "%outputVar%=%psResult%"
+goto :eof
+
+:: ========== КОНЕЦ ПОДПРОГРАММ ==========
