@@ -590,9 +590,9 @@ if "!Current_Configs_version!" LSS "!Actual_Configs_version!" (
     echo   ^│ %COL%[37mConfigs:       %COL%[92m%ConfigsVersion%                                             %COL%[36m^│
 )
 if "!Current_List_version!" LSS "!Actual_List_version!" ( 
-    echo   ^│ %COL%[37mLists:         %COL%[91m%ListsVersion% %COL%[92m^(→ %Actual_List_version%^)                                        %COL%[36m^│
+    echo   ^│ %COL%[37mLists:         %COL%[91m%ListsVersion% %COL%[92m^(→ %Actual_List_version%^)                                       %COL%[36m^│
 ) else (
-    echo   ^│ %COL%[37mLists:         %COL%[92m%ListsVersion%                                              %COL%[36m^│
+    echo   ^│ %COL%[37mLists:         %COL%[92m%ListsVersion%                                             %COL%[36m^│
 )
 echo   └───────────────────────────────────────────────────────────────┘
 echo.
