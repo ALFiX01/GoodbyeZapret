@@ -6,10 +6,9 @@ set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 
 cd /d "%parentDir%"
-set BIN=%parentDir%bin\
 
-set "LIST_TITLE=GoodbyeZapret: Test_Ultimate_Fix-ZL"
-set "DISCORD_IPSET_PATH=%parentDir%lists\ipset-discord.txt"
+set "BIN=%parentDir%bin\"
+set "LIST_TITLE=GoodbyeZapret: WebUnlock 4"
 set "LISTS_FOLDER=%parentDir%lists"
 
 start "%LIST_TITLE%" /min "%BIN%winws.exe" ^

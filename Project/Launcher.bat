@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.5.0"
+set "Current_GoodbyeZapret_version=1.5.1"
 
 REM reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
 
