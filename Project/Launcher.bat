@@ -423,6 +423,7 @@ echo                          %COL%[96m^[ DS ^] %COL%[91mУдалить служ
 echo                          %COL%[96m^[ RC ^] %COL%[91mПереустановить конфиги
 echo                          %COL%[96m^[ ST ^] %COL%[91mСостояние GoodbyeZapret
 echo                          %COL%[96m^[ 1s ^] %COL%[91mЗапустить конфиг
+echo                          %COL%[96m^[ SQ ^] %COL%[91mЗапустить конфиги поочередно
 REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
@@ -439,6 +440,8 @@ if "%choice%"=="DS" goto remove_service
 if "%choice%"=="ds" goto remove_service
 if "%choice%"=="RC" goto ReInstall_GZ
 if "%choice%"=="rc" goto ReInstall_GZ
+if "%choice%"=="SQ" goto SeqStart
+if "%choice%"=="sq" goto SeqStart
 if "%choice%"=="ST" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
 if %UpdateNeed% equ Yes (
@@ -531,6 +534,20 @@ if !ErrorCount! equ 0 (
 )
 
 
+:SeqStart
+cls
+echo Запуск конфигов поочередно...
+set "counter=0"
+for %%F in ("%sourcePath%Configs\*.bat") do (
+    set /a "counter+=1"
+    echo Запуск %%~nxF...
+    start /wait cmd /c "%%F"
+    pause
+)
+echo Все конфиги завершили выполнение.
+goto :end
+
+
 :CurrentStatus
 REM Проверка наличия и корректности пути службы обновления GoodbyeZapret
 set "GoodbyeZapretUpdaterService=0"
@@ -601,6 +618,7 @@ if "!Current_List_version!" LSS "!Actual_List_version!" (
 echo   └───────────────────────────────────────────────────────────────┘
 echo.
 echo   %COL%[36m^[ %COL%[96mF %COL%[36m^] %COL%[93m%GoodbyeZapretUpdaterServiceAction% Updater   %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
+echo   %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить
 echo.
 echo   %COL%[37mВыберите действие %COL%[90m^(F/B^):
 set /p "choice=%DEL%   %COL%[90m:> "
@@ -608,6 +626,8 @@ if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto M
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="F" goto GoodbyeZapretUpdaterService_toggle
 if /i "%choice%"=="а" goto GoodbyeZapretUpdaterService_toggle
+if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
+if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 goto CurrentStatus
 
 
