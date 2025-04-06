@@ -564,8 +564,9 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret
 if %errorlevel% equ 0 (
     for /f "tokens=3*" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" 2^>nul ^| find /i "GoodbyeZapret Updater"') do (
         set "GoodbyeZapretUpdaterPath=%%j"
-        if /I "!GoodbyeZapretUpdaterPath!" EQU "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
-            if exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
+        echo !GoodbyeZapretUpdaterPath! | find /i "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" >nul 2>&1
+        if !errorlevel! equ 0 (
+            if exist "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" (
                 set "GoodbyeZapretUpdaterService=1"
             )
         )
@@ -652,10 +653,10 @@ exit
 if !GoodbyeZapretUpdaterService! equ 1 (
     reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /f >nul 2>&1
 ) else (
-    if not exist "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" (
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+    if not exist "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" (
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "%SystemDrive%\GoodbyeZapret\GoodbyeZapretUpdaterService.exe" /f >nul 2>&1
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "\"%SystemDrive%\GoodbyeZapret\UpdaterService.exe\" --minimized" /f >nul 2>&1
 )
 
 goto CurrentStatus

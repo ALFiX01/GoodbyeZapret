@@ -5,6 +5,39 @@
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
+::cxAkpRVqdFKZSDk=
+::cBs/ulQjdF+5
+::ZR41oxFsdFKZSDk=
+::eBoioBt6dFKZSDk=
+::cRo6pxp7LAbNWATEpCI=
+::egkzugNsPRvcWATEpCI=
+::dAsiuh18IRvcCxnZtBJQ
+::cRYluBh/LU+EWAnk
+::YxY4rhs+aU+JeA==
+::cxY6rQJ7JhzQF1fEqQJQ
+::ZQ05rAF9IBncCkqN+0xwdVs0
+::ZQ05rAF9IAHYFVzEqQJQ
+::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
+::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
+::cRolqwZ3JBvQF1fEqQJQ
+::dhA7uBVwLU+EWDk=
+::YQ03rBFzNR3SWATElA==
+::dhAmsQZ3MwfNWATElA==
+::ZQ0/vhVqMQ3MEVWAtB9wSA==
+::Zg8zqx1/OA3MEVWAtB9wSA==
+::dhA7pRFwIByZRRnk
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR8HNWndgwOQtcfwauXQomv2dBs1iwJ8OdpwrST1qf70g1VWBsggM=
+::YB416Ek+ZG8=
+::
+::
+::978f952a14a936cc963da21a135fa983
+::[Bat To Exe Converter]
+::
+::YAwzoRdxOk+EWAnk
+::fBw5plQjdG8=
+::YAwzuBVtJxjWCl3EqQJgSA==
+::ZR4luwNxJguZRRnk
+::Yhs/ulQjdF+5
 ::cxAkpRVqdFKZSTk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
@@ -33,6 +66,36 @@
 ::978f952a14a936cc963da21a135fa983
 @echo off
 setlocal EnableDelayedExpansion
+
+
+set "WiFi=Off"
+set "CheckURL=https://raw.githubusercontent.com"
+
+:: Используем curl для проверки доступности основного хоста обновлений
+:: -s: Silent mode (без прогресс-бара)
+:: -L: Следовать редиректам
+:: --head: Получить только заголовки (быстрее, меньше данных)
+:: -m 10: Таймаут 10 секунд
+:: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
+curl -s -L --head -m 10 -o NUL "%CheckURL%"
+
+IF %ERRORLEVEL% EQU 0 (
+    REM Успешно, сервер доступен
+    set "WiFi=On"
+) ELSE (
+    REM Первая попытка не удалась, пробуем еще раз
+    timeout /t 5 >nul
+    curl -s -L --head -m 10 -o NUL "%CheckURL%"
+    IF %ERRORLEVEL% EQU 0 (
+        REM Успешно со второй попытки
+        set "WiFi=On"
+    ) ELSE (
+        REM Обе попытки не удались
+        set "WiFi=Off"
+        exit /b
+    )
+)
+
 
 REM Получение информации о текущих версиях GoodbyeZapret и тд
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
