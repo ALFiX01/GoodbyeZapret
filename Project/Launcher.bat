@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.5.1"
+set "Current_GoodbyeZapret_version=1.5.2"
 
 REM reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
 
@@ -457,6 +457,8 @@ if "%choice:~-1%"=="s" (
     set "batFile=!file%choice%!"
 )
 
+    REM Цветной текст
+    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
 if not defined batFile (
     echo Неверный выбор. Пожалуйста, попробуйте снова.
@@ -485,6 +487,8 @@ if not defined batFile (
  )
 
 :remove_service
+    REM Цветной текст
+    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     echo.
     net stop GoodbyeZapret >nul 2>&1
     if %errorlevel% equ 0 (
