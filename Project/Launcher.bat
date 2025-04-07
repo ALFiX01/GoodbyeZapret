@@ -619,12 +619,11 @@ if "!Current_List_version!" LSS "!Actual_List_version!" (
 )
 echo   └───────────────────────────────────────────────────────────────┘
 echo.
-echo   %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
+echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
 if %UpdateNeed% equ Yes (
-    echo   %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
+    echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
 )
 echo.
-echo   %COL%[37mВыберите действие %COL%[90m^(F/B^):
 set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
