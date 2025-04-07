@@ -5,7 +5,7 @@
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSDk=
+::cxAkpRVqdFKZSTk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
 ::eBoioBt6dFKZSDk=
@@ -78,24 +78,32 @@ set "CheckURL=https://raw.githubusercontent.com"
 :: -m 10: Таймаут 10 секунд
 :: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
 curl -s -L --head -m 10 -o NUL "%CheckURL%"
-
+echo start >> "C:\GoodbyeZapret\test.txt"
 IF %ERRORLEVEL% EQU 0 (
     REM Успешно, сервер доступен
     set "WiFi=On"
 ) ELSE (
     REM Первая попытка не удалась, пробуем еще раз
-    timeout /t 5 >nul
+    timeout /t 10 >nul
     curl -s -L --head -m 10 -o NUL "%CheckURL%"
     IF %ERRORLEVEL% EQU 0 (
         REM Успешно со второй попытки
         set "WiFi=On"
     ) ELSE (
-        REM Обе попытки не удались
-        set "WiFi=Off"
-        exit /b
+        REM Вторая попытка не удалась, пробуем в третий раз
+        timeout /t 8 >nul
+        curl -s -L --head -m 10 -o NUL "%CheckURL%"
+        IF %ERRORLEVEL% EQU 0 (
+            REM Успешно с третьей попытки
+            set "WiFi=On"
+        ) ELSE (
+            echo stop >> "C:\GoodbyeZapret\test2.txt"
+            REM Все три попытки не удались
+            set "WiFi=Off"
+            exit /b
+        )
     )
 )
-
 
 REM Получение информации о текущих версиях GoodbyeZapret и тд
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"

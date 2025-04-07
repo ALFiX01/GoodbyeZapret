@@ -13,14 +13,14 @@
 ::egkzugNsPRvcWATEpCI=
 ::dAsiuh18IRvcCxnZtBJQ
 ::cRYluBh/LU+EWAnk
-::YxY4rhs+aU+JeA==
-::cxY6rQJ7JhzQF1fEqQJQ
+::YxY4rhs+aU+IeA==
+::cxY6rQJ7JhzQF1fEqQJhZk4aHmQ=
 ::ZQ05rAF9IBncCkqN+0xwdVs0
-::ZQ05rAF9IAHYFVzEqQJQ
+::ZQ05rAF9IAHYFVzEqQIXJxRQTh2HBmqqFLAIiA==
 ::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
 ::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
 ::cRolqwZ3JBvQF1fEqQJQ
-::dhA7uBVwLU+EWDk=
+::dhA7uBVwLU+EWHio0ksIaBJaT2Q=
 ::YQ03rBFzNR3SWATElA==
 ::dhAmsQZ3MwfNWATElA==
 ::ZQ0/vhVqMQ3MEVWAtB9wSA==
@@ -202,29 +202,34 @@ set "ListsVersion_New=%Actual_List_version%"
 set "ListsVersion=%Current_List_version%"
 
 set "UpdateNeedCount=0"
-call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
-if "!comparisonResult!"=="-1" ( set /a "UpdateNeedCount+=1" )
-call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
-if "!comparisonResult!"=="-1" ( set /a "UpdateNeedCount+=1" )
-if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( set /a "UpdateNeedCount+=1" )
-if "!Current_List_version!" LSS "!Actual_List_version!" ( set /a "UpdateNeedCount+=1" )
 
 set "UpdateNeed=No"
 set "UpdateNeedLevel=0"
-call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
-if "!comparisonResult!"=="-1" (
+if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
+    set /a "UpdateNeedCount+=1"
 )
-call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
-if "!comparisonResult!"=="-1" (
+if "!Current_Winws_version!" neq "!Actual_Winws_version!" ( 
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
+    set /a "UpdateNeedCount+=1"
 )
+
+if "!Current_Configs_version!" LSS "!Actual_Configs_version!" (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+    set /a "UpdateNeedCount+=1"
+)
+
 if "!Current_List_version!" LSS "!Actual_List_version!" (
     set "UpdateNeed=Yes"
     set /a "UpdateNeedLevel+=1"
+    set /a "UpdateNeedCount+=1"
 )
+
+
+
 REM Сравнение Configs не влияло на UpdateNeedLevel в оригинале, поэтому здесь его нет
 
 cls
@@ -296,7 +301,7 @@ if defined GoodbyeZapretVersion (
 
 
 :GZ_loading_procces
-if %UpdateNeedCount% GEQ 2 (
+if %UpdateNeedCount% GEQ 1 (
     goto Update_Need_screen
 )
 :MainMenu
@@ -329,7 +334,9 @@ echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  
 echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/  
 echo                                       /____/               /_/                     
 echo.
-
+if %UpdateNeed% equ Yes (
+echo                              %COL%[91mДоступно обновление GoodbyeZapret%COL%[37m
+)
 if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
 REM    echo          %COL%[90mОшибка: Не удалось провести проверку файлов - Скрипт может быть не стабилен%COL%[37m
     echo                %COL%[90mОшибка: Не удалось проверить файлы - Возможны проблемы в работе%COL%[37m
@@ -436,7 +443,7 @@ echo                          %COL%[96m^[ SQ ^] %COL%[91mЗапустить ко
 REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
-echo                          %COL%[96m^[ UD ^] %COL%[91mОбновить до актульной версии
+echo                          %COL%[96m^[ UD ^] %COL%[91mОбновить до актуальной версии
 )
 
 
@@ -542,7 +549,6 @@ if !ErrorCount! equ 0 (
     goto GoodbyeZapret_Menu
 )
 
-
 :SeqStart
 cls
 echo Запуск конфигов поочередно...
@@ -559,19 +565,13 @@ goto :end
 
 :CurrentStatus
 REM Проверка наличия и корректности пути службы обновления GoodbyeZapret
-set "GoodbyeZapretUpdaterService=0"
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" >nul 2>&1
-if %errorlevel% equ 0 (
-    for /f "tokens=3*" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" 2^>nul ^| find /i "GoodbyeZapret Updater"') do (
-        set "GoodbyeZapretUpdaterPath=%%j"
-        echo !GoodbyeZapretUpdaterPath! | find /i "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" >nul 2>&1
-        if !errorlevel! equ 0 (
-            if exist "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" (
-                set "GoodbyeZapretUpdaterService=1"
-            )
-        )
-    )
-)
+REM set "GoodbyeZapretUpdaterService=0"
+REM if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\GoodbyeZapret-Updater.lnk" (
+REM     if exist "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" (
+REM      set "GoodbyeZapretUpdaterService=1"
+REM     )
+REM )
+
 
 cls
 mode con: cols=80 lines=25 >nul 2>&1
@@ -586,13 +586,6 @@ if %errorlevel% equ 0 (
 ) else (
     echo   ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлена                               %COL%[36m^│
 )
-if !GoodbyeZapretUpdaterService! equ 1 (
-    echo   ^│ %COL%[92m√ %COL%[37mUpdater: Установлен и работает                              %COL%[36m^│
-    set "GoodbyeZapretUpdaterServiceAction=Выключить"
-) else (
-    echo   ^│ %COL%[91mX %COL%[37mUpdater: Не установлен                                      %COL%[36m^│
-    set "GoodbyeZapretUpdaterServiceAction=Включить"
-)
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
     echo   ^│ %COL%[92m√ %COL%[37mWinws.exe: Запущен                                          %COL%[36m^│
@@ -603,14 +596,13 @@ if %errorlevel% equ 0 (
 echo   ^│                                                               ^│
 echo   ^│ %COL%[37mВерсии:                                                       %COL%[36m^│
 echo   ^│ %COL%[90m──────────────────────────────────────────────────────────    %COL%[36m^│
-call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
-if "!comparisonResult!"=="-1" (
+
+if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                          %COL%[36m^│
 )
-call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
-if "!comparisonResult!"=="-1" (
+if "!Current_Winws_version!" neq "!Actual_Winws_version!" ( 
     echo   ^│ %COL%[37mWinws:         %COL%[91m%WinwsVersion% %COL%[92m^(→ %Actual_Winws_version%^)                                  %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mWinws:         %COL%[92m%WinwsVersion%                                           %COL%[36m^│
@@ -627,15 +619,15 @@ if "!Current_List_version!" LSS "!Actual_List_version!" (
 )
 echo   └───────────────────────────────────────────────────────────────┘
 echo.
-echo   %COL%[36m^[ %COL%[96mF %COL%[36m^] %COL%[93m%GoodbyeZapretUpdaterServiceAction% Updater   %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
-echo   %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить
+echo   %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
+if %UpdateNeed% equ Yes (
+    echo   %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
+)
 echo.
 echo   %COL%[37mВыберите действие %COL%[90m^(F/B^):
 set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
-if /i "%choice%"=="F" goto GoodbyeZapretUpdaterService_toggle
-if /i "%choice%"=="а" goto GoodbyeZapretUpdaterService_toggle
 if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 goto CurrentStatus
@@ -649,17 +641,6 @@ exit
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 exit
 
-:GoodbyeZapretUpdaterService_toggle
-if !GoodbyeZapretUpdaterService! equ 1 (
-    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /f >nul 2>&1
-) else (
-    if not exist "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" (
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
-    )
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GoodbyeZapret Updater" /t REG_SZ /d "\"%SystemDrive%\GoodbyeZapret\UpdaterService.exe\" --minimized" /f >nul 2>&1
-)
-
-goto CurrentStatus
 
 REM РЕЖИМ УСТАНОВКИ
 :install_screen
@@ -774,18 +755,16 @@ echo         │     %COL%[91m ╚██████╔╝██║     ██�
 echo         │     %COL%[91m  ╚═════╝ ╚═╝     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝     %COL%[36m │
 echo         └──────────────────────────────────────────────────────────────┘
 echo.
-echo  %COL%[37m Доступны обновления компонентов:
-echo  %COL%[90m ───────────────────────────────────────────────────────────────
+echo  %COL%[36m Доступны обновления компонентов:
+echo  %COL%[90m ────────────────────────────────────────────────────────────────────────────
 echo.
 
 set "OnlyWinwsUpdate=1"
-call :CompareVersions "!Current_GoodbyeZapret_version!" "!Actual_GoodbyeZapret_version!" comparisonResult
-if "!comparisonResult!"=="-1" ( :: Оригинал использовал LSS
+if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
     echo   %COL%[37mGoodbyeZapret: %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
     set "OnlyWinwsUpdate=0"
 )
-call :CompareVersions "!Current_Winws_version!" "!Actual_Winws_version!" comparisonResult
-if "!comparisonResult!" neq "0" ( :: Оригинал использовал NEQ
+if "!Current_Winws_version!" neq "!Actual_Winws_version!" ( 
     echo   %COL%[37mWinws:         %COL%[92mv!Current_Winws_version! → v!Actual_Winws_version!
 )
 if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( 
@@ -797,9 +776,10 @@ if "!Current_List_version!" LSS "!Actual_List_version!" (
     set "OnlyWinwsUpdate=0"
 )
 echo.
-echo  %COL%[90m ───────────────────────────────────────────────────────────────
-echo  %COL%[37m Выберите действие:
-echo  %COL%[91m ^[B^]%COL%[37m Пропустить       %COL%[92m ^[U^]%COL%[37m Обновить
+echo  %COL%[90m ────────────────────────────────────────────────────────────────────────────
+REM echo  %COL%[36m Выберите действие:
+echo.
+echo                      %COL%[92m ^[U^]%COL%[37m Обновить  / %COL%[91m ^[B^]%COL%[37m Пропустить
 echo.
 set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
