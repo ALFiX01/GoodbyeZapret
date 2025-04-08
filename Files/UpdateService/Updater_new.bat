@@ -27,21 +27,13 @@
 ::Zg8zqx1/OA3MEVWAtB9wSA==
 ::dhA7pRFwIByZRRnk
 ::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR8HNWndgwOQtcfwauXQomv2dBs1iwJ8OdpwrzdUaM8QU1A2AU
-::YB416Ek+ZW8=
+::YB416Ek+ZG8=
 ::
 ::
 ::978f952a14a936cc963da21a135fa983
 @echo off
 chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
-
-:: Запуск от имени администратора
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Requesting administrative privileges...
-    start "" /wait /I /min powershell -NoProfile -Command "Start-Process -FilePath '%~s0' -Verb RunAs"
-    exit /b
-)
 
 :CHECK_INTERNET
 ping 8.8.8.8 -n 1 >nul
@@ -110,6 +102,13 @@ if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
 if %UpdateNeed% equ Yes ( goto update_screen ) else ( exit /b )
 
 :update_screen
+:: Запуск от имени администратора
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Requesting administrative privileges...
+    start "" /wait /I /min powershell -NoProfile -Command "Start-Process -FilePath '%~s0' -Verb RunAs"
+    exit /b
+)
 set "UpdaterVersion=1.0"
 
 REM Цветной текст
