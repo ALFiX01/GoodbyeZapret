@@ -92,12 +92,21 @@ set "ListsVersion=%Current_List_version%"
 set "UpdateNeedCount=0"
 
 set "UpdateNeed=No"
-set "UpdateNeedLevel=0"
-if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
+
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" ^| findstr /i "GoodbyeZapret_Version_code"') do set "Current_GoodbyeZapret_version_code=%%i"
+)
+
+:: Проверка, изменилась ли версия
+echo "%Actual_GoodbyeZapret_version_code%" | findstr /i "%Current_GoodbyeZapret_version_code%" >nul
+if errorlevel 1 (
+    echo - available update
     set "UpdateNeed=Yes"
-    set /a "UpdateNeedLevel+=1"
-    set /a "UpdateNeedCount+=1"
     echo [INFO] %time:~0,8% - Update Check - Обнаружено обновление >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+) else (
+    set "VersionFound=1"
+    echo - no update
 )
 
 if %UpdateNeed% equ Yes ( goto update_screen ) else ( exit /b )

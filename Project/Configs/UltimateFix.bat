@@ -10,8 +10,15 @@ cd /d "%parentDir%"
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
 echo %~nx0
 pause
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2^>nul ^| find /i "Auto-update"') do set "Auto-update=%%b"
+) else (
+    set "Auto-update=0"
+)
+
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
-Start "" "UpdateService.exe"
+if "%Auto-update%"=="1" ( Start "" "UpdateService.exe" )
 
 set "BIN=%parentDir%bin\"
 set "LIST_TITLE=GoodbyeZapret: UltimateFix"

@@ -47,6 +47,7 @@ setlocal EnableDelayedExpansion
 
 
 set "Current_GoodbyeZapret_version=1.6.0"
+set "Current_GoodbyeZapret_version_code=08APR01"
 
 
 REM Настройки UAC
@@ -82,13 +83,13 @@ for %%i in (
 
         REM Сравниваем значения
         if not "!current_value!" == "!expected_value!" (
-            echo [WARN ] %TIME% - Параметр UAC '%%i' имеет неожиданное значение. Текущее: 0x!current_value!, Ожидаемое: 0x!expected_value!. >> "%ASX-Directory%\Files\Logs\%date%.txt"
+            echo [WARN ] %TIME% - Параметр UAC '%%i' имеет неожиданное значение. Текущее: 0x!current_value!, Ожидаемое: 0x!expected_value!.
             reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
             if errorlevel 1 (
-                echo [ERROR] %TIME% - Не удалось изменить параметр UAC '%%i'. Возможно, недостаточно прав. >> "%ASX-Directory%\Files\Logs\%date%.txt"
+                echo [ERROR] %TIME% - Не удалось изменить параметр UAC '%%i'. Возможно, недостаточно прав.
                 set "UAC_check=Error"
             ) else (
-                echo [INFO ] %TIME% - Параметр UAC '%%i' успешно изменён на 0x!expected_value!. >> "%ASX-Directory%\Files\Logs\%date%.txt"
+                echo [INFO ] %TIME% - Параметр UAC '%%i' успешно изменён на 0x!expected_value!.
             )
         )
     )
@@ -113,6 +114,16 @@ if %errorlevel% neq 0 (
     for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" ^| findstr /i "GoodbyeZapret_Version"') do set "Registry_Version=%%i"
     if not "!Registry_Version!"=="%Current_GoodbyeZapret_version%" (
         reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%Current_GoodbyeZapret_version%" /f >nul 2>&1
+    )
+)
+
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" >nul 2>&1
+if %errorlevel% neq 0 (
+    reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
+) else (
+    for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" ^| findstr /i "GoodbyeZapret_Version_code"') do set "Registry_Version_code=%%i"
+    if not "!Registry_Version!"=="%Current_GoodbyeZapret_version%" (
+        reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
     )
 )
 
@@ -239,17 +250,17 @@ REM Версии GoodbyeZapret
 set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
 set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 
-set "UpdateNeedCount=0"
-
 set "UpdateNeed=No"
-set "UpdateNeedLevel=0"
-if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
-    set "UpdateNeed=Yes"
-    set /a "UpdateNeedLevel+=1"
-    set /a "UpdateNeedCount+=1"
-)
 
-REM Сравнение Configs не влияло на UpdateNeedLevel в оригинале, поэтому здесь его нет
+:: Проверка, изменилась ли версия
+echo "%Actual_GoodbyeZapret_version_code%" | findstr /i "%Current_GoodbyeZapret_version_code%" >nul
+if errorlevel 1 (
+    echo - available update
+    set "UpdateNeed=Yes"
+) else (
+    set "VersionFound=1"
+    echo - no update
+)
 
 cls
 title GoodbyeZapret - Launcher
@@ -320,7 +331,7 @@ if defined GoodbyeZapretVersion (
 
 
 :GZ_loading_procces
-if %UpdateNeedCount% GEQ 1 (
+if "%UpdateNeed%"=="Yes" (
     goto Update_Need_screen
 )
 :MainMenu
@@ -582,6 +593,12 @@ goto :end
 
 
 :CurrentStatus
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2^>nul ^| find /i "Auto-update"') do set "Auto-update=%%b"
+) else (
+    set "Auto-update=0"
+)
 cls
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -609,12 +626,10 @@ if %errorlevel% equ 0 (
 ) else (
     echo   ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                    %COL%[36m^│
 )
-reg query "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" >nul 2>&1
-if %errorlevel% equ 0 (
+if "%Auto-update%"=="1" (
     echo   ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                    %COL%[36m^│
     set "AutoUpdateTextParam=Выключить"
     set "AutoUpdateStatus=On"
-
 ) else (
     echo   ^│ %COL%[91mX %COL%[37mАвтообновление: Выключено                                   %COL%[36m^│
     set "AutoUpdateTextParam=Включить"
@@ -624,11 +639,12 @@ echo   ^│                                                               ^│
 echo   ^│ %COL%[37mВерсии:                                                       %COL%[36m^│
 echo   ^│ %COL%[90m───────────────────────────────────────────────────────────── %COL%[36m^│
 
-if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
+if "%UpdateNeed%"=="Yes" (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                          %COL%[36m^│
 )
+
     echo   ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                           %COL%[36m^│
     echo   ^│ %COL%[37mConfigs:       %COL%[92m%Current_Configs_version%                                             %COL%[36m^│
     echo   ^│ %COL%[37mLists:         %COL%[92m%Current_List_version%                                             %COL%[36m^│
@@ -646,24 +662,24 @@ if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto 
 if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="On" (
-    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /f >nul 2>&1
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
     )
 )
 if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="On" (
-    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /f >nul 2>&1
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
     )
 )
 
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="Off" (
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /t REG_SZ /d "\"%SystemDrive%\GoodbyeZapret\UpdateService.exe\" --minimized" /f >nul 2>&1
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
     curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
 )
 if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="Off" (
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /t REG_SZ /d "\"%SystemDrive%\GoodbyeZapret\UpdateService.exe\" --minimized" /f >nul 2>&1
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
     curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
