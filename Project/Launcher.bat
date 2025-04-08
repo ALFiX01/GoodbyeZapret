@@ -123,7 +123,12 @@ if %errorlevel% neq 0 (
 ) else (
     for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" ^| findstr /i "GoodbyeZapret_Version_code"') do set "Registry_Version_code=%%i"
     if not "!Registry_Version!"=="%Current_GoodbyeZapret_version%" (
+        echo Component service update currently in progress. Thank you for your patience.
         reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
+        del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+        del "%SystemDrive%\GoodbyeZapret\Updater.exe" >nul 2>&1
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
     )
 )
 
