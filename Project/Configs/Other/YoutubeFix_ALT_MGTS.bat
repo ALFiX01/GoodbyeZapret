@@ -6,6 +6,9 @@ set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 
 cd /d "%parentDir%"
+
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
+Start "" "UpdateService.exe"
 set BIN=%parentDir%bin\
 
 set "LIST_TITLE=GoodbyeZapret: YouTubeFix ALT MGTS"

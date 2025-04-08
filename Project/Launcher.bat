@@ -45,7 +45,54 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.5.2"
+
+set "Current_GoodbyeZapret_version=1.6.0"
+
+
+REM Настройки UAC
+set "L_ConsentPromptBehaviorAdmin=0"
+set "L_ConsentPromptBehaviorUser=3"
+set "L_EnableInstallerDetection=1"
+set "L_EnableLUA=1"
+set "L_EnableSecureUIAPaths=1"
+set "L_FilterAdministratorToken=0"
+set "L_PromptOnSecureDesktop=0"
+
+REM Путь к реестру UAC
+set "UAC_HKLM=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+
+REM Основной цикл проверки и обновления значений UAC
+set "UAC_check=Success"
+for %%i in (
+    ConsentPromptBehaviorAdmin
+    ConsentPromptBehaviorUser
+    EnableInstallerDetection
+    EnableLUA
+    EnableSecureUIAPaths
+    FilterAdministratorToken
+    PromptOnSecureDesktop
+) do (
+    for /f "tokens=3" %%a in ('reg query "%UAC_HKLM%" /v "%%i" 2^>nul ^| find /i "%%i"') do (
+        REM Удаляем префикс "0x" из текущего значения
+        set "current_value=%%a"
+        set "current_value=!current_value:0x=!"
+
+        REM Получаем ожидаемое значение
+        call set "expected_value=%%L_%%i%%"
+
+        REM Сравниваем значения
+        if not "!current_value!" == "!expected_value!" (
+            echo [WARN ] %TIME% - Параметр UAC '%%i' имеет неожиданное значение. Текущее: 0x!current_value!, Ожидаемое: 0x!expected_value!. >> "%ASX-Directory%\Files\Logs\%date%.txt"
+            reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
+            if errorlevel 1 (
+                echo [ERROR] %TIME% - Не удалось изменить параметр UAC '%%i'. Возможно, недостаточно прав. >> "%ASX-Directory%\Files\Logs\%date%.txt"
+                set "UAC_check=Error"
+            ) else (
+                echo [INFO ] %TIME% - Параметр UAC '%%i' успешно изменён на 0x!expected_value!. >> "%ASX-Directory%\Files\Logs\%date%.txt"
+            )
+        )
+    )
+)
 
 REM reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
 
@@ -114,7 +161,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
 
-set /a ListBatCount=BatCount+28
+set /a ListBatCount=BatCount+29
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -192,15 +239,6 @@ REM Версии GoodbyeZapret
 set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
 set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 
-set "WinwsVersion_New=%Actual_Winws_version%"
-set "WinwsVersion=%Current_Winws_version%"
-
-set "ConfigsVersion_New=%Actual_Configs_version%"
-set "ConfigsVersion=%Current_Configs_version%"
-
-set "ListsVersion_New=%Actual_List_version%"
-set "ListsVersion=%Current_List_version%"
-
 set "UpdateNeedCount=0"
 
 set "UpdateNeed=No"
@@ -210,25 +248,6 @@ if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
     set /a "UpdateNeedLevel+=1"
     set /a "UpdateNeedCount+=1"
 )
-if "!Current_Winws_version!" neq "!Actual_Winws_version!" ( 
-    set "UpdateNeed=Yes"
-    set /a "UpdateNeedLevel+=1"
-    set /a "UpdateNeedCount+=1"
-)
-
-if "!Current_Configs_version!" LSS "!Actual_Configs_version!" (
-    set "UpdateNeed=Yes"
-    set /a "UpdateNeedLevel+=1"
-    set /a "UpdateNeedCount+=1"
-)
-
-if "!Current_List_version!" LSS "!Actual_List_version!" (
-    set "UpdateNeed=Yes"
-    set /a "UpdateNeedLevel+=1"
-    set /a "UpdateNeedCount+=1"
-)
-
-
 
 REM Сравнение Configs не влияло на UpdateNeedLevel в оригинале, поэтому здесь его нет
 
@@ -334,9 +353,6 @@ echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  
 echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/  
 echo                                       /____/               /_/                     
 echo.
-if %UpdateNeed% equ Yes (
-echo                              %COL%[91mДоступно обновление GoodbyeZapret%COL%[37m
-)
 if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
 REM    echo          %COL%[90mОшибка: Не удалось провести проверку файлов - Скрипт может быть не стабилен%COL%[37m
     echo                %COL%[90mОшибка: Не удалось проверить файлы - Возможны проблемы в работе%COL%[37m
@@ -432,18 +448,25 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
 )
 set /a "lastChoice=counter-1"
 echo.
+if %UpdateNeed% equ Yes (
+    if defined Actual_GoodbyeZapret_version (
+        echo                          %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version% %COL%[37m
+    ) else (
+        echo                             %COL%[91mДоступно обновление GoodbyeZapret %COL%[37m
+    )
+)
 echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
 echo                %COL%[36mДействия:
 echo.
 echo                          %COL%[96m^[ DS ^] %COL%[91mУдалить службу из автозапуска
-echo                          %COL%[96m^[ RC ^] %COL%[91mПереустановить конфиги
-echo                          %COL%[96m^[ ST ^] %COL%[91mСостояние GoodbyeZapret
-echo                          %COL%[96m^[ 1s ^] %COL%[91mЗапустить конфиг
-echo                          %COL%[96m^[ SQ ^] %COL%[91mЗапустить конфиги поочередно
+echo                          %COL%[96m^[ RC ^] %COL%[97mПереустановить конфиги
+echo                          %COL%[96m^[ ST ^] %COL%[97mСостояние GoodbyeZapret
+echo                          %COL%[96m^[ 1s ^] %COL%[92mЗапустить конфиг 1
+echo                          %COL%[96m^[ SQ ^] %COL%[97mЗапустить конфиги поочередно
 REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
-echo                          %COL%[96m^[ UD ^] %COL%[91mОбновить до актуальной версии
+echo                          %COL%[96m^[ UD ^] %COL%[92mОбновить до актуальной версии
 )
 
 
@@ -509,14 +532,9 @@ if not defined batFile (
     REM Цветной текст
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     echo.
-    net stop GoodbyeZapret >nul 2>&1
-    if %errorlevel% equ 0 (
-        echo  Служба успешно остановлена.
-    ) else (
-        echo  Ошибка при остановке службы или служба уже остановлена.
-    )
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% equ 0 (
+        net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
             echo %COL%[92m Служба GoodbyeZapret успешно удалена %COL%[37m
@@ -564,62 +582,60 @@ goto :end
 
 
 :CurrentStatus
-REM Проверка наличия и корректности пути службы обновления GoodbyeZapret
-REM set "GoodbyeZapretUpdaterService=0"
-REM if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\GoodbyeZapret-Updater.lnk" (
-REM     if exist "%SystemDrive%\GoodbyeZapret\UpdaterService.exe" (
-REM      set "GoodbyeZapretUpdaterService=1"
-REM     )
-REM )
-
-
 cls
-mode con: cols=80 lines=25 >nul 2>&1
+REM Цветной текст
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+mode con: cols=69 lines=24 >nul 2>&1
 title GoodbyeZapret - Status
 echo.
 echo   %COL%[36m┌─────────────────── Состояние GoodbyeZapret ───────────────────┐
 echo   ^│ %COL%[37mСлужбы:                                                       %COL%[36m^│
-echo   ^│ %COL%[90m──────────────────────────────────────────────────────────    %COL%[36m^│
+echo   ^│ %COL%[90m───────────────────────────────────────────────────────────── %COL%[36m^│
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo   ^│ %COL%[92m√ %COL%[37mGoodbyeZapret: Установлена и работает                       %COL%[36m^│
+    echo   ^│ %COL%[92m√ %COL%[37mGoodbyeZapret: %COL%[92mУстановлен и работает                        %COL%[36m^│
 ) else (
-    echo   ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлена                               %COL%[36m^│
+    echo   ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлен                                %COL%[36m^│
 )
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
-    echo   ^│ %COL%[92m√ %COL%[37mWinws.exe: Запущен                                          %COL%[36m^│
+    echo   ^│ %COL%[92m√ %COL%[37mWinws.exe: %COL%[92mЗапущен                                          %COL%[36m^│
 ) else (
     echo   ^│ %COL%[91mX %COL%[37mWinws.exe: Не запущен                                       %COL%[36m^│
 )
+sc qc windivert >nul
+if %errorlevel% equ 0 (
+    echo   ^│ %COL%[92m√ %COL%[37mWinDivert: %COL%[92mУстановлен                                       %COL%[36m^│
+) else (
+    echo   ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                    %COL%[36m^│
+)
+reg query "HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo   ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                    %COL%[36m^│
+    set "AutoUpdateTextParam=Выключить"
+    set "AutoUpdateStatus=On"
 
+) else (
+    echo   ^│ %COL%[91mX %COL%[37mАвтообновление: Выключено                                   %COL%[36m^│
+    set "AutoUpdateTextParam=Включить"
+    set "AutoUpdateStatus=Off"
+)
 echo   ^│                                                               ^│
 echo   ^│ %COL%[37mВерсии:                                                       %COL%[36m^│
-echo   ^│ %COL%[90m──────────────────────────────────────────────────────────    %COL%[36m^│
+echo   ^│ %COL%[90m───────────────────────────────────────────────────────────── %COL%[36m^│
 
 if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
     echo   ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                          %COL%[36m^│
 )
-if "!Current_Winws_version!" neq "!Actual_Winws_version!" ( 
-    echo   ^│ %COL%[37mWinws:         %COL%[91m%WinwsVersion% %COL%[92m^(→ %Actual_Winws_version%^)                                  %COL%[36m^│
-) else (
-    echo   ^│ %COL%[37mWinws:         %COL%[92m%WinwsVersion%                                           %COL%[36m^│
-)
-if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( 
-    echo   ^│ %COL%[37mConfigs:       %COL%[91m%ConfigsVersion% %COL%[92m^(→ %Actual_Configs_version%^)                                      %COL%[36m^│
-) else (
-    echo   ^│ %COL%[37mConfigs:       %COL%[92m%ConfigsVersion%                                             %COL%[36m^│
-)
-if "!Current_List_version!" LSS "!Actual_List_version!" ( 
-    echo   ^│ %COL%[37mLists:         %COL%[91m%ListsVersion% %COL%[92m^(→ %Actual_List_version%^)                                       %COL%[36m^│
-) else (
-    echo   ^│ %COL%[37mLists:         %COL%[92m%ListsVersion%                                             %COL%[36m^│
-)
+    echo   ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                           %COL%[36m^│
+    echo   ^│ %COL%[37mConfigs:       %COL%[92m%Current_Configs_version%                                             %COL%[36m^│
+    echo   ^│ %COL%[37mLists:         %COL%[92m%Current_List_version%                                             %COL%[36m^│
 echo   └───────────────────────────────────────────────────────────────┘
 echo.
 echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
+echo    %COL%[36m^[ %COL%[96mA %COL%[36m^] %COL%[93m%AutoUpdateTextParam% автообновление
 if %UpdateNeed% equ Yes (
     echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
 )
@@ -629,8 +645,30 @@ if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto M
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
 if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
-goto CurrentStatus
+if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="On" (
+    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /f >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+    )
+)
+if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="On" (
+    reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /f >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+    )
+)
 
+if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="Off" (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /t REG_SZ /d "\"%SystemDrive%\GoodbyeZapret\UpdateService.exe\" --minimized" /f >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+    )
+)
+if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="Off" (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "GZ-Updater" /t REG_SZ /d "\"%SystemDrive%\GoodbyeZapret\UpdateService.exe\" --minimized" /f >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+    )
+)
+goto CurrentStatus
 
 :ReInstall_GZ
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
@@ -737,10 +775,11 @@ goto RR
 
 
 :Update_Need_screen
+curl -g -L -o "%SystemDrive%\GoodbyeZapret\bin\PatchNote.txt" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/Files/PatchNote.txt"
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 cls
-mode con: cols=80 lines=25 >nul 2>&1
+mode con: cols=80 lines=28 >nul 2>&1
 chcp 65001 >nul 2>&1
 
 cls
@@ -754,26 +793,11 @@ echo         │     %COL%[91m ╚██████╔╝██║     ██�
 echo         │     %COL%[91m  ╚═════╝ ╚═╝     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝     %COL%[36m │
 echo         └──────────────────────────────────────────────────────────────┘
 echo.
-echo  %COL%[36m Доступны обновления компонентов:
-echo  %COL%[90m ────────────────────────────────────────────────────────────────────────────
+echo  %COL%[36m Доступно обновление GoodbyeZapret %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
+echo  %COL%[90m ──────────────────────────────────────────────────────────────────────────── %COL%[36m
+echo   Описание обновления: %COL%[37m
+type "%SystemDrive%\GoodbyeZapret\bin\PatchNote.txt"
 echo.
-
-set "OnlyWinwsUpdate=1"
-if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
-    echo   %COL%[37mGoodbyeZapret: %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
-    set "OnlyWinwsUpdate=0"
-)
-if "!Current_Winws_version!" neq "!Actual_Winws_version!" ( 
-    echo   %COL%[37mWinws:         %COL%[92mv!Current_Winws_version! → v!Actual_Winws_version!
-)
-if "!Current_Configs_version!" LSS "!Actual_Configs_version!" ( 
-    echo   %COL%[37mConfigs:       %COL%[92mv!Current_Configs_version! → v!Actual_Configs_version!
-    set "OnlyWinwsUpdate=0"
-)
-if "!Current_List_version!" LSS "!Actual_List_version!" ( 
-    echo   %COL%[37mLists:         %COL%[92mv!Current_List_version! → v!Actual_List_version!
-    set "OnlyWinwsUpdate=0"
-)
 echo.
 echo  %COL%[90m ────────────────────────────────────────────────────────────────────────────
 REM echo  %COL%[36m Выберите действие:
@@ -783,21 +807,10 @@ echo.
 set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
-if /i "%choice%"=="U" (
-    if !OnlyWinwsUpdate! equ 1 (
-        goto WinwsUpdate
-    ) else (
-        goto FullUpdate
-    )
-)
-if /i "%choice%"=="г" (
-    if !OnlyWinwsUpdate! equ 1 (
-        goto WinwsUpdate
-    ) else (
-        goto FullUpdate
-    )
-)
+if /i "%choice%"=="U" ( goto FullUpdate )
+if /i "%choice%"=="г" ( goto FullUpdate )
 goto Update_Need_screen
+
 
 :WinwsUpdate
 echo.
@@ -844,39 +857,3 @@ if exist "%TEMP%\WinwsUpdateFiles.zip" (
     mode con: cols=92 lines=%ListBatCount% >nul 2>&1
     goto MainMenu
 )
-
-
-:: ==============================
-:: ПОДПРОГРАММЫ
-:: ==============================
-
-:CompareVersions <Version1> <Version2> <ResultVarName>
-:: Сравнивает две версии в формате X.Y.Z[.N] с помощью PowerShell.
-:: Устанавливает переменную с именем %3 в:
-::   -1, если Version1 < Version2
-::    0, если Version1 == Version2
-::    1, если Version1 > Version2
-::   99, если произошла ошибка сравнения (неверный формат)
-setlocal EnableDelayedExpansion
-set "v1=%~1"
-set "v2=%~2"
-set "outputVar=%~3"
-set "psResult=99" :: По умолчанию - ошибка
-
-:: Проверка на пустые строки, чтобы PowerShell не ругался
-if not defined v1 set "v1=0.0.0"
-if not defined v2 set "v2=0.0.0"
-
-:: Команда PowerShell для сравнения версий
-set "psCmd=$v1Str = '!v1!'; $v2Str = '!v2!'; try { $v1 = [version]$v1Str; $v2 = [version]$v2Str; if ($v1 -lt $v2) { Write-Host -NoNewline -1 } elseif ($v1 -gt $v2) { Write-Host -NoNewline 1 } else { Write-Host -NoNewline 0 } } catch { Write-Host -NoNewline 99 }"
-
-:: Выполняем PowerShell и получаем результат
-chcp 850 >nul 2>&1
-for /f %%r in ('powershell -NoProfile -Command "!psCmd!"') do set "psResult=%%r"
-chcp 65001 >nul 2>&1
-
-:: Возвращаем результат в переменную вызывающей стороны
-endlocal & set "%outputVar%=%psResult%"
-goto :eof
-
-:: ========== КОНЕЦ ПОДПРОГРАММ ==========

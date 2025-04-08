@@ -1,44 +1,11 @@
 ::[Bat To Exe Converter]
 ::
-::YAwzoRdxOk+EWAnk
-::fBw5plQjdG8=
+::YAwzoRdxOk+EWAjk
+::fBw5plQjdCuDJOl7RaKA9quH/eQy7NtmtmmtA9RLEVpWEpCtilLtyFVrAoivE9hTwlDmSZ8u2XRmv8QDCBlBeyiqfh0xvSNss3OhMtSVtAGvQ0uGhg==
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSTk=
-::cBs/ulQjdF+5
-::ZR41oxFsdFKZSDk=
-::eBoioBt6dFKZSDk=
-::cRo6pxp7LAbNWATEpCI=
-::egkzugNsPRvcWATEpCI=
-::dAsiuh18IRvcCxnZtBJQ
-::cRYluBh/LU+EWAnk
-::YxY4rhs+aU+JeA==
-::cxY6rQJ7JhzQF1fEqQJQ
-::ZQ05rAF9IBncCkqN+0xwdVs0
-::ZQ05rAF9IAHYFVzEqQJQ
-::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
-::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
-::cRolqwZ3JBvQF1fEqQJQ
-::dhA7uBVwLU+EWDk=
-::YQ03rBFzNR3SWATElA==
-::dhAmsQZ3MwfNWATElA==
-::ZQ0/vhVqMQ3MEVWAtB9wSA==
-::Zg8zqx1/OA3MEVWAtB9wSA==
-::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR8HNWndgwOQtcfwauXQomv2dBs1iwJ8OdpwrST1qf70g1VWBsggM=
-::YB416Ek+ZG8=
-::
-::
-::978f952a14a936cc963da21a135fa983
-::[Bat To Exe Converter]
-::
-::YAwzoRdxOk+EWAnk
-::fBw5plQjdG8=
-::YAwzuBVtJxjWCl3EqQJgSA==
-::ZR4luwNxJguZRRnk
-::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSTk=
+::cxAkpRVqdFKZSjk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
 ::eBoioBt6dFKZSDk=
@@ -65,96 +32,192 @@
 ::
 ::978f952a14a936cc963da21a135fa983
 @echo off
+chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 
-
-set "WiFi=Off"
-set "CheckURL=https://raw.githubusercontent.com"
-
-:: Используем curl для проверки доступности основного хоста обновлений
-:: -s: Silent mode (без прогресс-бара)
-:: -L: Следовать редиректам
-:: --head: Получить только заголовки (быстрее, меньше данных)
-:: -m 10: Таймаут 10 секунд
-:: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
-curl -s -L --head -m 10 -o NUL "%CheckURL%"
-echo start >> "C:\GoodbyeZapret\test.txt"
-IF %ERRORLEVEL% EQU 0 (
-    REM Успешно, сервер доступен
-    set "WiFi=On"
-) ELSE (
-    REM Первая попытка не удалась, пробуем еще раз
-    timeout /t 10 >nul
-    curl -s -L --head -m 10 -o NUL "%CheckURL%"
-    IF %ERRORLEVEL% EQU 0 (
-        REM Успешно со второй попытки
-        set "WiFi=On"
-    ) ELSE (
-        REM Вторая попытка не удалась, пробуем в третий раз
-        timeout /t 8 >nul
-        curl -s -L --head -m 10 -o NUL "%CheckURL%"
-        IF %ERRORLEVEL% EQU 0 (
-            REM Успешно с третьей попытки
-            set "WiFi=On"
-        ) ELSE (
-            echo stop >> "C:\GoodbyeZapret\test2.txt"
-            REM Все три попытки не удались
-            set "WiFi=Off"
-            exit /b
-        )
+:CHECK_INTERNET
+ping 8.8.8.8 -n 1 >nul
+if errorlevel 1 (
+    echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету НЕ установлено ^(Попытка: %InternetCheckCount%^)... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    set /a "InternetCheckCount+=1"
+    if "%InternetCheckCount%"=="5" (
+        echo [INFO] %time:~0,8% - Update Check - Превышено количество попыток подключения к Интернету, завершение работы скрипта... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+        exit
     )
+    timeout /t 3 >nul
+    goto CHECK_INTERNET
+) else (
+    echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету установлено... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
 )
 
-REM Получение информации о текущих версиях GoodbyeZapret и тд
-for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
-for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
+mode con: cols=80 lines=25 >nul 2>&1
 
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" >nul 2>&1
-if %errorlevel% neq 0 (
-    set "Current_GoodbyeZapret_version=0.0.0"
-) else (
+if %errorlevel% equ 0 (
     for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" ^| findstr /i "GoodbyeZapret_Version"') do set "Current_GoodbyeZapret_version=%%i"
 )
 
-
-set "GITHUB_RELEASE_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/tag/"
-set "GITHUB_DOWNLOAD_URL=https://github.com/Flowseal/zapret-discord-youtube/releases/latest/download/zapret-discord-youtube-"
-
-:: Загрузка нового файла Updater.bat
-if exist "%TEMP%\GoodbyeZapret_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
-curl -s -o "%TEMP%\GoodbyeZapret_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
+:: Загрузка нового файла GZ_Updater.bat
+if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
+curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
 if errorlevel 1 (
-    echo ERROR 1
+    echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
     
 )
 
-:: Выполнение загруженного файла GoodbyeZapret_Updater.bat
-call "%TEMP%\GoodbyeZapret_Updater.bat" >nul 2>&1
+:: Загрузка нового файла Updater.exe
+if not exist "%SystemDrive%\GoodbyeZapret\Updater.exe" (
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+)
+
+:: Выполнение загруженного файла Updater.bat
+call "%TEMP%\GZ_Updater.bat" >nul 2>&1
 if errorlevel 1 (
-    echo ERROR 2
+    echo ERROR - Ошибка при выполнении GZ_Updater.bat
 )
 
-set "UpdateNeed=None"
-if !Current_GoodbyeZapret_version! neq !Actual_GoodbyeZapret_version! (
-    set "UpdateNeed=Yes"
-)
-if !Current_Winws_version! neq !Actual_Winws_version! (
-    set "UpdateNeed=Yes"
-)
-if !Current_List_version! neq !Actual_List_version! (
-    set "UpdateNeed=Yes"
-)
-REM echo %UpdateNeed% %Current_GoodbyeZapret_version%
-REM pause
+REM Версии GoodbyeZapret
+set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
+set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 
-if %UpdateNeed% equ Yes (
-    if not exist "%SystemDrive%\GoodbyeZapret\Updater.exe" (
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
-        start "" "%SystemDrive%\GoodbyeZapret\Updater.exe"
-    ) else (
-        start "" "%SystemDrive%\GoodbyeZapret\Updater.exe"
+set "WinwsVersion_New=%Actual_Winws_version%"
+set "WinwsVersion=%Current_Winws_version%"
+
+set "ConfigsVersion_New=%Actual_Configs_version%"
+set "ConfigsVersion=%Current_Configs_version%"
+
+set "ListsVersion_New=%Actual_List_version%"
+set "ListsVersion=%Current_List_version%"
+
+set "UpdateNeedCount=0"
+
+set "UpdateNeed=No"
+set "UpdateNeedLevel=0"
+if "!Current_GoodbyeZapret_version!" neq "!Actual_GoodbyeZapret_version!" (
+    set "UpdateNeed=Yes"
+    set /a "UpdateNeedLevel+=1"
+    set /a "UpdateNeedCount+=1"
+    echo [INFO] %time:~0,8% - Update Check - Обнаружено обновление >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+)
+
+if %UpdateNeed% equ Yes ( goto update_screen ) else ( exit /b )
+
+:update_screen
+:: Запуск от имени администратора
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [INFO] %time:~0,8% - Update Check - Requesting administrative privileges >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo Requesting administrative privileges...
+    start "" /wait /I /min powershell -NoProfile -Command "Start-Process -FilePath '%~s0' -Verb RunAs"
+    exit /b
+)
+set "UpdaterVersion=1.0"
+
+REM Цветной текст
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+
+cls
+title Установщик программного обеспечения от ALFiX, Inc. (v%UpdaterVersion%)
+echo [INFO] %time:~0,8% - Update Check - Добро пожаловать в программу обновления GoodbyeZapret >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+echo.
+echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
+echo         ^│     %COL%[91m ██╗   ██╗██████╗ ██████╗  █████╗ ████████╗███████╗     %COL%[36m ^│
+echo         ^│     %COL%[91m ██║   ██║██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔════╝     %COL%[36m ^│
+echo         ^│     %COL%[91m ██║   ██║██████╔╝██║  ██║███████║   ██║   █████╗       %COL%[36m ^│
+echo         ^│     %COL%[91m ██║   ██║██╔═══╝ ██║  ██║██╔══██║   ██║   ██╔══╝       %COL%[36m ^│
+echo         ^│     %COL%[91m ╚██████╔╝██║     ██████╔╝██║  ██║   ██║   ███████╗     %COL%[36m ^│
+echo         ^│     %COL%[91m  ╚═════╝ ╚═╝     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝     %COL%[36m ^│
+echo         └──────────────────────────────────────────────────────────────┘
+echo.
+echo  %COL%[37m Добро пожаловать в программу обновления GoodbyeZapret
+echo  %COL%[90m Для корректной работы рекомендуется отключить антивирус
+echo  %COL%[37m ──────────────────── ВЫПОЛНЯЕТСЯ ОБНОВЛЕНИЕ ───────────────────── %COL%[90m
+echo.
+
+
+timeout /t 1 >nul 2>&1
+echo  ^[*^] Отключение текущего конфига GoodbyeZapret
+net stop GoodbyeZapret >nul 2>&1
+echo  ^[*^] Удаление службы GoodbyeZapret
+sc delete GoodbyeZapret >nul 2>&1
+echo  ^[*^] Остановка процессов WinDivert
+taskkill /F /IM winws.exe >nul 2>&1
+net stop "WinDivert" >nul 2>&1
+sc delete "WinDivert" >nul 2>&1
+net stop "WinDivert14" >nul 2>&1
+sc delete "WinDivert14" >nul 2>&1
+
+reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
+        set "GoodbyeZapret_Config=%%b"
+        goto :end_GoodbyeZapret_Config
     )
 ) else (
-    endlocal
+    set "GoodbyeZapret_Config=None"
+    goto :end_GoodbyeZapret_Config
+)
+
+:end_GoodbyeZapret_Config
+echo [INFO] %time:~0,8% - Update Check - Скачивание файлов !Actual_GoodbyeZapret_version! >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+echo  ^[*^] Скачивание файлов !Actual_GoodbyeZapret_version!
+curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+
+for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
+if %FileSize% LSS 100 (
+    echo %COL%[91m ^[*^] Error - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^) %COL%[90m
+    pause
+    del /Q "%TEMP%\GoodbyeZapret.zip"
     exit
+)
+
+
+if exist "%SystemDrive%\GoodbyeZapret" (
+  rd /s /q "%SystemDrive%\GoodbyeZapret" >nul 2>&1
+)
+
+if exist "%TEMP%\GoodbyeZapret.zip" (
+    echo [INFO] %time:~0,8% - Update Check - Распаковка файлов >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo  ^[*^] Распаковка файлов
+    chcp 850 >nul 2>&1
+    powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%SystemDrive%\GoodbyeZapret' >nul 2>&1
+    chcp 65001 >nul 2>&1
+) else (
+    echo [INFO] %time:~0,8% - Update Check - Error: File not found: %TEMP%\GoodbyeZapret.zip >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
+    timeout /t 5 >nul
+    exit
+)
+
+for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
+
+if "%GoodbyeZapret_Config%" NEQ "None" (
+    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
+        sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
+        sc start "GoodbyeZapret" >nul 2>&1
+        if %errorlevel% equ 0 (
+            echo  ^[*^] Служба GoodbyeZapret успешно запущена
+        )
+        echo  ^[*^] Обновление завершено
+        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        timeout /t 2 >nul 2>&1
+        exit
+    ) else (
+        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+        echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
+        timeout /t 2 >nul
+        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        timeout /t 1 >nul
+        exit
+    )
+) else (
+    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    if defined GoodbyeZapret_LastStartConfig (
+        if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_LastStartConfig%" (
+            start "" "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_LastStartConfig%" 
+        )
+    )
+    start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
 )
