@@ -63,6 +63,8 @@
 
 > [!IMPORTANT]
 > Все файлы в папке [`bin`](./Project/bin) взяты из [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws). Вы можете это проверить с помощью хэшей/контрольных сумм.
+>
+> Выражаем благодарность создателю [bol-van](https://github.com/bol-van) за предоставленные файлы и его работу.
 ---
 
 ## Как это работает?
