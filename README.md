@@ -15,7 +15,7 @@
     <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers"><img src="https://img.shields.io/github/stars/ALFiX01/GoodbyeZapret?style=plastic" alt="GitHub Stars"></a>
     <!-- Можно добавить счетчик загрузок, если настроить -->
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/total?style=plastic" alt="GitHub Downloads"></a>
-    <!-- <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a> -->
+    <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a>
     
   </p>
 
