@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.6.0"
-set "Current_GoodbyeZapret_version_code=08APR01"
+set "Current_GoodbyeZapret_version_code=10APR01"
 
 
 REM Настройки UAC
