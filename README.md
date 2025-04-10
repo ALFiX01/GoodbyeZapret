@@ -1,4 +1,4 @@
-# GoodbyeZapret
+# GoodbyeZapret 1.5.2
 
 <div align="center">
   <a href="https://github.com/ALFiX01/GoodbyeZapret">
@@ -6,7 +6,7 @@
     <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/Design.png?raw=true" alt="GoodbyeZapret Logo Banner" width="700">
   </a>
   <br />
-  <p><strong>Инструмент с открытым исходным кодом для обхода DPI-блокировок в Windows.</strong></p>
+  <p><strong>Инструмент для обхода DPI-блокировок в Windows.</strong></p>
 
   <!-- Бейджи отлично смотрятся здесь -->
   <p>
