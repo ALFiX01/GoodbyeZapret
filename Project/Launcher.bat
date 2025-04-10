@@ -45,7 +45,6 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-
 set "Current_GoodbyeZapret_version=1.6.0"
 set "Current_GoodbyeZapret_version_code=08APR01"
 
@@ -125,10 +124,10 @@ if %errorlevel% neq 0 (
     if not "!Registry_Version!"=="%Current_GoodbyeZapret_version%" (
         echo Component service update currently in progress. Thank you for your patience.
         reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
-        del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
-        del "%SystemDrive%\GoodbyeZapret\Updater.exe" >nul 2>&1
-        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+        if exist "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+        if exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" del "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" >nul 2>&1
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
     )
 )
 
@@ -177,7 +176,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
 
-set /a ListBatCount=BatCount+29
+set /a ListBatCount=BatCount+26
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -214,6 +213,36 @@ if %errorlevel% equ 0 (
    set "GoodbyeZapret_Old_TEXT=Раньше использовался - %GoodbyeZapret_Old%"
 )
 
+set "RepairNeed=No"
+if not exist "%SystemDrive%\GoodbyeZapret\bin\version.txt" (
+    set "RepairNeed=Yes"
+) else if not exist "%SystemDrive%\GoodbyeZapret\lists\version.txt" (
+    set "RepairNeed=Yes"
+) else if not exist "%SystemDrive%\GoodbyeZapret\Configs\version.txt" (
+    set "RepairNeed=Yes"
+)
+
+if %RepairNeed%==Yes (
+    echo ERROR - Критическая ошбка. Необходима переустановка GoodbyeZapret.
+    echo Запускаю переустановку...
+    :: Загрузка нового файла Updater.exe
+    if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+    ) else (
+        start "" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
+        exit /b
+    )
+)
+
+
+tasklist | find /i "Winws.exe" >nul
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
+) else (
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul
+)
+
+
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\bin\version.txt") do set "Current_Winws_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt") do set "Current_List_version=%%a"
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\Configs\version.txt") do set "Current_Configs_version=%%a"
@@ -227,8 +256,8 @@ if errorlevel 1 (
 )
 
 :: Загрузка нового файла Updater.exe
-if not exist "%SystemDrive%\GoodbyeZapret\Updater.exe" (
-    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
 )
 
 set FileSize=0
@@ -358,7 +387,7 @@ if %errorlevel% equ 0 (
 if not defined GoodbyeZapretVersion (
     title GoodbyeZapret - Launcher
 ) else (
-    title GoodbyeZapret - Launcher
+    title GoodbyeZapret - Launcher %Current_GoodbyeZapret_version%
 )
 
 
@@ -421,19 +450,21 @@ for /l %%A in (1,1,%old_spaces%) do set "old_padding=!old_padding! "
 
 
 if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
-    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
-    echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
-    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
-    echo.
+    echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+    REM echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
+    REM echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+    REM echo.
 ) else (
-    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
-    echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
+    echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+    REM echo %COL%[36m!padding!!GoodbyeZapret_Current_TEXT! %COL%[37m
 
-    echo %COL%[90m!old_padding!!GoodbyeZapret_Old_TEXT! %COL%[37m
+    REM echo %COL%[90m!old_padding!!GoodbyeZapret_Old_TEXT! %COL%[37m
     
-    echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
-    echo.
+    REM echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+    REM echo.
 )
+echo                %COL%[36mКонфиги:
+echo.
 set "choice="
 set "counter=0"
 for %%F in ("%sourcePath%Configs\*.bat") do (
@@ -443,27 +474,27 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
     
     if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
         if !counter! lss 10 (
-            echo                       %COL%[36m!counter!. %COL%[36m%%~nF ^(текущий^)
+            echo                 %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
         ) else (
-            echo                      %COL%[36m!counter!. %COL%[36m%%~nF ^(текущий^)
+            echo                %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
         )
     ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
         if !counter! lss 10 (
-            echo                       %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
+            echo                 %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
         ) else (
-            echo                      %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
+            echo                %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
         )
     ) else (
         if !counter! lss 10 (
-            echo                       %COL%[36m!counter!. %COL%[37m%%~nF
+            echo                 %COL%[36m!counter!. %COL%[37m%%~nF
         ) else (
-            echo                      %COL%[36m!counter!. %COL%[37m%%~nF
+            echo                %COL%[36m!counter!. %COL%[37m%%~nF
         )
     )
     set "file!counter!=%%~nxF"
 )
 set /a "lastChoice=counter-1"
-echo.
+
 if %UpdateNeed% equ Yes (
     if defined Actual_GoodbyeZapret_version (
         echo                          %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version% %COL%[37m
@@ -471,14 +502,16 @@ if %UpdateNeed% equ Yes (
         echo                             %COL%[91mДоступно обновление GoodbyeZapret %COL%[37m
     )
 )
-echo              %COL%[90m ─────────────────────────────────────────────────────────────── %COL%[37m
+echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 echo                %COL%[36mДействия:
 echo.
-echo                          %COL%[96m^[ DS ^] %COL%[91mУдалить службу из автозапуска
-echo                          %COL%[96m^[ RC ^] %COL%[97mПереустановить конфиги
-echo                          %COL%[96m^[ ST ^] %COL%[97mСостояние GoodbyeZapret
-echo                          %COL%[96m^[ 1s ^] %COL%[92mЗапустить конфиг 1
-echo                          %COL%[96m^[ SQ ^] %COL%[97mЗапустить конфиги поочередно
+echo                %COL%[36m^[ DS ^] %COL%[91mУдалить службу из автозапуска
+echo                %COL%[36m^[ RC ^] %COL%[91mПереустановить конфиги
+echo.
+echo                %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+echo                %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+REM echo                %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
+echo                %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
 REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
@@ -489,7 +522,7 @@ echo                          %COL%[96m^[ UD ^] %COL%[92mОбновить до �
 echo.
 echo.
 REM echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
-echo                              %COL%[37mВведите номер или команду %COL%[90m(1-%counter%):
+echo                                 %COL%[90mВведите номер или команду
 set /p "choice=%DEL%                                           %COL%[90m:> "
 if "%choice%"=="DS" goto remove_service
 if "%choice%"=="ds" goto remove_service
@@ -602,7 +635,7 @@ reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update"
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2^>nul ^| find /i "Auto-update"') do set "Auto-update=%%b"
 ) else (
-    set "Auto-update=0"
+    set "Auto-update=1"
 )
 cls
 REM Цветной текст
@@ -664,39 +697,39 @@ echo.
 set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
-if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
-if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
+if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
+if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="On" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
-    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
     )
 )
 if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="On" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
-    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
     )
 )
 
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="Off" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
-    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
-    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
 )
 if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="Off" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
-    del "%SystemDrive%\GoodbyeZapret\UpdateService.exe" >nul 2>&1
-    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
+    del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
 )
 goto CurrentStatus
 
 :ReInstall_GZ
-start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
+start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
 exit
 
 :FullUpdate
-start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Updater.exe"
+start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
 exit
 
 
@@ -712,7 +745,7 @@ IF "%WiFi%" == "Off" (
 
 set "Assistant_version=0.3"
 REM mode con: cols=112 lines=38 >nul 2>&1
-mode con: cols=80 lines=25 >nul 2>&1
+mode con: cols=80 lines=28 >nul 2>&1
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 chcp 65001 >nul 2>&1
@@ -729,11 +762,11 @@ echo         │   %COL%[91m ██║██║ ╚████║████�
 echo         │   %COL%[91m ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝   %COL%[36m │
 echo         └──────────────────────────────────────────────────────────────┘
 echo.
-echo  %COL%[37m Добро пожаловать в установщик GoodbyeZapret
-echo  %COL%[90m Для корректной работы рекомендуется отключить антивирус
-echo  %COL%[90m ───────────────────────────────────────────────────────────────
+echo        %COL%[37m Добро пожаловать в установщик GoodbyeZapret
+echo        %COL%[90m Для корректной работы рекомендуется отключить антивирус
+echo        %COL%[90m ───────────────────────────────────────────────────────────────
 echo.
-echo  %COL%[36m Нажмите любую клавишу для продолжения...
+echo        %COL%[36m Нажмите любую клавишу для продолжения...
 pause >nul
 
 
@@ -750,57 +783,66 @@ echo         │   %COL%[91m ██║██║ ╚████║████�
 echo         │   %COL%[91m ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝   %COL%[36m │
 echo         └──────────────────────────────────────────────────────────────┘
 echo.
-echo  %COL%[37m Добро пожаловать в установщик GoodbyeZapret
-echo  %COL%[90m Для корректной работы рекомендуется отключить антивирус
-echo  %COL%[90m ───────────────────── ВЫПОЛНЯЕТСЯ УСТАНОВКА ─────────────────────
+echo        %COL%[37m Добро пожаловать в установщик GoodbyeZapret
+echo        %COL%[90m Для корректной работы рекомендуется отключить антивирус
+echo        %COL%[90m ───────────────────── ВЫПОЛНЯЕТСЯ УСТАНОВКА ─────────────────────
 echo.
 if not exist "%SystemDrive%\GoodbyeZapret" (
     md %SystemDrive%\GoodbyeZapret
 )
-echo  ^[*^] Скачивание файлов GoodbyeZapret...
+echo        ^[*^] Скачивание файлов GoodbyeZapret...
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
 if errorlevel 1 (
     echo %COL%[91m ^[*^] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
 )
 
-echo  ^[*^] Скачивание Updater.exe...
-curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+echo        ^[*^] Скачивание Updater.exe...
+curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
  if errorlevel 1 (
-    echo %COL%[91m ^[*^] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
-    echo %COL%[93m ^[*^] Установка продолжится, но обновление может не работать.%COL%[90m
+    echo         %COL%[91m ^[*^] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
+    echo         %COL%[93m ^[*^] Установка продолжится, но обновление может не работать.%COL%[90m
     REM Не выходим, так как основной zip скачался
 )
 
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
-    echo  ^[*^] Распаковка файлов
+    echo        ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
     powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%SystemDrive%\GoodbyeZapret' >nul 2>&1
     chcp 65001 >nul 2>&1
     if exist "%SystemDrive%\GoodbyeZapret" (
-        echo  ^[*^] Местоположение GoodbyeZapret: %SystemDrive%\GoodbyeZapret
+        echo        ^[*^] Местоположение GoodbyeZapret: %SystemDrive%\GoodbyeZapret
     )
 ) else (
-    echo %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
+    echo        %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
     exit
 )
 
+echo        ^[*^] Создание ярлыка на рабочем столе...
+chcp 850 >nul 2>&1
+powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\GoodbyeZapret.lnk'); $Shortcut.TargetPath = '%SystemDrive%\GoodbyeZapret\launcher.exe'; $Shortcut.Save()"
+chcp 65001 >nul 2>&1
+
 echo.
-echo   %COL%[92m√ Установка успешно завершена
-echo   %COL%[90m───────────────────────────────────────────────────────────────
+echo        %COL%[92m√ Установка успешно завершена
+echo        %COL%[90m───────────────────────────────────────────────────────────────
 echo.
-echo   %COL%[36mНажмите любую клавишу для запуска GoodbyeZapret...
+echo        %COL%[36mНажмите любую клавишу для запуска GoodbyeZapret...
 pause >nul
 goto RR
 
 
 :Update_Need_screen
+set "PatchNoteLines=0"
 curl -g -L -o "%SystemDrive%\GoodbyeZapret\bin\PatchNote.txt" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/Files/PatchNote.txt"
+for /f %%A in ('type "%SystemDrive%\GoodbyeZapret\bin\PatchNote.txt" ^| find /c /v ""') do set "PatchNoteLines=%%A"
+set /a PatchNoteLines=PatchNoteLines+21
+mode con: cols=80 lines=%PatchNoteLines% >nul 2>&1
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 cls
-mode con: cols=80 lines=28 >nul 2>&1
+REM mode con: cols=80 lines=28 >nul 2>&1
 chcp 65001 >nul 2>&1
 
 cls

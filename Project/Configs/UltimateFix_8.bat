@@ -15,7 +15,7 @@ if %errorlevel% equ 0 (
 )
 
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
-if "%Auto-update%"=="1" ( Start "" "UpdateService.exe" )
+if "%Auto-update%"=="1" ( Start "" "%parentDir%Tools\UpdateService.exe" )
 
 set "BIN=%parentDir%bin\"
 set "LIST_TITLE=GoodbyeZapret: UltimateFix 8"

@@ -66,8 +66,8 @@ if errorlevel 1 (
 )
 
 :: Загрузка нового файла Updater.exe
-if not exist "%SystemDrive%\GoodbyeZapret\Updater.exe" (
-    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
+    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
 )
 
 :: Выполнение загруженного файла Updater.bat
@@ -198,7 +198,12 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
+tasklist | find /i "Winws.exe" >nul
+if %errorlevel% equ 0 (
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
+) else (
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul
+)
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
