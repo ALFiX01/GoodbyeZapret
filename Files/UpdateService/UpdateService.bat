@@ -217,7 +217,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
         echo  ^[*^] Обновление завершено
         start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
-        timeout /t 2 >nul 2>&1
+        timeout /t 1 >nul 2>&1
         exit
     ) else (
         echo [INFO] %time:~0,8% - Update Check - Error: File not found: %SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat >> "%SystemDrive%\GoodbyeZapret\Log.txt"
