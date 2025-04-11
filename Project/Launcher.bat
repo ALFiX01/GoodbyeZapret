@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.6.0"
-set "Current_GoodbyeZapret_version_code=10APR01"
+set "Current_GoodbyeZapret_version_code=11APR01"
 
 
 REM Настройки UAC
@@ -234,7 +234,6 @@ if %RepairNeed%==Yes (
     )
 )
 
-
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
@@ -295,6 +294,7 @@ if errorlevel 1 (
     set "VersionFound=1"
     echo - no update
 )
+
 
 cls
 title GoodbyeZapret - Launcher

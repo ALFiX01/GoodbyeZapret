@@ -168,4 +168,5 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
     )
     start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+    exit
 )

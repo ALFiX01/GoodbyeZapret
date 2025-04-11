@@ -36,6 +36,7 @@ chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 
 :CHECK_INTERNET
+set InternetCheckCount=0
 ping 8.8.8.8 -n 1 >nul
 if errorlevel 1 (
     echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету НЕ установлено ^(Попытка: %InternetCheckCount%^)... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
@@ -234,4 +235,5 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
     )
     start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+    exit
 )
