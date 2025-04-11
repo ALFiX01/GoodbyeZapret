@@ -18,7 +18,7 @@ reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Las
 if "%Auto-update%"=="1" ( Start "" "%parentDir%Tools\UpdateService.exe" )
 
 set "BIN=%parentDir%bin\"
-set "LIST_TITLE=GoodbyeZapret: Ultim%parentDir%Tools\UpdateService.exe
+set "LIST_TITLE=GoodbyeZapret: UltimateFix"
 set "LISTS_FOLDER=%parentDir%lists"
 
 start "%LIST_TITLE%" /min "%BIN%winws.exe" ^
