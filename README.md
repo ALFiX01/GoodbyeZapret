@@ -1,4 +1,4 @@
-# GoodbyeZapret 1.5.2
+# GoodbyeZapret 1.6.0
 
 <div align="center">
   <a href="https://github.com/ALFiX01/GoodbyeZapret">
