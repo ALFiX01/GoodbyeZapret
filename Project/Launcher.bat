@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.6.0"
+set "Current_GoodbyeZapret_version=1.6.1"
 set "Current_GoodbyeZapret_version_code=11APR01"
 
 
@@ -463,7 +463,7 @@ if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
     REM echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
     REM echo.
 )
-echo                %COL%[36mКонфиги:
+echo                 %COL%[36mКонфиги:
 echo.
 set "choice="
 set "counter=0"
@@ -474,21 +474,21 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
     
     if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
         if !counter! lss 10 (
-            echo                 %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
+            echo                  %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
         ) else (
-            echo                %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
+            echo                 %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
         )
     ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
         if !counter! lss 10 (
-            echo                 %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
+            echo                  %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
         ) else (
-            echo                %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
+            echo                 %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
         )
     ) else (
         if !counter! lss 10 (
-            echo                 %COL%[36m!counter!. %COL%[37m%%~nF
+            echo                  %COL%[36m!counter!. %COL%[37m%%~nF
         ) else (
-            echo                %COL%[36m!counter!. %COL%[37m%%~nF
+            echo                 %COL%[36m!counter!. %COL%[37m%%~nF
         )
     )
     set "file!counter!=%%~nxF"
@@ -497,25 +497,25 @@ set /a "lastChoice=counter-1"
 
 if %UpdateNeed% equ Yes (
     if defined Actual_GoodbyeZapret_version (
-        echo                          %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version% %COL%[37m
+        echo                           %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version% %COL%[37m
     ) else (
-        echo                             %COL%[91mДоступно обновление GoodbyeZapret %COL%[37m
+        echo                              %COL%[91mДоступно обновление GoodbyeZapret %COL%[37m
     )
 )
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
-echo                %COL%[36mДействия:
+echo                 %COL%[36mДействия:
 echo.
-echo                %COL%[36m^[ DS ^] %COL%[91mУдалить службу из автозапуска
-echo                %COL%[36m^[ RC ^] %COL%[91mПереустановить конфиги
+echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить службу из автозапуска
+echo                 %COL%[36m^[ RC ^] %COL%[91mПереустановить конфиги
 echo.
-echo                %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
-echo                %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
 REM echo                %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
-echo                %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
+echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
 REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
-echo                          %COL%[96m^[ UD ^] %COL%[92mОбновить до актуальной версии
+echo                 %COL%[96m^[ UD ^] %COL%[92mОбновить до актуальной версии
 )
 
 
