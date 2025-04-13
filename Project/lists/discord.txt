@@ -13,3 +13,7 @@ discordstatus.com
 discord.media
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
+discordpartygames.com
+discord-activities.com
+discordactivities.com
+discordsays.com

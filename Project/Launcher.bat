@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.6.1"
-set "Current_GoodbyeZapret_version_code=11APR01"
+set "Current_GoodbyeZapret_version_code=13APR01"
 
 
 REM Настройки UAC
@@ -205,6 +205,41 @@ if %errorlevel% equ 0 (
    REM Ключ GoodbyeZapret_Version существует.
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
+
+sc query BFE | findstr "STATE" >nul
+if %errorlevel% equ 0 (
+    for /f "tokens=4" %%a in ('sc query BFE ^| findstr "STATE"') do set "BFE_STATE=%%a"
+) else (
+    set "BFE_STATE=UNKNOWN"
+)
+
+sc qc BFE | findstr "START_TYPE" >nul
+if %errorlevel% equ 0 (
+    for /f "tokens=4" %%a in ('sc qc BFE ^| findstr "START_TYPE"') do set "BFE_START=%%a"
+) else (
+    set "BFE_START=UNKNOWN"
+)
+
+
+if not "%BFE_STATE%"=="RUNNING" (
+    if not "%BFE_START%"=="AUTO_START" (
+        echo Error 3 - Служба BFE ^(Служба базовой фильтрации^) не запущена или не установлена.
+        echo BFE_STATE: %BFE_STATE%
+        echo BFE_START: %BFE_START%
+        pause
+    ) else (
+        echo Error 1 - Служба BFE ^(Служба базовой фильтрации^) не запущена.
+        echo BFE_STATE: %BFE_STATE%
+        echo BFE_START: %BFE_START%
+        pause
+    )
+) else if not "%BFE_START%"=="AUTO_START" (
+    echo Error 2 - Служба BFE ^(Служба базовой фильтрации^) имеет неправильный режим запуска.
+    echo BFE_STATE: %BFE_STATE%
+    echo BFE_START: %BFE_START%
+    pause
+)
+
 
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -370,19 +405,59 @@ if "%UpdateNeed%"=="Yes" (
 )
 :MainMenu
 
-:: Проверка запущенного процесса
+sc query "GoodbyeZapret" >nul 2>&1
+if %errorlevel% equ 0 (
+    set "GoodbyeZapretStart=Yes"
+) else (
+    set "GoodbyeZapretStart=No"
+)
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
+    set "WinwsStart=Yes"
+) else (
+    set "WinwsStart=No"
+)
+sc qc windivert >nul
+if %errorlevel% equ 0 (
+    set "WinDivertStart=Yes"
+) else (
+    set "WinDivertStart=No"
+)
+
+set "YesCount=0"
+if "%GoodbyeZapretStart%"=="Yes" set /a YesCount+=1
+if "%WinwsStart%"=="Yes" set /a YesCount+=1
+if "%WinDivertStart%"=="Yes" set /a YesCount+=1
+if %YesCount% equ 3 (
     echo Процесс %ProcessName% запущен.
     cls
     echo.
     echo           %COL%[92m  ______                ____            _____                         __ 
+) else if %YesCount% equ 2 (
+    echo Процесс %ProcessName% частично запущен.
+    cls
+    echo.
+    echo           %COL%[33m  ______                ____            _____                         __ 
 ) else (
     echo Процесс %ProcessName% не найден.
     cls
     echo.
-    echo           %COL%[90m  ______                ____            _____                         __ 
+    echo           %COL%[91m  ______                ____            _____                         __ 
 )
+
+:: Проверка запущенного процесса
+:: tasklist | find /i "Winws.exe" >nul
+:: if %errorlevel% equ 0 (
+::     echo Процесс %ProcessName% запущен.
+::     cls
+::     echo.
+::     echo           %COL%[92m  ______                ____            _____                         __ 
+:: ) else (
+::     echo Процесс %ProcessName% не найден.
+::     cls
+::     echo.
+::     echo           %COL%[90m  ______                ____            _____                         __ 
+:: )
 
 if not defined GoodbyeZapretVersion (
     title GoodbyeZapret - Launcher
@@ -404,6 +479,23 @@ REM    echo          %COL%[90mОшибка: Не удалось провести
     echo.
 ) else (
     echo.
+)
+
+set "LISTS=%SystemDrive%\GoodbyeZapret\lists\"
+set "FILE=%LISTS%ipset-cloudflare.txt"
+
+if not exist "%FILE%" (
+    echo Error! ipset-cloudflare.txt not found, path: %FILE%
+    goto :eof
+)
+
+findstr /C:"0.0.0.0" "%FILE%" >nul
+if %ERRORLEVEL%==0 (
+    REM echo Enabling cloudflare bypass
+    set "cloudflare=%COL%[91mВЫКЛ"
+) else (
+    REM echo Disabling cloudflare bypass
+    set "cloudflare=%COL%[92mВКЛ"
 )
 
 REM ================================================================================================
@@ -508,11 +600,12 @@ echo.
 echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить службу из автозапуска
 echo                 %COL%[36m^[ RC ^] %COL%[91mПереустановить конфиги
 echo.
-echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+REM echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+echo                 %COL%[36m^[ CF ^] %COL%[37mОбход cloudflare ^(%cloudflare%%COL%[37m^)
 echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
-REM echo                %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
+REM echo             %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
 echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-REM echo                     %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
+REM echo             %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
 
 if %UpdateNeed% equ Yes (
 echo                 %COL%[96m^[ UD ^] %COL%[92mОбновить до актуальной версии
@@ -528,6 +621,10 @@ if "%choice%"=="DS" goto remove_service
 if "%choice%"=="ds" goto remove_service
 if "%choice%"=="RC" goto ReInstall_GZ
 if "%choice%"=="rc" goto ReInstall_GZ
+
+if "%choice%"=="CF" goto cloudflare_toggle
+if "%choice%"=="cf" goto cloudflare_toggle
+
 if "%choice%"=="SQ" goto SeqStart
 if "%choice%"=="sq" goto SeqStart
 if "%choice%"=="ST" goto CurrentStatus
@@ -560,7 +657,9 @@ if not defined batFile (
      echo  Подтвердите установку %batFile% в службу GoodbyeZapret...
      echo %COL%[93m Нажмите любую клавишу для подтверждения %COL%[37m
      pause >nul 2>&1
-     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
+     (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
+     ) >nul 2>&1
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
      reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
      sc description GoodbyeZapret "%batFile:~0,-4%" >nul
@@ -723,6 +822,44 @@ if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="Off" (
     )
 )
 goto CurrentStatus
+
+
+:cloudflare_toggle
+set "LISTS=%SystemDrive%\GoodbyeZapret\lists\"
+set "FILE=%LISTS%ipset-cloudflare.txt"
+
+if not exist "%FILE%" (
+    echo Error! ipset-cloudflare.txt not found, path: %FILE%
+    goto :eof
+)
+
+findstr /C:"0.0.0.0" "%FILE%" >nul
+if %ERRORLEVEL%==0 (
+    echo Enabling cloudflare bypass...
+    >"%FILE%" (
+        echo 173.245.48.0/20
+        echo 103.21.244.0/22
+        echo 103.22.200.0/22
+        echo 103.31.4.0/22
+        echo 141.101.64.0/18
+        echo 108.162.192.0/18
+        echo 190.93.240.0/20
+        echo 188.114.96.0/20
+        echo 197.234.240.0/22
+        echo 198.41.128.0/17
+        echo 162.158.0.0/15
+        echo 104.16.0.0/13
+        echo 104.24.0.0/14
+        echo 172.64.0.0/13
+        echo 131.0.72.0/22
+    )
+) else (
+    echo Disabling cloudflare bypass...
+    >"%FILE%" (
+        echo 0.0.0.0/32
+    )
+)
+goto MainMenu
 
 :ReInstall_GZ
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
