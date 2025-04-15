@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.6.2"
-set "Current_GoodbyeZapret_version_code=15APR01"
+set "Current_GoodbyeZapret_version_code=15APR02"
 
 
 REM Настройки UAC
@@ -176,7 +176,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
 
-set /a ListBatCount=BatCount+26
+set /a ListBatCount=BatCount+27
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -589,9 +589,11 @@ set /a "lastChoice=counter-1"
 
 if %UpdateNeed% equ Yes (
     if defined Actual_GoodbyeZapret_version (
-        echo                           %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version% %COL%[37m
+        echo.
+        echo                  %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version%. ^[ UD ^] - обновить %COL%[37m
     ) else (
-        echo                              %COL%[91mДоступно обновление GoodbyeZapret %COL%[37m
+        echo.
+        echo                       %COL%[91mДоступно обновление GoodbyeZapret. ^[ UD ^] - обновить%COL%[37m
     )
 )
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
@@ -606,12 +608,6 @@ echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить ко
 REM echo             %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
 echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
 REM echo             %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
-
-if %UpdateNeed% equ Yes (
-echo                 %COL%[96m^[ UD ^] %COL%[92mОбновить до актуальной версии
-)
-
-
 echo.
 echo.
 REM echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
