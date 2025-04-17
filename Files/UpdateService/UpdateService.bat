@@ -108,7 +108,12 @@ if errorlevel 1 (
 ) else (
     set "VersionFound=1"
     echo - no update
+    rem Если лог-файл существует, удаляем его
+    if exist "%SystemDrive%\GoodbyeZapret\Log.txt" (
+        del /f /q "%SystemDrive%\GoodbyeZapret\Log.txt" >nul
+    )
 )
+
 
 if %UpdateNeed% equ Yes ( goto update_screen ) else ( exit /b )
 
