@@ -13,6 +13,10 @@
     <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers"><img src="https://img.shields.io/github/stars/ALFiX01/GoodbyeZapret?style=plastic" alt="GitHub Stars"></a>
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/total?style=plastic" alt="GitHub Downloads"></a>
   </p>
+  
+  <br />
+
+  ⚠️ <strong>Дисклеймер:</strong> Изображение в шапке (баннер) не связано с проектом <a href="https://github.com/bol-van/zapret">zapret</a> от bol-van. Оно является авторским художественным элементом и символизирует идею обхода блокировок. Надпись "ZAPRET" и жест на изображении не выражают отношения к каким-либо сторонним проектам и используются исключительно в контексте оформления этого репозитория.
 </div>
 
 ---
