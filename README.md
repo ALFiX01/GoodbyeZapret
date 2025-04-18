@@ -59,7 +59,7 @@
 
 > Все файлы в [`bin`](./Project/bin) взяты из [zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws).
 
-Благодарность [bol-van](https://github.com/bol-van).
+Выражаем благодарность [bol-van](https://github.com/bol-van).
 
 ---
 
