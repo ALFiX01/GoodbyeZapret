@@ -45,8 +45,8 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.6.2"
-set "Current_GoodbyeZapret_version_code=15APR02"
+set "Current_GoodbyeZapret_version=1.6.3"
+set "Current_GoodbyeZapret_version_code=20APR01"
 
 
 REM Настройки UAC
@@ -414,9 +414,13 @@ if %errorlevel% equ 0 (
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
     set "WinwsStart=Yes"
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
+    set "TrimmedLastStart=%GoodbyeZapret_LastStartConfig:~0,-4%"
 ) else (
     set "WinwsStart=No"
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul
 )
+
 sc qc windivert >nul
 if %errorlevel% equ 0 (
     set "WinDivertStart=Yes"
@@ -464,8 +468,6 @@ if not defined GoodbyeZapretVersion (
 ) else (
     title GoodbyeZapret - Launcher %Current_GoodbyeZapret_version%
 )
-
-
 
 echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
 echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
@@ -555,34 +557,43 @@ if "%GoodbyeZapret_Current%" NEQ "Не выбран" (
     REM echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
     REM echo.
 )
+for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
+set "TrimmedLastStart=%GoodbyeZapret_LastStartConfig:~0,-4%"
 echo                 %COL%[36mКонфиги:
 echo.
 set "choice="
 set "counter=0"
+
 for %%F in ("%sourcePath%Configs\*.bat") do (
     set /a "counter+=1"
     set "CurrentCheckFileName=%%~nxF"
     set "ConfigName=%%~nF"
-    
-    if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
-        if !counter! lss 10 (
-            echo                  %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
-        ) else (
-            echo                 %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
-        )
-    ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
-        if !counter! lss 10 (
-            echo                  %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
-        ) else (
-            echo                 %COL%[36m!counter!. %COL%[93m%%~nF ^(ранее использовался^)
-        )
+
+if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
+    if !counter! lss 10 (
+        echo                  %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
     ) else (
-        if !counter! lss 10 (
-            echo                  %COL%[36m!counter!. %COL%[37m%%~nF
-        ) else (
-            echo                 %COL%[36m!counter!. %COL%[37m%%~nF
-        )
+        echo                 %COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
     )
+) else if /i "!ConfigName!"=="%TrimmedLastStart%" (
+    if !counter! lss 10 (
+        echo                  %COL%[36m!counter!. %COL%[96m%%~nF %COL%[96m^[Запущен^]
+    ) else (
+        echo                 %COL%[36m!counter!. %COL%[96m%%~nF %COL%[96m^[Запущен^]
+    )
+) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
+    if !counter! lss 10 (
+        echo                  %COL%[36m!counter!. %COL%[93m%%~nF ^[Использовался^]
+    ) else (
+        echo                 %COL%[36m!counter!. %COL%[93m%%~nF ^[Использовался^]
+    )
+) else (
+    if !counter! lss 10 (
+        echo                  %COL%[36m!counter!. %COL%[37m%%~nF
+    ) else (
+        echo                 %COL%[36m!counter!. %COL%[37m%%~nF
+    )
+)
     set "file!counter!=%%~nxF"
 )
 set /a "lastChoice=counter-1"

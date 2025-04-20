@@ -1,5 +1,5 @@
-set "Actual_GoodbyeZapret_version_code=15APR02 15APR03"
-set Actual_GoodbyeZapret_version=1.6.2
+set "Actual_GoodbyeZapret_version_code=20APR01 20APR02"
+set Actual_GoodbyeZapret_version=1.6.3
 set Actual_Winws_version=70.6
 set Actual_List_version=11
-set Actual_Configs_version=22
+set Actual_Configs_version=23

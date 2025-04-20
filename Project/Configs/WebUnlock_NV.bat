@@ -24,7 +24,7 @@ set "LISTS_FOLDER=%parentDir%lists"
 
 start "%LIST_TITLE%" /min "%BIN%winws.exe" ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
---filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
+--filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
 --filter-udp=443 --hostlist="%LISTS_FOLDER%\list-ultimateNewTesting.txt" --dpi-desync=fake --dpi-desync-repeats=11 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
 --filter-udp=443 --dpi-desync=fake --dpi-desync-repeats=11 --new ^
 --filter-tcp=80 --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
