@@ -37,15 +37,15 @@ setlocal EnableDelayedExpansion
 
 :CHECK_INTERNET
 set InternetCheckCount=0
-ping 8.8.8.8 -n 1 >nul
+ping -n 1 google.ru >nul
 if errorlevel 1 (
     echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету НЕ установлено ^(Попытка: %InternetCheckCount%^)... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
     set /a "InternetCheckCount+=1"
-    if "%InternetCheckCount%"=="5" (
+    if "%InternetCheckCount%"=="8" (
         echo [INFO] %time:~0,8% - Update Check - Превышено количество попыток подключения к Интернету, завершение работы скрипта... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
         exit
     )
-    timeout /t 3 >nul
+    timeout /t 2 >nul
     goto CHECK_INTERNET
 ) else (
     echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету установлено... >> "%SystemDrive%\GoodbyeZapret\Log.txt"

@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.6.3"
+set "Current_GoodbyeZapret_version=1.7.0"
 set "Current_GoodbyeZapret_version_code=20APR01"
 
 
@@ -808,22 +808,30 @@ if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="On" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
+    del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
     )
 )
 if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="On" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
+    del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
     )
 )
 
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="Off" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
+    chcp 850 >nul 2>&1
+    powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk'); $Shortcut.TargetPath = '%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe'; $Shortcut.Save()"
+    chcp 65001 >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
     curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
 )
 if /i "%choice%"=="ф" ( if /i "%AutoUpdateStatus%"=="Off" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
+    chcp 850 >nul 2>&1
+    powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk'); $Shortcut.TargetPath = '%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe'; $Shortcut.Save()"
+    chcp 65001 >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
     curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
     )
