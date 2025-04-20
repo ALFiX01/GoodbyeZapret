@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.7.0"
-set "Current_GoodbyeZapret_version_code=20APR01"
+set "Current_GoodbyeZapret_version_code=21APR01"
 
 
 REM Настройки UAC
@@ -319,6 +319,28 @@ set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
 set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 
 set "UpdateNeed=No"
+
+if %StatusProject%==0 (
+    echo  Я рад был быть вам полезным, но пришло время прощаться.
+    echo  Проект GoodbyeZapret закрыт.
+    echo.
+    sc query "GoodbyeZapret" >nul 2>&1
+    net stop "GoodbyeZapret" >nul 2>&1
+    sc delete "GoodbyeZapret" >nul 2>&1
+    tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
+    taskkill /F /IM winws.exe >nul 2>&1
+    net stop "WinDivert" >nul 2>&1
+    sc delete "WinDivert" >nul 2>&1
+    net stop "WinDivert14" >nul 2>&1
+    sc delete "WinDivert14" >nul 2>&1
+    reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    rd /s /q "%SystemDrive%\GoodbyeZapret\Configs" >nul 2>&1
+    rd /s /q "%SystemDrive%\GoodbyeZapret\bin" >nul 2>&1
+    rd /s /q "%SystemDrive%\GoodbyeZapret\lists" >nul 2>&1
+    rd /s /q "%SystemDrive%\GoodbyeZapret\Tools" >nul 2>&1
+    timeout /t 7 >nul 2>&1
+    Exit
+)
 
 :: Проверка, изменилась ли версия
 echo "%Actual_GoodbyeZapret_version_code%" | findstr /i "%Current_GoodbyeZapret_version_code%" >nul
