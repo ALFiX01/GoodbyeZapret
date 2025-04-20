@@ -51,7 +51,10 @@ if errorlevel 1 (
     echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету установлено... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
 )
 
-mode con: cols=80 lines=25 >nul 2>&1
+:: --- Read Current Version Info ---
+set "Current_GoodbyeZapret_version="
+set "Current_GoodbyeZapret_version_code="
+set "Last_Used_Config="
 
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -77,21 +80,6 @@ if errorlevel 1 (
     echo ERROR - Ошибка при выполнении GZ_Updater.bat
 )
 
-REM Версии GoodbyeZapret
-set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
-set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
-
-set "WinwsVersion_New=%Actual_Winws_version%"
-set "WinwsVersion=%Current_Winws_version%"
-
-set "ConfigsVersion_New=%Actual_Configs_version%"
-set "ConfigsVersion=%Current_Configs_version%"
-
-set "ListsVersion_New=%Actual_List_version%"
-set "ListsVersion=%Current_List_version%"
-
-set "UpdateNeedCount=0"
-
 set "UpdateNeed=No"
 
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" >nul 2>&1
@@ -114,7 +102,6 @@ if errorlevel 1 (
     )
 )
 
-
 if %UpdateNeed% equ Yes ( goto update_screen ) else ( exit /b )
 
 :update_screen
@@ -132,7 +119,7 @@ REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
 cls
-title Установщик программного обеспечения от ALFiX, Inc. (v%UpdaterVersion%)
+title GoodbyeZapret UpdateService
 echo [INFO] %time:~0,8% - Update Check - Добро пожаловать в программу обновления GoodbyeZapret >> "%SystemDrive%\GoodbyeZapret\Log.txt"
 echo.
 echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
