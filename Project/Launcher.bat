@@ -26,7 +26,7 @@
 ::ZQ0/vhVqMQ3MEVWAtB9wSA==
 ::Zg8zqx1/OA3MEVWAtB9wSA==
 ::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCd0fwelbQcxuyBHrmHl
+::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCaIS5Of66/m7jkwIWuE3fZ2V36yLQA==
 ::YB416Ek+ZW8=
 ::
 ::
@@ -132,7 +132,7 @@ if %errorlevel% neq 0 (
 )
 
 set "WiFi=Off"
-set "CheckURL=https://raw.githubusercontent.com"
+set "CheckURL=https://google.ru"
 
 echo Checking connectivity to update server ^(%CheckURL%^)...
 :: Используем curl для проверки доступности основного хоста обновлений
@@ -156,7 +156,7 @@ IF %ERRORLEVEL% EQU 0 (
     echo   Please check your internet connection, firewall settings,
     echo   or if %CheckURL% is accessible from your network.
     set "WiFi=Off"
-    timeout /t 5 >nul
+    timeout /t 4 >nul
     REM ВАЖНО: Решите, должен ли скрипт завершаться при отсутствии связи.
     REM Если установка/обновление невозможны без сети, то лучше выйти.
     REM Раскомментируйте следующую строку, если выход необходим:
