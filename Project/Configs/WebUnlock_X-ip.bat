@@ -20,7 +20,7 @@ start "%LIST_TITLE%" /min "%BIN%winws.exe" ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%/youtube_v2.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=midsld+1 --new ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%/youtubeGV.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=midsld-1 --new ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%/other.txt" --dpi-desync=fake,split2 --dpi-desync-split-seqovl=1 --dpi-desync-split-tls=sniext --dpi-desync-fake-tls=%BIN%/tls_clienthello_3.bin --dpi-desync-ttl=2 --new ^
---filter-tcp=443 --ipset="%LISTS_FOLDER%/ipset-discord.txt" --dpi-desync=syndata --dpi-desync-fake-syndata=%BIN%/tls_clienthello_3.bin --dpi-desync-autottl --new ^
+--filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%/discord.txt" --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-autottl --new ^
 --filter-udp=443 --hostlist="%LISTS_FOLDER%/discord.txt" --dpi-desync=fake --dpi-desync-udplen-increment=5 --dpi-desync-udplen-pattern=0xDEADBEEF --dpi-desync-fake-quic=%BIN%\quic_2.bin --dpi-desync-repeats=7 --dpi-desync-cutoff=n2 --new ^
 --filter-udp=50000-50090 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=n3 --new ^

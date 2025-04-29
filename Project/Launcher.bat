@@ -45,8 +45,8 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.7.0"
-set "Current_GoodbyeZapret_version_code=21APR01"
+set "Current_GoodbyeZapret_version=1.7.1"
+set "Current_GoodbyeZapret_version_code=29APR01"
 
 
 REM Настройки UAC
@@ -635,7 +635,7 @@ echo.
 echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить службу из автозапуска
 echo                 %COL%[36m^[ RC ^] %COL%[91mПереустановить конфиги
 echo.
-REM echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
 echo                 %COL%[36m^[ CF ^] %COL%[37mОбход cloudflare ^(%cloudflare%%COL%[37m^)
 echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
 REM echo             %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
@@ -647,16 +647,21 @@ REM echo                                     Введите номер (%COL%[96
 echo                                 %COL%[90mВведите номер или команду
 set /p "choice=%DEL%                                           %COL%[90m:> "
 if "%choice%"=="DS" goto remove_service
+if "%choice%"=="вы" goto remove_service
 if "%choice%"=="ds" goto remove_service
 if "%choice%"=="RC" goto ReInstall_GZ
+if "%choice%"=="кс" goto ReInstall_GZ
 if "%choice%"=="rc" goto ReInstall_GZ
 
 if "%choice%"=="CF" goto cloudflare_toggle
+if "%choice%"=="са" goto cloudflare_toggle
 if "%choice%"=="cf" goto cloudflare_toggle
 
 if "%choice%"=="SQ" goto SeqStart
+if "%choice%"=="ый" goto SeqStart
 if "%choice%"=="sq" goto SeqStart
 if "%choice%"=="ST" goto CurrentStatus
+if "%choice%"=="ые" goto CurrentStatus
 if "%choice%"=="st" goto CurrentStatus
 if %UpdateNeed% equ Yes (
     if "%choice%"=="ud" goto Update_Need_screen
@@ -765,56 +770,166 @@ if %errorlevel% equ 0 (
 ) else (
     set "Auto-update=1"
 )
+
+:: AdguardSvc.exe
+tasklist /FI "IMAGENAME eq AdguardSvc.exe" | find /I "AdguardSvc.exe" > nul
+if !errorlevel!==0 (
+    :: Adguard process found. Adguard may cause problems with Discord - https://github.com/Flowseal/zapret-discord-youtube/issues/417
+    set "AdguardCheckResult=Problem"
+) else (
+    set "AdguardCheckResult=Ok"
+) 
+
+:: Killer
+sc query | findstr /I "Killer" > nul
+if !errorlevel!==0 (
+    :: Killer services found. Killer conflicts with zapret - https://github.com/Flowseal/zapret-discord-youtube/issues/2512#issuecomment-2821119513
+    set "KillerCheckResult=Problem"
+) else (
+    set "KillerCheckResult=Ok"
+)
+
+:: Check Point
+:: sc query | findstr /I "Check" | findstr /I "Point" > nul
+:: if !errorlevel!==0 (
+::     :: Check Point services found. Check Point conflicts with zapret - Попробуйте удалить Check Point
+::     set "CheckpointCheckResult=Problem"
+::     set "CheckpointCheckTips=Попробуйте удалить Check Point"
+:: ) else (
+    set "CheckpointCheckResult=Ok"
+:: )
+
+
+:: SmartByte
+sc query | findstr /I "SmartByte" > nul
+if !errorlevel!==0 (
+    :: SmartByte services found. SmartByte conflicts with zapret - Попробуйте удалить или отключить SmartByte через services.msc
+    set "SmartByteCheckResult=Problem"
+    set "SmartByteCheckTips=Попробуйте удалить или отключить SmartByte через services.msc"
+) else (
+    set "SmartByteCheckResult=Ok"
+)
+
+
+:: VPN
+sc query | findstr /I "VPN" > nul
+if !errorlevel!==0 (
+    :: Some VPN services found. Some VPNs can conflict with zapret - Убедитесь, что все VPN отключены.
+    set "VPNCheckResult=Problem"
+    set "VPNCheckTips=Убедитесь, что все VPN отключены"
+) else (
+    set "VPNCheckResult=Ok"
+)
+
+:: DNS
+set "dnsfound=0"
+for /f "skip=1 tokens=*" %%a in ('wmic nicconfig where "IPEnabled=true" get DNSServerSearchOrder /format:table') do (
+    echo %%a | findstr /i "192.168." >nul
+    if !errorlevel!==0 (
+        set "dnsfound=1"
+    )
+)
+if !dnsfound!==1 (
+    :: DNS servers are probably not specified.
+    :: Provider's DNS servers are automatically used, which may affect zapret.
+    set "DNSCheckResult=Problem"
+    set "DNSCheckTips=Рекомендуется установить известные DNS-серверы и настроить DoH"
+) else (
+    set "DNSCheckResult=Ok"
+)
+
+:: Итоговая проверка
+set "TotalCheck=Ok"
+set "ProblemDetails="
+set "ProblemTips="
+
+for %%V in (AdguardCheckResult KillerCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult) do (
+    if "!%%V!"=="Problem" (
+        set "TotalCheck=Problem"
+        set "ProblemDetails=!ProblemDetails! %%V"
+        for %%T in (AdguardCheckTips KillerCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips) do (
+            if "%%V"=="%%~nT" (
+                set "ProblemTips=!ProblemTips! !%%T!"
+            )
+        )
+    )
+)
+if "%TotalCheck%"=="Problem" (
+    mode con: cols=92 lines=36 >nul 2>&1
+) else (
+    mode con: cols=92 lines=27 >nul 2>&1
+)
+
 cls
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-mode con: cols=69 lines=24 >nul 2>&1
 title GoodbyeZapret - Status
 echo.
-echo   %COL%[36m┌─────────────────── Состояние GoodbyeZapret ───────────────────┐
-echo   ^│ %COL%[37mСлужбы:                                                       %COL%[36m^│
-echo   ^│ %COL%[90m───────────────────────────────────────────────────────────── %COL%[36m^│
+echo    %COL%[36m┌───────────────────────────── Состояние GoodbyeZapret ─────────────────────────────┐
+echo    ^│ %COL%[37mСлужбы:                                                                           %COL%[36m^│
+echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo   ^│ %COL%[92m√ %COL%[37mGoodbyeZapret: %COL%[92mУстановлен и работает                        %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mGoodbyeZapret: %COL%[92mУстановлен и работает                                            %COL%[36m^│
 ) else (
-    echo   ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлен                                %COL%[36m^│
+    echo    ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлен                                                    %COL%[36m^│
 )
 tasklist | find /i "Winws.exe" >nul
 if %errorlevel% equ 0 (
-    echo   ^│ %COL%[92m√ %COL%[37mWinws.exe: %COL%[92mЗапущен                                          %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mWinws.exe: %COL%[92mЗапущен                                                              %COL%[36m^│
 ) else (
-    echo   ^│ %COL%[91mX %COL%[37mWinws.exe: Не запущен                                       %COL%[36m^│
+    echo    ^│ %COL%[91mX %COL%[37mWinws.exe: Не запущен                                                           %COL%[36m^│
 )
 sc qc windivert >nul
 if %errorlevel% equ 0 (
-    echo   ^│ %COL%[92m√ %COL%[37mWinDivert: %COL%[92mУстановлен                                       %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mWinDivert: %COL%[92mУстановлен                                                           %COL%[36m^│
 ) else (
-    echo   ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                    %COL%[36m^│
+    echo    ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                                        %COL%[36m^│
 )
 if "%Auto-update%"=="1" (
-    echo   ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                    %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                                        %COL%[36m^│
     set "AutoUpdateTextParam=Выключить"
     set "AutoUpdateStatus=On"
 ) else (
-    echo   ^│ %COL%[91mX %COL%[37mАвтообновление: Выключено                                   %COL%[36m^│
+    echo    ^│ %COL%[91mX %COL%[37mАвтообновление: Выключено                                                       %COL%[36m^│
     set "AutoUpdateTextParam=Включить"
     set "AutoUpdateStatus=Off"
 )
-echo   ^│                                                               ^│
-echo   ^│ %COL%[37mВерсии:                                                       %COL%[36m^│
-echo   ^│ %COL%[90m───────────────────────────────────────────────────────────── %COL%[36m^│
+echo    ^│                                                                                   ^│
+echo    ^│ %COL%[37mВерсии:                                                                           %COL%[36m^│
+echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
 
 if "%UpdateNeed%"=="Yes" (
-    echo   ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
-    echo   ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                          %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                              %COL%[36m^│
 )
 
-    echo   ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                           %COL%[36m^│
-    echo   ^│ %COL%[37mConfigs:       %COL%[92m%Current_Configs_version%                                             %COL%[36m^│
-    echo   ^│ %COL%[37mLists:         %COL%[92m%Current_List_version%                                             %COL%[36m^│
-echo   └───────────────────────────────────────────────────────────────┘
+    echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                                               %COL%[36m^│
+    echo    ^│ %COL%[37mConfigs:       %COL%[92m%Current_Configs_version%                                                                 %COL%[36m^│
+    echo    ^│ %COL%[37mLists:         %COL%[92m%Current_List_version%                                                                 %COL%[36m^│
+echo    └───────────────────────────────────────────────────────────────────────────────────┘
+echo.
+:: Вывод результатов
+if "%TotalCheck%"=="Problem" (
+    echo     %COL%[91mОбнаружены проблемы в работе GoodbyeZapret %COL%[37m
+    echo     └ Проблемы найдены в следующих проверках:
+    for %%V in (Adguard Killer Checkpoint SmartByte VPN DNS) do (
+        set "CheckResult=!%%VCheckResult!"
+        set "CheckTips=!%%VCheckTips!"
+        if "!CheckResult!"=="Problem" (
+            echo.
+            echo       - %%V: %COL%[91m Проблема обнаружена%COL%[37m
+            if defined CheckTips (
+                echo         %COL%[90m!CheckTips!%COL%[37m
+            )
+        )
+    )
+) else (
+    echo     %COL%[92mПроблемы в работе GoodbyeZapret НЕ обнаружены%COL%[37m
+)
+echo.
+echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
 echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
 echo    %COL%[36m^[ %COL%[96mA %COL%[36m^] %COL%[93m%AutoUpdateTextParam% автообновление

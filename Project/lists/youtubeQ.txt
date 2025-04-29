@@ -5,4 +5,7 @@ play.google.com
 ytimg.com
 ggpht.com
 jnn-pa.googleapis.com
-youtubekids.com
+googleadservices.com
+youtubeembeddedplayer.googleapis.com
+youtube.googleapis.com
+youtubei.googleapis.com
