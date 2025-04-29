@@ -21,5 +21,6 @@ start "%LIST_TITLE%" /min "%BIN%winws.exe" ^
 --filter-tcp=80 --hostlist="%LISTS_FOLDER%\russia-blacklist.txt" --dpi-desync=fake,multisplit --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%\russia-blacklist.txt" --hostlist="%LISTS_FOLDER%\myhostlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=1 --dpi-desync-fake-tls="%BIN%tls_clienthello_2.bin" --dpi-desync-ttl=5 --new ^
 --filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
--filter-udp=50000-50099 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d2 --dpi-desync-fake-quic="%BIN%quic_1.bin" --new ^
+--filter-udp=50000-50099 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d2 --dpi-desync-fake-quic="%BIN%quic_1.bin" --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS_FOLDER%\autohostlist.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=midsld,1 --dpi-desync-fooling=md5sig,badseq --dpi-desync-fake-tls="%BIN%tls_clienthello_4.bin" --dpi-desync-autottl
+
