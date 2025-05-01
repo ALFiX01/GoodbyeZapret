@@ -19,7 +19,7 @@
 
 ---
 
-**GoodbyeZapret** — это инструмент с открытым исходным кодом на базе [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws), предназначенный для обхода блокировок на основе DPI (Deep Packet Inspection) в Windows. Он помогает пользователям получать доступ к веб-сайтам и сервисам, ограниченным на территории их страны.
+**GoodbyeZapret** — это инструмент с открытым исходным кодом на базе [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws), предназначенный для обхода блокировок на основе DPI (Deep Packet Inspection) в Windows. Инструмент изменяет сетевые пакеты так, чтобы DPI-системы не могли корректно определить заблокированный ресурс.
 
 ---
 ## ⚠️ Антивирусное ПО
@@ -40,12 +40,6 @@
 > [!IMPORTANT]
 > Все файлы в [`bin`](./Project/bin) взяты из [zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws). Вы можете это проверить с помощью хэшей/контрольных сумм.
 > Выражаем благодарность [bol-van](https://github.com/bol-van).
-
----
-
-## ⚙️ Как это работает?
-
-Инструмент изменяет сетевые пакеты так, чтобы DPI-системы не могли корректно определить заблокированный ресурс. Основано на [**zapret**](https://github.com/bol-van/zapret).
 
 ---
 
