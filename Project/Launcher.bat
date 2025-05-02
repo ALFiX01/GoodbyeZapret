@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.7.1"
+set "Current_GoodbyeZapret_version=1.7.2"
 set "Current_GoodbyeZapret_version_code=29APR01"
 
 
@@ -139,9 +139,9 @@ echo Checking connectivity to update server ^(%CheckURL%^)...
 :: -s: Silent mode (без прогресс-бара)
 :: -L: Следовать редиректам
 :: --head: Получить только заголовки (быстрее, меньше данных)
-:: -m 10: Таймаут 10 секунд
+:: -m 10: Таймаут 8 секунд
 :: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
-curl -s -L --head -m 10 -o NUL "%CheckURL%"
+curl -s -L --head -m 8 -o NUL "%CheckURL%"
 
 IF %ERRORLEVEL% EQU 0 (
     REM Успешно, сервер доступен
@@ -156,11 +156,7 @@ IF %ERRORLEVEL% EQU 0 (
     echo   Please check your internet connection, firewall settings,
     echo   or if %CheckURL% is accessible from your network.
     set "WiFi=Off"
-    timeout /t 4 >nul
-    REM ВАЖНО: Решите, должен ли скрипт завершаться при отсутствии связи.
-    REM Если установка/обновление невозможны без сети, то лучше выйти.
-    REM Раскомментируйте следующую строку, если выход необходим:
-    REM exit /b 1
+    timeout /t 3 >nul
 )
 
 if Not exist %SystemDrive%\GoodbyeZapret (
@@ -176,7 +172,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
 
-set /a ListBatCount=BatCount+27
+set /a ListBatCount=BatCount+24
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -206,40 +202,6 @@ if %errorlevel% equ 0 (
    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 )
 
-sc query BFE | findstr "STATE" >nul
-if %errorlevel% equ 0 (
-    for /f "tokens=4" %%a in ('sc query BFE ^| findstr "STATE"') do set "BFE_STATE=%%a"
-) else (
-    set "BFE_STATE=UNKNOWN"
-)
-
-sc qc BFE | findstr "START_TYPE" >nul
-if %errorlevel% equ 0 (
-    for /f "tokens=4" %%a in ('sc qc BFE ^| findstr "START_TYPE"') do set "BFE_START=%%a"
-) else (
-    set "BFE_START=UNKNOWN"
-)
-
-
-if not "%BFE_STATE%"=="RUNNING" (
-    if not "%BFE_START%"=="AUTO_START" (
-        echo Error 3 - Служба BFE ^(Служба базовой фильтрации^) не запущена или не установлена.
-        echo BFE_STATE: %BFE_STATE%
-        echo BFE_START: %BFE_START%
-        pause
-    ) else (
-        echo Error 1 - Служба BFE ^(Служба базовой фильтрации^) не запущена.
-        echo BFE_STATE: %BFE_STATE%
-        echo BFE_START: %BFE_START%
-        pause
-    )
-) else if not "%BFE_START%"=="AUTO_START" (
-    echo Error 2 - Служба BFE ^(Служба базовой фильтрации^) имеет неправильный режим запуска.
-    echo BFE_STATE: %BFE_STATE%
-    echo BFE_START: %BFE_START%
-    pause
-)
-
 
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -258,7 +220,7 @@ if not exist "%SystemDrive%\GoodbyeZapret\bin\version.txt" (
 )
 
 if %RepairNeed%==Yes (
-    echo ERROR - Критическая ошбка. Необходима переустановка GoodbyeZapret.
+    echo ERROR - Критическая ошибка. Необходима переустановка GoodbyeZapret.
     echo Запускаю переустановку...
     :: Загрузка нового файла Updater.exe
     if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
@@ -632,26 +594,27 @@ if %UpdateNeed% equ Yes (
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 echo                 %COL%[36mДействия:
 echo.
-echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить службу из автозапуска
-echo                 %COL%[36m^[ RC ^] %COL%[91mПереустановить конфиги
-echo.
-echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
-echo                 %COL%[36m^[ CF ^] %COL%[37mОбход cloudflare ^(%cloudflare%%COL%[37m^)
+if "%GoodbyeZapret_Current%"=="Не выбран" (
 echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
 REM echo             %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
 echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-REM echo             %COL%[96m^[1-%counter%s^] %COL%[91mЗапустить конфиг
+echo.
+echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+echo                 %COL%[36m^[ CF ^] %COL%[37mОбход cloudflare ^(%cloudflare%%COL%[37m^)
+) else (
+echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
+echo.
+echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+echo                 %COL%[36m^[ CF ^] %COL%[37mОбход cloudflare ^(%cloudflare%%COL%[37m^)
+)
 echo.
 echo.
 REM echo                                     Введите номер (%COL%[96m1%COL%[37m-%COL%[96m!counter!%COL%[37m)
-echo                                 %COL%[90mВведите номер или команду
+echo                                %COL%[90mВведите номер или действие
 set /p "choice=%DEL%                                           %COL%[90m:> "
 if "%choice%"=="DS" goto remove_service
 if "%choice%"=="вы" goto remove_service
 if "%choice%"=="ds" goto remove_service
-if "%choice%"=="RC" goto ReInstall_GZ
-if "%choice%"=="кс" goto ReInstall_GZ
-if "%choice%"=="rc" goto ReInstall_GZ
 
 if "%choice%"=="CF" goto cloudflare_toggle
 if "%choice%"=="са" goto cloudflare_toggle
@@ -687,9 +650,12 @@ if not defined batFile (
     goto :eof
 )
  if defined batFile (
+    cls
+    echo %COL%[97m
      echo.
-     echo  Подтвердите установку %batFile% в службу GoodbyeZapret...
-     echo %COL%[93m Нажмите любую клавишу для подтверждения %COL%[37m
+     echo  Подтвердите установку %COL%[36m%batFile%%COL%[97m в службу GoodbyeZapret
+     echo %COL%[90m Нажмите любую клавишу для подтверждения... %COL%[37m
+     echo.
      pause >nul 2>&1
      (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%batFile%" start= auto
@@ -701,16 +667,17 @@ if not defined batFile (
      if %errorlevel% equ 0 (
          sc start "GoodbyeZapret" >nul 2>&1
          if %errorlevel% equ 0 (
-             echo  Служба GoodbyeZapret успешно запущена %COL%[37m
+             echo  - Служба GoodbyeZapret успешно запущена %COL%[37m
          ) else (
-             echo  Ошибка при запуске службы
+             echo  - Ошибка при запуске службы
          )
      )
-     echo %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
+     echo  - %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
      goto :end
  )
 
 :remove_service
+    cls
     REM Цветной текст
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     echo.
@@ -770,6 +737,39 @@ if %errorlevel% equ 0 (
 ) else (
     set "Auto-update=1"
 )
+
+sc query BFE | findstr "STATE" >nul
+if %errorlevel% equ 0 (
+    for /f "tokens=4" %%a in ('sc query BFE ^| findstr "STATE"') do set "BFE_STATE=%%a"
+) else (
+    set "BFE_STATE=UNKNOWN"
+)
+
+sc qc BFE | findstr "START_TYPE" >nul
+if %errorlevel% equ 0 (
+    for /f "tokens=4" %%a in ('sc qc BFE ^| findstr "START_TYPE"') do set "BFE_START=%%a"
+) else (
+    set "BFE_START=UNKNOWN"
+)
+
+:: BaseFilteringEngine (BFE) - Служба базовой фильтрации
+if not "%BFE_STATE%"=="RUNNING" (
+    if not "%BFE_START%"=="AUTO_START" (
+        REM Служба BFE ^(Служба базовой фильтрации^) не запущена или не установлена.
+        set "BaseFilteringEngineCheckResult=Problem"
+        set "BaseFilteringEngineCheckTips=Попробуйте установить и запустить службу BFE"
+    ) else (
+        REM Служба BFE ^(Служба базовой фильтрации^) не запущена.
+        set "BaseFilteringEngineCheckResult=Problem"
+        set "BaseFilteringEngineCheckTips=Попробуйте запустить службу BFE"
+    )
+) else if not "%BFE_START%"=="AUTO_START" (
+    REM Служба BFE ^(Служба базовой фильтрации^) имеет неправильный режим запуска.
+    set "BaseFilteringEngineCheckResult=Problem"
+    set "BaseFilteringEngineCheckTips=Попробуйте установить режим запуска службы BFE на автоматический"
+)
+
+
 
 :: AdguardSvc.exe
 tasklist /FI "IMAGENAME eq AdguardSvc.exe" | find /I "AdguardSvc.exe" > nul
@@ -843,11 +843,11 @@ set "TotalCheck=Ok"
 set "ProblemDetails="
 set "ProblemTips="
 
-for %%V in (AdguardCheckResult KillerCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult) do (
+for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult ) do (
     if "!%%V!"=="Problem" (
         set "TotalCheck=Problem"
         set "ProblemDetails=!ProblemDetails! %%V"
-        for %%T in (AdguardCheckTips KillerCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips) do (
+        for %%T in (BaseFilteringEngineCheckTips AdguardCheckTips KillerCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips ) do (
             if "%%V"=="%%~nT" (
                 set "ProblemTips=!ProblemTips! !%%T!"
             )
@@ -914,7 +914,7 @@ echo.
 if "%TotalCheck%"=="Problem" (
     echo     %COL%[91mОбнаружены проблемы в работе GoodbyeZapret %COL%[37m
     echo     └ Проблемы найдены в следующих проверках:
-    for %%V in (Adguard Killer Checkpoint SmartByte VPN DNS) do (
+    for %%V in (BaseFilteringEngine Adguard Killer Checkpoint SmartByte VPN DNS) do (
         set "CheckResult=!%%VCheckResult!"
         set "CheckTips=!%%VCheckTips!"
         if "!CheckResult!"=="Problem" (
@@ -933,6 +933,7 @@ echo    %COL%[90m─────────────────────
 echo.
 echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
 echo    %COL%[36m^[ %COL%[96mA %COL%[36m^] %COL%[93m%AutoUpdateTextParam% автообновление
+echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
 if %UpdateNeed% equ Yes (
     echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
 )
@@ -940,8 +941,12 @@ echo.
 set /p "choice=%DEL%   %COL%[90m:> "
 if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
 if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
+if /i "%choice%"=="R" goto FullUpdate
+if /i "%choice%"=="к" goto FullUpdate
+if %UpdateNeed% equ Yes (
 if /i "%choice%"=="U" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
 if /i "%choice%"=="г" start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
+)
 if /i "%choice%"=="A" ( if /i "%AutoUpdateStatus%"=="On" (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
     del "%SystemDrive%\GoodbyeZapret\Tools\UpdateService.exe" >nul 2>&1
@@ -1012,10 +1017,6 @@ if %ERRORLEVEL%==0 (
     )
 )
 goto MainMenu
-
-:ReInstall_GZ
-start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
-exit
 
 :FullUpdate
 start "Update GoodbyeZapret" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"

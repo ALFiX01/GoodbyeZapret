@@ -1,0 +1,5 @@
+*.steampowered.com
+*.steamstatic.com
+steamstatic.com
+cdn.cloudflare.steamstatic.com
+*.cloudflareinsights.com
