@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCuDJOlERJKA/6q0/NQy7dtkt1esMlgr08u0mg01QeADcYzU1IipL+8X6FzhT5c9xH9O1eUJGz9dbRusYEE9qmEi
+::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN6PjD8DamM+8FDKWpjYUpki0nhDnfENHAldai6tbxk9qmFM+G2GOKc=
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF65
@@ -45,7 +45,7 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.7.2"
+set "Current_GoodbyeZapret_version=1.8.0"
 set "Current_GoodbyeZapret_version_code=29APR01"
 
 
