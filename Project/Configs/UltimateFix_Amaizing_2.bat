@@ -21,7 +21,7 @@ REM --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=3 --dpi-desy
 
 start "%LIST_TITLE%" /min "%BIN%winws.exe" ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
---filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake,fakedsplit --dpi-desync-ttl=3 --dpi-desync-split-pos=midsld --dpi-desync-fake-tls=0x00000000 --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake,fakedsplit --dpi-desync-ttl=3 --dpi-desync-split-pos=midsld --dpi-desync-fake-tls=0x00000000 --new ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%\youtube_video-preview.txt" --dpi-desync=fake --dpi-desync-ttl=1 --dpi-desync-autottl=1 --dpi-desync-fake-http=0x00000000 --new ^
 --filter-tcp=443 --hostlist="%LISTS_FOLDER%\list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=2 --dpi-desync-split-pos=method+2 --new ^
 --filter-udp=443 --ipset="%LISTS_FOLDER%\ipset-cloudflare.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --hostlist-exclude="%LISTS_FOLDER%\exclude.txt" --new ^

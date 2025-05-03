@@ -673,6 +673,9 @@ if not defined batFile (
          )
      )
      echo  - %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
+
+    timeout /t 2 >nul 2>&1
+    call "%SystemDrive%\GoodbyeZapret\Tools\curl_test.bat"
      goto :end
  )
 
