@@ -26,12 +26,18 @@ SOFTWARE.
 
 Third-Party Components
 
-This repository includes precompiled binaries and components originating from third-party projects:
+This repository includes source code and binary components originating from third-party projects:
 
-🔹 zapret by bol-van  
+🔹 zapret by bol-van
 - Repository: https://github.com/bol-van/zapret  
 - License: MIT License  
-- Note: Binary files from this project are included as-is, without modification. No source code from the original project is present in this repository.
+- Note: Binary files from this project are included *as-is*, without modification. No source code from the original project is present in this repository.
+
+🔹 zapret-discord-youtube by Flowseal 
+- Repository: https://github.com/Flowseal/zapret-discord-youtube  
+- License: MIT License  
+- Note: Portions of this project (scripts, configs, or logic) are included **with modifications**.  
+  All changes are clearly marked or documented within the repository, and original credit is retained.
 
 🔹 WinDivert by basil00  
 - Repository: https://github.com/basil00/WinDivert  
@@ -43,10 +49,11 @@ This repository includes precompiled binaries and components originating from th
 
 ---
 
-License Compliance Notes
+### License Compliance Notes
 
 To ensure compliance with all licensing terms:
 
 1. All original copyright and license notices are retained.  
-2. The usage of WinDivert is governed by its dual license (LGPLv3/GPLv2).  
-3. This repository includes only binary redistributions of zapret and WinDivert; it does not contain or distribute their source code or modified versions.
+2. Files derived from **zapret-discord-youtube** are used under the MIT License, with appropriate attribution and documentation of modifications.  
+3. The use of WinDivert is governed by its dual license (LGPLv3/GPLv2).  
+4. This repository includes only binary redistributions of **zapret** and **WinDivert**, and includes **modified** sources from **zapret-discord-youtube**.
