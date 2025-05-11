@@ -2,5 +2,6 @@
 *.steamstatic.com
 steamstatic.com
 piliapp.com
+shields.io
 cdn.cloudflare.steamstatic.com
 *.cloudflareinsights.com

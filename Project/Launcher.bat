@@ -47,6 +47,7 @@ setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.8.0"
 set "Current_GoodbyeZapret_version_code=29APR01"
+set "Current_GoodbyeZapret_github_commit_code=9c3c76d"
 
 
 REM Настройки UAC
@@ -151,7 +152,7 @@ IF %ERRORLEVEL% EQU 0 (
     REM Попытка не удалась
     cls
     echo.
-    echo   Error 01: Cannot reach the update server.
+    echo   Error 02: Cannot reach the update server.
     echo   Connection check to %CheckURL% failed ^(curl errorlevel: %ERRORLEVEL%^).
     echo   Please check your internet connection, firewall settings,
     echo   or if %CheckURL% is accessible from your network.
@@ -172,7 +173,7 @@ for %%f in ("%sourcePath%Configs\*.bat") do (
     set /a "BatCount+=1"
 )
 
-set /a ListBatCount=BatCount+24
+set /a ListBatCount=BatCount+25
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Цветной текст
@@ -219,15 +220,17 @@ if not exist "%SystemDrive%\GoodbyeZapret\bin\version.txt" (
     set "RepairNeed=Yes"
 )
 
-if %RepairNeed%==Yes (
-    echo ERROR - Критическая ошибка. Необходима переустановка GoodbyeZapret.
-    echo Запускаю переустановку...
-    :: Загрузка нового файла Updater.exe
-    if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
-    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
-    ) else (
-        start "" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
-        exit /b
+if %WiFi%==On (
+    if %RepairNeed%==Yes (
+        echo   Error 03: Critical error. GoodbyeZapret needs to be reinstalled.
+        echo   Starting the reinstallation...
+        :: Загрузка нового файла Updater.exe
+        if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
+        curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+        ) else (
+            start "" "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe"
+            exit /b
+        )
     )
 )
 
@@ -244,12 +247,14 @@ for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\lists\version.txt
 for /f "usebackq delims=" %%a in ("%SystemDrive%\GoodbyeZapret\Configs\version.txt") do set "Current_Configs_version=%%a"
 
 :: Загрузка нового файла GZ_Updater.bat
+
+if %WiFi%==Off ( goto skip_for_wifi )
+
 if exist "%TEMP%\GZ_Updater.bat" del /s /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version" 
 if errorlevel 1 (
-    echo ERROR - Ошибка связи с сервером проверки обновлений GoodbyeZapret
-    
-)
+    echo   Error 04: Server error. Error connecting to update check server GoodbyeZapret
+) 
 
 :: Загрузка нового файла Updater.exe
 if not exist "%SystemDrive%\GoodbyeZapret\Tools\Updater.exe" (
@@ -260,8 +265,7 @@ set FileSize=0
 for %%I in ("%TEMP%\GZ_Updater.bat") do set FileSize=%%~zI
 if %FileSize% LSS 15 (
     set "CheckStatus=NoChecked"
-    REM echo     %COL%[91m   └ Ошибка: Файл не прошел проверку. Возможно, он поврежден %COL%[37m
-    echo ERROR - Файл GZ_Updater.bat поврежден или URL не доступен ^(Size %FileSize%^)
+    echo   Error 05: FileCheck error. File GZ_Updater.bat is corrupted or URL is not available ^(Size %FileSize%^)
     echo.
     del /Q "%TEMP%\GZ_Updater.bat"
     pause
@@ -273,7 +277,7 @@ if %FileSize% LSS 15 (
 :: Выполнение загруженного файла Updater.bat
 call "%TEMP%\GZ_Updater.bat" >nul 2>&1
 if errorlevel 1 (
-    echo ERROR - Ошибка при выполнении GZ_Updater.bat
+    echo   Error 05: Start error. Error while executing GZ_Updater.bat
 )
 
 REM Версии GoodbyeZapret
@@ -283,7 +287,9 @@ set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 set "UpdateNeed=No"
 
 if %StatusProject%==0 (
-    echo  Я рад был быть вам полезным, но пришло время прощаться.
+    cls
+    echo.
+    echo  Я был рад быть вам полезным, но пришло время прощаться.
     echo  Проект GoodbyeZapret закрыт.
     echo.
     sc query "GoodbyeZapret" >nul 2>&1
@@ -311,9 +317,11 @@ if errorlevel 1 (
     set "UpdateNeed=Yes"
 ) else (
     set "VersionFound=1"
-    echo - no update
 )
 
+:skip_for_wifi
+REM Версии GoodbyeZapret
+REM set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 
 cls
 title GoodbyeZapret - Launcher
@@ -352,15 +360,17 @@ set "GoodbyeZapret_Version_OLD=Не найден"
 :end_GoodbyeZapret_Version_OLD
 
 if not defined GoodbyeZapretVersion (
-    echo ERROR - Не удалось прочитать значение GoodbyeZapret_Version
-    pause
+    echo   Error 06: Read error. Failed to read value GoodbyeZapret_Version
+    set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
+    set "Actual_GoodbyeZapret_version=0.0.0"
+    set "UpdateNeed=No"
+    timeout /t 2 >nul
 )
 
 if not defined GoodbyeZapret_Config (
-    echo ERROR - Не удалось прочитать значение GoodbyeZapret_Config
-    pause
+    echo   Error 07: Read error. Failed to read value GoodbyeZapret_Config
+    timeout /t 2 >nul
 )
-
 
 reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret /v Description >nul 2>&1
 if %errorlevel% equ 0 (
@@ -459,6 +469,7 @@ echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  
 echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/  
 echo                                       /____/               /_/                     
 echo.
+
 if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
 REM    echo          %COL%[90mОшибка: Не удалось провести проверку файлов - Скрипт может быть не стабилен%COL%[37m
     echo                %COL%[90mОшибка: Не удалось проверить файлы - Возможны проблемы в работе%COL%[37m
@@ -471,7 +482,7 @@ set "LISTS=%SystemDrive%\GoodbyeZapret\lists\"
 set "FILE=%LISTS%ipset-cloudflare.txt"
 
 if not exist "%FILE%" (
-    echo Error! ipset-cloudflare.txt not found, path: %FILE%
+    echo Error ipset-cloudflare.txt not found, path: %FILE%
     goto :eof
 )
 
@@ -483,6 +494,7 @@ if %ERRORLEVEL%==0 (
     REM echo Disabling cloudflare bypass
     set "cloudflare=%COL%[92mВКЛ"
 )
+
 
 REM ================================================================================================
 
@@ -594,6 +606,7 @@ if %UpdateNeed% equ Yes (
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 echo                 %COL%[36mДействия:
 echo.
+
 if "%GoodbyeZapret_Current%"=="Не выбран" (
 echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
 REM echo             %COL%[36m^[ SQ ^] %COL%[37mЗапустить конфиги поочередно
@@ -675,7 +688,9 @@ if not defined batFile (
      echo  - %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
 
     timeout /t 2 >nul 2>&1
-    call "%SystemDrive%\GoodbyeZapret\Tools\curl_test.bat"
+    if exist "%SystemDrive%\GoodbyeZapret\Tools\curl_test.bat" (
+        call "%SystemDrive%\GoodbyeZapret\Tools\curl_test.bat"
+    )
      goto :end
  )
 
@@ -697,7 +712,7 @@ if not defined batFile (
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
-                echo  Файл winws.exe остановлен.
+                echo  Файл winws.exe остановлен
             )
             echo %COL%[92m Удаление успешно завершено %COL%[37m
         ) else (
@@ -729,7 +744,7 @@ for %%F in ("%sourcePath%Configs\*.bat") do (
     start /wait cmd /c "%%F"
     pause
 )
-echo Все конфиги завершили выполнение.
+echo Все конфиги завершили выполнение
 goto :end
 
 
@@ -866,7 +881,7 @@ if "%TotalCheck%"=="Problem" (
 cls
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-title GoodbyeZapret - Status
+title GoodbyeZapret - Состояние
 echo.
 echo    %COL%[36m┌───────────────────────────── Состояние GoodbyeZapret ─────────────────────────────┐
 echo    ^│ %COL%[37mСлужбы:                                                                           %COL%[36m^│

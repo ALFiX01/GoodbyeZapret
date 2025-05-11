@@ -1,0 +1,4 @@
+ad.doubleclick.net
+adservice.google.com
+www.googleadservices.com
+static.doubleclick.net
