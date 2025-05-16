@@ -141,8 +141,8 @@ if %errorlevel% equ 0 (
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
-    if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat" (
-        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat\"" start= auto
+    if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat\"" start= auto
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
@@ -153,7 +153,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         timeout /t 1 >nul 2>&1
         exit
     ) else (
-        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_Config%.bat >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat >> "%SystemDrive%\GoodbyeZapret\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
         start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
@@ -163,8 +163,8 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
 ) else (
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
     if defined GoodbyeZapret_LastStartConfig (
-        if exist "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_LastStartConfig%" (
-            start "" "%SystemDrive%\GoodbyeZapret\Configs\%GoodbyeZapret_LastStartConfig%" 
+        if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" (
+            start "" "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" 
         )
     )
     start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
