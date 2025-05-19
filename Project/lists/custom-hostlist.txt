@@ -15,3 +15,8 @@ cpuid.com
 vpngate.net
 purarue.xyz
 viber.com
+t-ru.org
+google.com
+googleapis.com
+gstatic.com
+hetzner.com

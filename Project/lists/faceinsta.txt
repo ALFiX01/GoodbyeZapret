@@ -2,9 +2,16 @@ instagram.com
 www.instagram.com
 cdninstagram.com
 www.cdninstagram.com
+instagr.am
+instagramstatic.com
+akamaihd.net
 facebook.com
 www.facebook.com
 fbcdn.net
 www.fbcdn.net
 fburl.com
 fbsbx.com
+fb.com
+fb.me
+edgekey.net
+edgesuite.net

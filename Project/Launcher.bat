@@ -46,9 +46,7 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 
 set "Current_GoodbyeZapret_version=1.8.0"
-set "Current_GoodbyeZapret_version_code=29APR01"
-set "Current_GoodbyeZapret_github_commit_code=9c3c76d"
-
+set "Current_GoodbyeZapret_version_code=19MAY01"
 
 REM Настройки UAC
 set "L_ConsentPromptBehaviorAdmin=0"
@@ -781,47 +779,79 @@ tasklist /FI "IMAGENAME eq AdguardSvc.exe" | find /I "AdguardSvc.exe" > nul
 if !errorlevel!==0 (
     :: Adguard process found. Adguard may cause problems with Discord - https://github.com/Flowseal/zapret-discord-youtube/issues/417
     set "AdguardCheckResult=Problem"
+    set "AdguardCheckTips=Попробуйте отключить/удалить Adguard"
 ) else (
     set "AdguardCheckResult=Ok"
 ) 
 
-:: Killer
-sc query | findstr /I "Killer" > nul
-if !errorlevel!==0 (
-    :: Killer services found. Killer conflicts with zapret - https://github.com/Flowseal/zapret-discord-youtube/issues/2512#issuecomment-2821119513
+REM === Поиск сервисов Killer ===
+set "KillerCheckResult=Ok"
+set "KillerServices="
+for /f "tokens=2 delims=:" %%a in ('sc query ^| findstr /I "SERVICE_NAME:" ^| findstr /I "Killer"') do (
+    if defined KillerServices (
+        set "KillerServices=!KillerServices!,%%a"
+    ) else (
+        set "KillerServices=%%a"
+    )
+)
+
+if defined KillerServices (
     set "KillerCheckResult=Problem"
+    set "KillerCheckTips=Попробуйте удалить сервисы Killer ^(!KillerServices! ^)."
 ) else (
     set "KillerCheckResult=Ok"
 )
 
-:: Check Point
-:: sc query | findstr /I "Check" | findstr /I "Point" > nul
-:: if !errorlevel!==0 (
-::     :: Check Point services found. Check Point conflicts with zapret - Попробуйте удалить Check Point
-::     set "CheckpointCheckResult=Problem"
-::     set "CheckpointCheckTips=Попробуйте удалить Check Point"
-:: ) else (
+REM === Поиск сервисов Check Point ===
+set "CheckpointCheckResult=Ok"
+set "CheckpointServices="
+for /f "tokens=2 delims=:" %%a in ('sc query ^| findstr /I "SERVICE_NAME:" ^| findstr /I "Check Point"') do (
+    if defined CheckpointServices (
+        set "CheckpointServices=!CheckpointServices!,%%a"
+    ) else (
+        set "CheckpointServices=%%a"
+    )
+)
+
+if defined CheckpointServices (
+    set "CheckpointCheckResult=Problem"
+    set "CheckpointCheckTips=Попробуйте удалить сервисы Check Point ^(!CheckpointServices! ^)."
+) else (
     set "CheckpointCheckResult=Ok"
-:: )
+)
 
+REM === Поиск сервисов SmartByte ===
+set "SmartByteCheckResult=Ok"
+set "SmartByteServices="
+for /f "tokens=2 delims=:" %%a in ('sc query ^| findstr /I "SERVICE_NAME:" ^| findstr /I "SmartByte"') do (
+    if defined SmartByteServices (
+        set "SmartByteServices=!SmartByteServices!,%%a"
+    ) else (
+        set "SmartByteServices=%%a"
+    )
+)
 
-:: SmartByte
-sc query | findstr /I "SmartByte" > nul
-if !errorlevel!==0 (
-    :: SmartByte services found. SmartByte conflicts with zapret - Попробуйте удалить или отключить SmartByte через services.msc
+if defined SmartByteServices (
     set "SmartByteCheckResult=Problem"
-    set "SmartByteCheckTips=Попробуйте удалить или отключить SmartByte через services.msc"
+    set "SmartByteCheckTips=Попробуйте удалить/отключить сервисы SmartByte ^(!SmartByteServices! ^)."
 ) else (
     set "SmartByteCheckResult=Ok"
 )
 
 
-:: VPN
-sc query | findstr /I "VPN" > nul
-if !errorlevel!==0 (
-    :: Some VPN services found. Some VPNs can conflict with zapret - Убедитесь, что все VPN отключены.
+REM === Поиск VPN сервисов ===
+set "VPNServices="
+for /f "tokens=2 delims=:" %%a in ('sc query ^| findstr /I "SERVICE_NAME:" ^| findstr /I "VPN"') do (
+    if defined VPNServices (
+        set "VPNServices=!VPNServices!,%%a"
+    ) else (
+        set "VPNServices=%%a"
+    )
+)
+
+if defined VPNServices (
     set "VPNCheckResult=Problem"
-    set "VPNCheckTips=Убедитесь, что все VPN отключены"
+    set "VPNCheckTips=Убедитесь, что все VPN отключены ^(!VPNServices! ^)."
 ) else (
     set "VPNCheckResult=Ok"
 )
@@ -838,7 +868,7 @@ if !dnsfound!==1 (
     :: DNS servers are probably not specified.
     :: Provider's DNS servers are automatically used, which may affect zapret.
     set "DNSCheckResult=Problem"
-    set "DNSCheckTips=Рекомендуется установить известные DNS-серверы и настроить DoH"
+    set "DNSCheckTips=Рекомендуется установить известные DNS-серверы ^(например Google DNS 8.8.8.8 - 8.8.4.4^)"
 ) else (
     set "DNSCheckResult=Ok"
 )
@@ -917,14 +947,14 @@ echo    └───────────────────────
 echo.
 :: Вывод результатов
 if "%TotalCheck%"=="Problem" (
-    echo     %COL%[91mОбнаружены проблемы в работе GoodbyeZapret %COL%[37m
-    echo     └ Проблемы найдены в следующих проверках:
+    echo     %COL%[91mВозможны проблемы в работе GoodbyeZapret %COL%[37m
+    echo     └ Причины:
     for %%V in (BaseFilteringEngine Adguard Killer Checkpoint SmartByte VPN DNS) do (
         set "CheckResult=!%%VCheckResult!"
         set "CheckTips=!%%VCheckTips!"
         if "!CheckResult!"=="Problem" (
             echo.
-            echo       - %%V: %COL%[91m Проблема обнаружена%COL%[37m
+            echo       - %%V:%COL%[91m Проблема обнаружена%COL%[37m
             if defined CheckTips (
                 echo         %COL%[90m!CheckTips!%COL%[37m
             )
