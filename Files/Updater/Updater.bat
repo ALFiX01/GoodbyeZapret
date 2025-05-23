@@ -45,7 +45,7 @@ setlocal EnableDelayedExpansion
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=1.1"
+set "UpdaterVersion=1.2"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -132,7 +132,7 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-tasklist | find /i "Winws.exe" >nul
+tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
 ) else (
@@ -149,6 +149,9 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
             echo  ^[*^] Служба GoodbyeZapret успешно запущена
         )
         echo  ^[*^] Обновление завершено
+        if exist "%SystemDrive%\GoodbyeZapret\Log.txt" (
+            del /f /q "%SystemDrive%\GoodbyeZapret\Log.txt" >nul
+        )
         start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
         timeout /t 1 >nul 2>&1
         exit
@@ -166,6 +169,9 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" (
             start "" "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" 
         )
+    )
+    if exist "%SystemDrive%\GoodbyeZapret\Log.txt" (
+    del /f /q "%SystemDrive%\GoodbyeZapret\Log.txt" >nul
     )
     start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
     exit

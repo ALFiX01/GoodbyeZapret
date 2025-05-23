@@ -191,7 +191,7 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
     exit
 )
 
-tasklist | find /i "Winws.exe" >nul
+tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
 ) else (

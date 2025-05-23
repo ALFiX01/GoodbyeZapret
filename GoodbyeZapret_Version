@@ -1,6 +1,6 @@
-set "Actual_GoodbyeZapret_version_code=19MAY01 19MAY01"
-set Actual_GoodbyeZapret_version=1.8.0
+set "Actual_GoodbyeZapret_version_code=23MAY01 23MAY02"
+set Actual_GoodbyeZapret_version=1.8.1
 set Actual_Winws_version=70.6
 set Actual_List_version=13
-set Actual_Configs_version=25
+set Actual_Configs_version=26
 set StatusProject=1

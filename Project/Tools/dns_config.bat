@@ -103,15 +103,15 @@ echo.
 powershell -Command "Write-Host 'Configure DNS Settings:' -ForegroundColor Blue"
 echo [1] Google Public DNS (8.8.8.8, 8.8.4.4)
 echo [2] Cloudflare DNS (1.1.1.1, 1.0.0.1)
-powershell -Command "Write-Host '[3] Reset to DHCP' -ForegroundColor Red"
-echo [3] Reset to DHCP
-echo [4] Exit Without Changes
+echo [3] OpenDNS (208.67.222.222, 208.67.220.220)
+powershell -Command "Write-Host '[4] Reset to DHCP' -ForegroundColor Red"
+echo [5] Exit Without Changes
 echo.
 
 :: DNS choice loop
 :dns_prompt
 set "dns_choice="
-set /p dns_choice="Enter your choice (1-4): "
+set /p dns_choice="Enter your choice (1-5): "
 
 :: Remove spaces
 set "dns_choice=%dns_choice: =%"
@@ -123,12 +123,13 @@ if not defined dns_choice (
 )
 
 if not "%dns_choice%"=="1" if not "%dns_choice%"=="2" ^
-if not "%dns_choice%"=="3" if not "%dns_choice%"=="4" (
-    echo Invalid choice. Please enter 1-4.
+if not "%dns_choice%"=="3" if not "%dns_choice%"=="4" ^
+if not "%dns_choice%"=="5" (
+    echo Invalid choice. Please enter 1-5.
     goto dns_prompt
 )
 
-if "%dns_choice%"=="4" (
+if "%dns_choice%"=="5" (
     echo.
     echo Exiting without changes...
     timeout /t 2 >nul
@@ -146,7 +147,8 @@ echo.
 echo You selected option [%dns_choice%]:
 if "%dns_choice%"=="1" echo Configure Google Public DNS (8.8.8.8, 8.8.4.4)
 if "%dns_choice%"=="2" echo Configure Cloudflare DNS (1.1.1.1, 1.0.0.1)
-if "%dns_choice%"=="3" echo Reset to DHCP settings
+if "%dns_choice%"=="3" echo Configure OpenDNS (208.67.222.222, 208.67.220.220)
+if "%dns_choice%"=="4" echo Reset to DHCP settings
 echo.
 echo [Y] Yes - Apply Changes
 echo [N] No - Return to Menu
@@ -184,6 +186,12 @@ if "%dns_choice%"=="2" (
 )
 
 if "%dns_choice%"=="3" (
+    echo Setting OpenDNS IPv4:
+    netsh interface ipv4 set dnsservers name="%adapter_name%" static 208.67.222.222 primary
+    netsh interface ipv4 add dnsservers name="%adapter_name%" address=208.67.220.220 index=2
+)
+
+if "%dns_choice%"=="4" (
     echo Resetting to DHCP settings IPv4:
     netsh interface ipv4 set dnsservers name="%adapter_name%" source=dhcp
 )

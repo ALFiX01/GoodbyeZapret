@@ -9,3 +9,7 @@ okcdn.ru
 api.mycdn.me
 rutube.ru
 t-ru.org
+googleads.g.doubleclick.net
+ad.doubleclick.net
+adservice.google.com
+www.googleadservices.com

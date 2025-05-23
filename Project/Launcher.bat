@@ -45,8 +45,8 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.8.0"
-set "Current_GoodbyeZapret_version_code=19MAY01"
+set "Current_GoodbyeZapret_version=1.8.1"
+set "Current_GoodbyeZapret_version_code=23MAY01"
 
 REM Настройки UAC
 set "L_ConsentPromptBehaviorAdmin=0"
@@ -234,7 +234,7 @@ if %WiFi%==On (
     )
 )
 
-tasklist | find /i "Winws.exe" >nul
+tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
 ) else (
@@ -412,7 +412,7 @@ if %errorlevel% equ 0 (
 ) else (
     set "GoodbyeZapretStart=No"
 )
-tasklist | find /i "Winws.exe" >nul
+tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
     set "WinwsStart=Yes"
     for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
@@ -451,7 +451,7 @@ if %YesCount% equ 3 (
 )
 
 :: Проверка запущенного процесса
-:: tasklist | find /i "Winws.exe" >nul
+:: tasklist | find /i "Winws" >nul
 :: if %errorlevel% equ 0 (
 ::     echo Процесс %ProcessName% запущен.
 ::     cls
@@ -909,7 +909,7 @@ if %errorlevel% equ 0 (
 ) else (
     echo    ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлен                                                    %COL%[36m^│
 )
-tasklist | find /i "Winws.exe" >nul
+tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
     echo    ^│ %COL%[92m√ %COL%[37mWinws.exe: %COL%[92mЗапущен                                                              %COL%[36m^│
 ) else (
