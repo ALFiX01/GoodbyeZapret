@@ -31,4 +31,4 @@ start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
 --filter-udp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --hostlist-exclude="%LISTS%exclude.txt" --new ^
 --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --hostlist-exclude="%LISTS%exclude.txt" --new ^
 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake,split2 --dpi-desync-repeats=6 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls="%BIN%tls_clienthello_www_google_com.bin" --hostlist-exclude="%LISTS%exclude.txt" --new ^
---filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" ---dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%BIN%tls_clienthello_7.bin" --dpi-desync-fake-tls-mod=rnd
+--filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%BIN%tls_clienthello_7.bin" --dpi-desync-fake-tls-mod=rnd

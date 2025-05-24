@@ -10,7 +10,7 @@ set errorFlag=0
 for %%f in (winws.exe WinDivert.dll WinDivert64.sys cygwin1.dll) do (
     echo.
     echo  Downloading %%f...
-    curl -g -L -# -o "%BIN%\%%f" "https://github.com/bol-van/zapret-win-bundle/raw/refs/heads/master/zapret-winws/%%f" >nul 2>&1
+    curl -g -L -# -o "%BIN%%%f" "https://github.com/bol-van/zapret-win-bundle/raw/refs/heads/master/zapret-winws/%%f" >nul 2>&1
     if exist "%BIN%\%%f" (
         echo  %%f downloaded successfully.
     ) else (

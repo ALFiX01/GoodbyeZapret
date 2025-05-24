@@ -45,8 +45,8 @@ if %errorlevel% neq 0 (
 
 setlocal EnableDelayedExpansion
 
-set "Current_GoodbyeZapret_version=1.8.1"
-set "Current_GoodbyeZapret_version_code=23MAY01"
+set "Current_GoodbyeZapret_version=1.8.2"
+set "Current_GoodbyeZapret_version_code=24MAY01"
 
 REM Настройки UAC
 set "L_ConsentPromptBehaviorAdmin=0"
