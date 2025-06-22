@@ -7,7 +7,8 @@ cd /d "%parentDir%"
 set "LISTS=%parentDir%lists"
 set errorFlag=0
 
-for %%f in (reestr_hostname.txt reestr_hostname_resolvable.txt) do (
+REM reestr_hostname.txt
+for %%f in ( reestr_hostname_resolvable.txt) do (
     echo.
     echo  Updating %%f...
     curl -g -L -# -o "%LISTS%\%%f" "https://raw.githubusercontent.com/bol-van/rulist/refs/heads/main/%%f" >nul 2>&1

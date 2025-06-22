@@ -1,26 +1,54 @@
 @echo off
 chcp 65001 >nul
 
+goto :Preparing
+:Zapusk
+
 set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
-
-cd /d "%parentDir%"
-
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
 
-set "BIN=%parentDir%bin\"
 set "CONFIG_NAME=GoodbyeZapret: WebUnlock 2"
+set "FAKE=%parentDir%bin\fake\"
+set "BIN=%parentDir%bin\"
 set "LISTS=%parentDir%lists\"
+cd /d "%BIN%"
 
 start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake,fakedsplit --dpi-desync-ttl=3 --dpi-desync-split-pos=midsld --dpi-desync-fake-tls=0x00000000 --new ^
---filter-udp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
+--filter-udp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake,fakedsplit --dpi-desync-autottl=5 --dpi-desync-repeats=6 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls="%BIN%tls_clienthello_www_google_com.bin" ^
---filter-tcp=443 --hostlist="%LISTS%youtube_video-preview.txt" --dpi-desync=fake --dpi-desync-ttl=1 --dpi-desync-autottl=1 --dpi-desync-fake-http=0x00000000 --new ^
+--filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake,fakedsplit --dpi-desync-autottl=5 --dpi-desync-repeats=6 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" ^
+--filter-tcp=80 --hostlist="%LISTS%youtube_video-preview.txt" --dpi-desync=fake --dpi-desync-ttl=1 --dpi-desync-autottl=1 --dpi-desync-fake-http=0x00000000 --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=2 --dpi-desync-split-pos=method+2 --new ^
---filter-udp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
+--filter-udp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=midsld --dpi-desync-repeats=6 --dpi-desync-fooling=md5sig,badseq
+
+goto :EOF
+
+:Preparing
+if not "%1"=="am_admin" (powershell start -verb runas '%0' am_admin & exit /b)
+for /f "skip=3 tokens=1,2,* delims=: " %%i in ('sc query "zapret"') do (
+ if %%j==4 (
+ echo Zapret service is running!
+ echo Stopping service...
+ net stop zapret > nul
+ echo Deleting service...
+ sc delete zapret > nul
+ )
+rem exit
+)
+for /f "skip=3 tokens=1,2,* delims=: " %%i in ('sc query "WinDivert"') do (
+ if %%j==4 (
+ echo WinDivert service is running!
+ echo Stopping service...
+ net stop WinDivert > nul
+ ping -n 3 127.0.0.1 > nul
+ )
+rem exit
+)
+ipconfig /flushdns > nul
+goto :Zapusk

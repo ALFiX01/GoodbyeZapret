@@ -32,23 +32,27 @@
 ::
 ::978f952a14a936cc963da21a135fa983
 @echo off
-chcp 65001 >nul 2>&1
+
 setlocal EnableDelayedExpansion
+
+for /f "delims=" %%A in ('powershell -NoProfile -Command "(Get-Item '%~dp0').Parent.FullName"') do set "ParentDirPath=%%A" 
+
+chcp 65001 >nul 2>&1
 
 :CHECK_INTERNET
 set InternetCheckCount=0
 ping -n 1 google.ru >nul
 if errorlevel 1 (
-    echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету НЕ установлено ^(Попытка: %InternetCheckCount%^)... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету НЕ установлено ^(Попытка: %InternetCheckCount%^)... >> "%ParentDirPath%\Log.txt"
     set /a "InternetCheckCount+=1"
     if "%InternetCheckCount%"=="8" (
-        echo [INFO] %time:~0,8% - Update Check - Превышено количество попыток подключения к Интернету, завершение работы скрипта... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+        echo [INFO] %time:~0,8% - Update Check - Превышено количество попыток подключения к Интернету, завершение работы скрипта... >> "%ParentDirPath%\Log.txt"
         exit
     )
     timeout /t 2 >nul
     goto CHECK_INTERNET
 ) else (
-    echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету установлено... >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Подключение к Интернету установлено... >> "%ParentDirPath%\Log.txt"
 )
 
 :: --- Read Current Version Info ---
@@ -70,8 +74,8 @@ if errorlevel 1 (
 )
 
 :: Загрузка нового файла Updater.exe
-if not exist "%SystemDrive%\GoodbyeZapret\tools\Updater.exe" (
-    curl -g -L -# -o "%SystemDrive%\GoodbyeZapret\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+if not exist "%ParentDirPath%\tools\Updater.exe" (
+    curl -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
 )
 
 :: Выполнение загруженного файла Updater.bat
@@ -92,13 +96,13 @@ echo "%Actual_GoodbyeZapret_version_code%" | findstr /i "%Current_GoodbyeZapret_
 if errorlevel 1 (
     echo - available update
     set "UpdateNeed=Yes"
-    echo [INFO] %time:~0,8% - Update Check - Обнаружено обновление >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Обнаружено обновление >> "%ParentDirPath%\Log.txt"
 ) else (
     set "VersionFound=1"
     echo - no update
     rem Если лог-файл существует, удаляем его
-    if exist "%SystemDrive%\GoodbyeZapret\Log.txt" (
-        del /f /q "%SystemDrive%\GoodbyeZapret\Log.txt" >nul
+    if exist "%ParentDirPath%\Log.txt" (
+        del /f /q "%ParentDirPath%\Log.txt" >nul
     )
 )
 
@@ -108,7 +112,7 @@ if %UpdateNeed% equ Yes ( goto update_screen ) else ( exit /b )
 :: Запуск от имени администратора
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [INFO] %time:~0,8% - Update Check - Requesting administrative privileges >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Requesting administrative privileges >> "%ParentDirPath%\Log.txt"
     echo Requesting administrative privileges...
     start "" /wait /I /min powershell -NoProfile -Command "Start-Process -FilePath '%~s0' -Verb RunAs"
     exit /b
@@ -120,7 +124,7 @@ for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1)
 
 cls
 title GoodbyeZapret UpdateService
-echo [INFO] %time:~0,8% - Update Check - Добро пожаловать в программу обновления GoodbyeZapret >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+echo [INFO] %time:~0,8% - Update Check - Добро пожаловать в программу обновления GoodbyeZapret >> "%ParentDirPath%\Log.txt"
 echo.
 echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
 echo         ^│     %COL%[91m ██╗   ██╗██████╗ ██████╗  █████╗ ████████╗███████╗     %COL%[36m ^│
@@ -161,7 +165,7 @@ if %errorlevel% equ 0 (
 )
 
 :end_GoodbyeZapret_Config
-echo [INFO] %time:~0,8% - Update Check - Скачивание файлов !Actual_GoodbyeZapret_version! >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+echo [INFO] %time:~0,8% - Update Check - Скачивание файлов !Actual_GoodbyeZapret_version! >> "%ParentDirPath%\Log.txt"
 echo  ^[*^] Скачивание файлов !Actual_GoodbyeZapret_version!
 curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
@@ -174,18 +178,18 @@ if %FileSize% LSS 100 (
 )
 
 
-if exist "%SystemDrive%\GoodbyeZapret" (
-  rd /s /q "%SystemDrive%\GoodbyeZapret" >nul 2>&1
+if exist "%ParentDirPath%" (
+  rd /s /q "%ParentDirPath%" >nul 2>&1
 )
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
-    echo [INFO] %time:~0,8% - Update Check - Распаковка файлов >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Распаковка файлов >> "%ParentDirPath%\Log.txt"
     echo  ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
-    powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%SystemDrive%\GoodbyeZapret' >nul 2>&1
+    powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%ParentDirPath%' >nul 2>&1
     chcp 65001 >nul 2>&1
 ) else (
-    echo [INFO] %time:~0,8% - Update Check - Error: File not found: %TEMP%\GoodbyeZapret.zip >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Error: File not found: %TEMP%\GoodbyeZapret.zip >> "%ParentDirPath%\Log.txt"
     echo %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
     exit
@@ -199,33 +203,34 @@ if %errorlevel% equ 0 (
 )
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
-    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
-    if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat" (
-        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat\"" start= auto
+    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
+    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat\"\""
+        sc config "GoodbyeZapret" start= auto
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
             echo  ^[*^] Служба GoodbyeZapret успешно запущена
         )
         echo  ^[*^] Обновление завершено
-        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.exe"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
-        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.exe"
         timeout /t 1 >nul
         exit
     )
 ) else (
-    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%ParentDirPath%\Log.txt"
     if defined GoodbyeZapret_LastStartConfig (
-        if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" (
-            start "" "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" 
+        if exist "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" (
+            start "" "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" 
         )
     )
-    start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+    start "" "%ParentDirPath%\Launcher.exe"
     exit
 )

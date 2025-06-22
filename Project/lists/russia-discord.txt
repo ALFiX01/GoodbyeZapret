@@ -7,3 +7,4 @@ discord.media
 discordcdn.com
 discordstatus.com
 discord-attachments-uploads-prd.storage.googleapis.com
+updates.discord.com

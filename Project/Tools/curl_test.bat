@@ -1,39 +1,40 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableDelayedExpansion
-rem --- Проверка googlevideo ---
+set currentDir=%~dp0
+set currentDir=%currentDir:~0,-1%
+for %%i in ("%currentDir%") do set parentDir=%%~dpi
+
+rem --- Список доменов в переменной ---
+set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com i.ytimg.com discord.com cloudflare.com"
+
 set CountOK=0
 echo.
-echo   Проверка Youtube...
 
-rem -o nul: перенаправить вывод заголовков в пустоту (чтобы не засорять консоль)
-curl -s -L -I --connect-timeout 2 -o nul https://rr5---sn-jvhnu5g-c35d.googlevideo.com
+for %%u in (%domains%) do (
+    echo   Проверка %%u ...
+    curl -s -L -I --connect-timeout 2 -o nul %%u
 
-rem Проверяем код завершения команды curl. 0 обычно означает успех.
-IF %ERRORLEVEL% EQU 0 (
-    echo    Доступен.
-    set /a "CountOK+=1"
-) ELSE (
-    echo    НЕДОСТУПЕН ^(код ошибки curl: %ERRORLEVEL%^).
-)
-echo.
-
-rem --- Проверка discord.com ---
-echo  Проверка discord...
-curl -s -L -I --connect-timeout 2 -o nul https://discord.com
-
-IF %ERRORLEVEL% EQU 0 (
-    echo    Доступен.
-    set /a "CountOK+=1"
-) ELSE (
-    echo    НЕДОСТУПЕН ^(код ошибки curl: %ERRORLEVEL%^).
+    IF !ERRORLEVEL! EQU 0 (
+        echo     Доступен.
+        set /a "CountOK+=1"
+    ) ELSE (
+        echo     /// НЕДОСТУПЕН ^(код curl: !ERRORLEVEL!^).
+    )
+    echo.
 )
 
-if %CountOK% equ 2 (
+set /a total=0
+for %%u in (%domains%) do set /a total+=1
+
+if %CountOK% equ %total% (
     if defined batFile (
         reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastWorkConfig" /d "%batFile%" /f >nul
     )
-)
+    echo.
+    echo  Проверка успешно завершена.
+) else (
 echo.
-
 echo  Проверка завершена.
-
+)
+timeout /t 2 >nul 2>&1

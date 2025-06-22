@@ -4,14 +4,14 @@ set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 
 cd /d "%parentDir%"
-set "BIN=%parentDir%bin\"
+set "FAKE=%parentDir%bin\"
 set errorFlag=0
 
 for %%f in (winws.exe WinDivert.dll WinDivert64.sys cygwin1.dll) do (
     echo.
     echo  Downloading %%f...
-    curl -g -L -# -o "%BIN%%%f" "https://github.com/bol-van/zapret-win-bundle/raw/refs/heads/master/zapret-winws/%%f" >nul 2>&1
-    if exist "%BIN%\%%f" (
+    curl -g -L -# -o "%FAKE%%%f" "https://github.com/bol-van/zapret-win-bundle/raw/refs/heads/master/zapret-winws/%%f" >nul 2>&1
+    if exist "%FAKE%\%%f" (
         echo  %%f downloaded successfully.
     ) else (
         echo  Failed to download %%f.

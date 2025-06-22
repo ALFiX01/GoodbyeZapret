@@ -33,7 +33,8 @@
 ::978f952a14a936cc963da21a135fa983
 @echo off
 
-chcp 65001 >nul 2>&1
+setlocal EnableDelayedExpansion
+
 :: Запуск от имени администратора
 reg add HKLM /F >nul 2>&1
 if %errorlevel% neq 0 (
@@ -41,7 +42,9 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-setlocal EnableDelayedExpansion
+for /f "delims=" %%A in ('powershell -NoProfile -Command "(Get-Item '%~dp0').Parent.FullName"') do set "ParentDirPath=%%A" 
+
+chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
@@ -117,14 +120,14 @@ if %FileSize% LSS 100 (
 )
 
 
-if exist "%SystemDrive%\GoodbyeZapret" (
-  rd /s /q "%SystemDrive%\GoodbyeZapret" >nul 2>&1
+if exist "%ParentDirPath%" (
+  rd /s /q "%ParentDirPath%" >nul 2>&1
 )
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
     echo         ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
-    powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%SystemDrive%\GoodbyeZapret' >nul 2>&1
+    powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%ParentDirPath%' >nul 2>&1
     chcp 65001 >nul 2>&1
 ) else (
     echo        %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
@@ -140,39 +143,40 @@ if %errorlevel% equ 0 (
 )
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
-    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
-    if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat" (
-        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat\"" start= auto
+    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
+    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat\"\""
+        sc config "GoodbyeZapret" start= auto
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
             echo  ^[*^] Служба GoodbyeZapret успешно запущена
         )
         echo  ^[*^] Обновление завершено
-        if exist "%SystemDrive%\GoodbyeZapret\Log.txt" (
-            del /f /q "%SystemDrive%\GoodbyeZapret\Log.txt" >nul
+        if exist "%ParentDirPath%\Log.txt" (
+            del /f /q "%ParentDirPath%\Log.txt" >nul
         )
-        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.exe"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
-        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_Config%.bat >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.exe"
         timeout /t 1 >nul
         exit
     )
 ) else (
-    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%SystemDrive%\GoodbyeZapret\Log.txt"
+    echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%ParentDirPath%\Log.txt"
     if defined GoodbyeZapret_LastStartConfig (
-        if exist "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" (
-            start "" "%SystemDrive%\GoodbyeZapret\configs\%GoodbyeZapret_LastStartConfig%" 
+        if exist "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" (
+            start "" "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" 
         )
     )
-    if exist "%SystemDrive%\GoodbyeZapret\Log.txt" (
-    del /f /q "%SystemDrive%\GoodbyeZapret\Log.txt" >nul
+    if exist "%ParentDirPath%\Log.txt" (
+    del /f /q "%ParentDirPath%\Log.txt" >nul
     )
-    start "" "%SystemDrive%\GoodbyeZapret\Launcher.exe"
+    start "" "%ParentDirPath%\Launcher.exe"
     exit
 )
