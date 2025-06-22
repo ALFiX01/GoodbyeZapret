@@ -843,6 +843,8 @@ if %errorlevel% equ 0 (
         echo  - Ошибка при запуске службы
     )
 )
+cls
+echo.
 echo  - %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
 set installing_service=0
 timeout /t 2 >nul 2>&1
