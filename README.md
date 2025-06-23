@@ -36,7 +36,7 @@
 
 ---
 
-## О проекте
+## 📌 О проекте
 
 **GoodbyeZapret** — это инструмент с открытым исходным кодом на базе [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws), предназначенный для обхода блокировок на основе DPI (Deep Packet Inspection) в Windows. 
 
