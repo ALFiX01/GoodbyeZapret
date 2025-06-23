@@ -1,42 +1,56 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal EnableDelayedExpansion
 
-REM Check for administrator privileges
+REM --- Check for administrator privileges ---
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Requesting administrative privileges...
-    powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%~f0\" admin\"' -Verb RunAs"
+    echo  Requesting administrator privileges...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
     exit /b
 )
 
-REM Stop and delete GoodbyeZapret service
-echo Stopping "GoodbyeZapret" service...
-net stop "GoodbyeZapret" >nul 2>&1
-if %errorlevel% neq 0 echo   "GoodbyeZapret" service was not running or could not be stopped.
+REM --- Stop and delete GoodbyeZapret service if it exists ---
+sc query "GoodbyeZapret" >nul 2>&1
+if !errorlevel! equ 0 (
+    echo Stopping "GoodbyeZapret" service...
+    sc stop "GoodbyeZapret" >nul 2>&1
+    ping -n 3 127.0.0.1 >nul
+    echo Deleting "GoodbyeZapret" service...
+    sc delete "GoodbyeZapret" >nul 2>&1
+) else (
+    echo "GoodbyeZapret" service not found.
+)
 
-echo Deleting "GoodbyeZapret" service...
-sc delete "GoodbyeZapret" >nul 2>&1
-if %errorlevel% neq 0 echo   Failed to delete "GoodbyeZapret" service or it was already removed.
+REM --- Kill winws.exe process if running ---
+tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
+if "!ERRORLEVEL!"=="0" (
+    echo Terminating "winws.exe" process...
+    taskkill /F /IM winws.exe >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo   Failed to terminate "winws.exe" or process not found.
+    )
+) else (
+    echo "winws.exe" process not found.
+)
 
-REM Kill winws.exe process
-echo Terminating "winws.exe" process...
-taskkill /F /IM winws.exe >nul 2>&1
-if %errorlevel% neq 0 echo   Failed to terminate "winws.exe" or process not found.
-
-REM Stop and delete WinDivert service
-echo Stopping "WinDivert" service...
-net stop "WinDivert" >nul 2>&1
-sc stop windivert >nul 2>&1
-
-echo Deleting "WinDivert" service...
-sc delete "WinDivert" >nul 2>&1
-if %errorlevel% neq 0 echo   Failed to delete "WinDivert" service or it was already removed.
-
-echo Deleting "WinDivert14" service...
-sc delete "WinDivert14" >nul 2>&1
-if %errorlevel% neq 0 echo   Failed to delete "WinDivert14" service or it was already removed.
+REM --- Stop and delete WinDivert service if it exists ---
+for %%S in (WinDivert WinDivert14) do (
+    sc query "%%S" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo Stopping "%%S" service...
+        sc stop "%%S" >nul 2>&1
+        ping -n 3 127.0.0.1 >nul
+        echo Deleting "%%S" service...
+        sc delete "%%S" >nul 2>&1
+        if !errorlevel! neq 0 (
+            echo   Failed to delete "%%S" service or it was already removed.
+        )
+    ) else (
+        echo "%%S" service not found.
+    )
+)
 
 echo.
 powershell -Command "Write-Host 'Operation completed successfully!' -ForegroundColor Green"
-pause
+timeout /t 2 >nul 2>&1
 endlocal

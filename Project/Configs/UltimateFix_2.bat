@@ -21,34 +21,44 @@ start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" ^
---filter-udp=443 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" --new ^
---filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%BIN%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2
+--filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
+--filter-udp=443 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-tcp=80 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
+--filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2
 
 goto :EOF
 
 :Preparing
-if not "%1"=="am_admin" (powershell start -verb runas '%0' am_admin & exit /b)
-for /f "skip=3 tokens=1,2,* delims=: " %%i in ('sc query "zapret"') do (
- if %%j==4 (
- echo Zapret service is running!
- echo Stopping service...
- net stop zapret > nul
- echo Deleting service...
- sc delete zapret > nul
- )
-rem exit
+if not "%1"=="am_admin" (
+  powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'am_admin' -Verb RunAs"
+  exit /b
 )
-for /f "skip=3 tokens=1,2,* delims=: " %%i in ('sc query "WinDivert"') do (
- if %%j==4 (
- echo WinDivert service is running!
- echo Stopping service...
- net stop WinDivert > nul
- ping -n 3 127.0.0.1 > nul
- )
-rem exit
+REM --- Gracefully stop and remove services that may interfere ---
+
+REM Stop & delete zapret service if it exists
+sc query "zapret" >nul 2>&1
+if %errorlevel% equ 0 (
+  sc stop zapret >nul 2>&1
+  sc delete zapret >nul 2>&1
 )
+
+REM Check if winws.exe is running and terminate it if found
+tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
+if "%ERRORLEVEL%"=="0" (
+  REM Forcefully kill winws.exe process
+  taskkill /F /IM winws.exe >nul 2>&1
+)
+
+REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
+sc query "WinDivert" >nul 2>&1
+if %errorlevel% equ 0 (
+  sc stop WinDivert >nul 2>&1
+  REM give the driver a moment to unload
+  ping -n 3 127.0.0.1 > nul
+)
+
+REM Flush DNS cache
 ipconfig /flushdns > nul
+
 goto :Zapusk

@@ -37,13 +37,14 @@
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo %COL%[93m[*] Requesting administrator privileges...%COL%[37m
+    echo  Requesting administrator privileges...
     powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
     exit /b
 )
 
 :: Enable delayed expansion for variable manipulation
 setlocal EnableDelayedExpansion
+set "ErrorCount=0"
 
 :: Get the parent directory path more reliably
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
@@ -230,12 +231,9 @@ REM Initialize variables
 set "BatCount=0"
 set "sourcePath=%~dp0"
 
-REM Count .bat files in configs directory
-for %%f in ("%sourcePath%configs\*.bat") do (
-    set /a "BatCount+=1"
-)
-
-REM Calculate console window size based on config count
+REM Re-calculate amount of *.bat configs and resize console every time we enter the menu (prevents list from «исчезать» after returning)
+set "BatCount=0"
+for %%f in ("%sourcePath%configs\*.bat") do set /a BatCount+=1
 set /a ListBatCount=BatCount+25
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
@@ -337,6 +335,13 @@ if exist "%TEMP%\GZ_Updater.bat" (
     )
 )
 
+curl -s -L -I --connect-timeout 2 -o nul https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version
+
+IF !ERRORLEVEL! NEQ 0 (
+    set "CheckStatus=FileCheckError"
+    goto OnFileCheckError
+)
+
 REM Download version update file
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 if errorlevel 1 (
@@ -398,6 +403,10 @@ if errorlevel 1 (
 )
 
 :OnFileCheckError
+if "%CheckStatus%"=="FileCheckError" (
+    set "Actual_GoodbyeZapret_version=0.0.0"
+    set "StatusProject=1"
+)
 REM GoodbyeZapret versions
 set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
 set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
@@ -512,7 +521,7 @@ if not defined GoodbyeZapretVersion (
     set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
     set "Actual_GoodbyeZapret_version=0.0.0"
     set "UpdateNeed=No"
-    timeout /t 2 >nul
+    timeout /t 1 >nul
 )
 
 REM Error handling for missing config
@@ -693,38 +702,48 @@ echo.
 set "choice="
 set "counter=0"
 
-REM Loop through all .bat files in configs directory
+REM Modernized config enumeration ----------------------------------------------------
 for %%F in ("%sourcePath%configs\*.bat") do (
     set /a "counter+=1"
-    set "CurrentCheckFileName=%%~nxF"
     set "ConfigName=%%~nF"
+    set "ConfigFull=%%~nxF"
 
-    REM Determine display format based on counter (single vs double digit)
-    if !counter! lss 10 (
-        set "prefix=                  "
-    ) else (
-        set "prefix=                 "
-    )
+    REM Determine status tag and color once
+    set "StatusText="
+    set "StatusColor=%COL%[37m"
 
-    REM Display config with appropriate color and status
     if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
-        echo !prefix!%COL%[36m!counter!. %COL%[36m%%~nF %COL%[92m^[Активен^]
+        set "StatusText=[Активен]"
+        set "StatusColor=%COL%[92m"
     ) else if /i "!ConfigName!"=="%TrimmedLastStart%" (
-        echo !prefix!%COL%[36m!counter!. %COL%[96m%%~nF %COL%[96m^[Запущен^]
+        set "StatusText=[Запущен]"
+        set "StatusColor=%COL%[96m"
     ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" (
-        echo !prefix!%COL%[36m!counter!. %COL%[93m%%~nF %COL%[90m^[Раньше работал^]
+        set "StatusText=[Раньше работал]"
+        set "StatusColor=%COL%[93m"
     ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
-        echo !prefix!%COL%[36m!counter!. %COL%[93m%%~nF %COL%[90m^[Использовался^]
-    ) else (
-        echo !prefix!%COL%[36m!counter!. %COL%[37m%%~nF
+        set "StatusText=[Использовался]"
+        set "StatusColor=%COL%[93m"
     )
-    
-    REM Store filename for later use
-    set "file!counter!=%%~nxF"
-)
 
-REM Calculate last choice index
-set /a "lastChoice=counter-1"
+    REM Simple alignment for single-digit numbers
+    if !counter! lss 10 (
+        set "Pad= "
+    ) else (
+        set "Pad="
+    )
+
+    if defined StatusText (
+        echo                 %COL%[36m!counter!.!Pad! %COL%[36m%%~nF !StatusColor!!StatusText!
+    ) else (
+        echo                 %COL%[36m!counter!.!Pad! %COL%[37m%%~nF
+    )
+
+    set "file!counter!=!ConfigFull!"
+)
+REM ---------------------------------------------------------------------------------
+
+set /a "lastChoice=counter"
 
 REM Display update notification if available
 if "%UpdateNeed%"=="Yes" (
@@ -847,7 +866,7 @@ cls
 echo.
 echo  - %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
 set installing_service=0
-timeout /t 2 >nul 2>&1
+timeout /t 1 >nul 2>&1
 if exist "%ParentDirPath%\tools\curl_test.bat" (
     call "%ParentDirPath%\tools\curl_test.bat"
 )
@@ -872,6 +891,7 @@ goto :end
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
                 echo  Файл winws.exe остановлен
+                ipconfig /flushdns > nul
             )
             echo %COL%[92m Удаление успешно завершено %COL%[37m
         ) else (
