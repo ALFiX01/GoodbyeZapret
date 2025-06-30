@@ -37,7 +37,7 @@ if not "%1"=="am_admin" (
   powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'am_admin' -Verb RunAs"
   exit /b
 )
-REM --- Gracefully stop and remove services that may interfere ---
+Echo Preparing...
 
 REM Stop & delete zapret service if it exists
 sc query "zapret" >nul 2>&1
@@ -54,12 +54,12 @@ if "%ERRORLEVEL%"=="0" (
 )
 
 REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-sc query "WinDivert" >nul 2>&1
-if %errorlevel% equ 0 (
-  sc stop WinDivert >nul 2>&1
-  REM give the driver a moment to unload
-  ping -n 3 127.0.0.1 > nul
-)
+REM sc query "WinDivert" >nul 2>&1
+REM if %errorlevel% equ 0 (
+  REM sc stop WinDivert >nul 2>&1
+  REM REM give the driver a moment to unload
+  REM ping -n 3 127.0.0.1 > nul
+REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul

@@ -109,28 +109,30 @@ REM Если ключ нигде не найден, установить зна�
 
 :end_GoodbyeZapret_Config
 echo         ^[*^] Скачивание файлов
-curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o %ParentDirPath%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
-for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
+for %%I in ("%ParentDirPath%\GoodbyeZapret.zip") do set FileSize=%%~zI
 if %FileSize% LSS 100 (
     echo       %COL%[91m ^[*^] Error - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^) %COL%[90m
     pause
-    del /Q "%TEMP%\GoodbyeZapret.zip"
+    del /Q "%ParentDirPath%\GoodbyeZapret.zip"
     exit
 )
 
-
-if exist "%ParentDirPath%" (
-  rd /s /q "%ParentDirPath%" >nul 2>&1
+REM Удаляем только предыдущую распакованную версию (если существует)
+if exist "%ParentDirPath%\GoodbyeZapret" (
+  echo         ^[*^] Удаление предыдущей версии
+  rd /s /q "%ParentDirPath%\GoodbyeZapret" >nul 2>&1
 )
 
-if exist "%TEMP%\GoodbyeZapret.zip" (
+if exist "%ParentDirPath%\GoodbyeZapret.zip" (
     echo         ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
-    powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%ParentDirPath%' >nul 2>&1
+    powershell -NoProfile Expand-Archive '%ParentDirPath%\GoodbyeZapret.zip' -DestinationPath '%ParentDirPath%' >nul 2>&1
     chcp 65001 >nul 2>&1
+    del /Q "%ParentDirPath%\GoodbyeZapret.zip"
 ) else (
-    echo        %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
+    echo        %COL%[91m ^[*^] Error: File not found: %ParentDirPath%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
     exit
 )

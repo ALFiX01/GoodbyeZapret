@@ -16,7 +16,7 @@ set "LISTS=%parentDir%lists\"
 
 start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
 --wf-tcp=80,443 --wf-udp=443,50000-59000 ^
---filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake --dpi-desync-repeats=2 --dpi-desync-cutoff=n2 --dpi-desync-fake-quic="%FAKE%quic_test_00.bin" --new ^
+--filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake --dpi-desync-repeats=2 --dpi-desync-cutoff=n2 --dpi-desync-fake-quic="%FAKE%quic_6.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtubeGV.txt" --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-cutoff=d2 --dpi-desync-ttl=4 --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube.txt" --dpi-desync=fake,split2 --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=3 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-ttl=3 --new ^
 --filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^

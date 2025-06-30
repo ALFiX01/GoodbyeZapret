@@ -51,7 +51,9 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 :: Set version information
 set "Current_GoodbyeZapret_version=2.0.0"
-set "Current_GoodbyeZapret_version_code=24MAY01"
+set "Current_GoodbyeZapret_version_code=30Y01"
+set "branch=Stable"
+set "beta_code=0"
 
 REM /// UAC Settings ///
 REM UAC Settings
@@ -204,8 +206,8 @@ echo Checking connectivity to update server ^(%CheckURL%^)...
 :: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
 :: --connect-timeout 5: Таймаут на подключение 5 секунд
 :: --max-time 8: Общий таймаут 8 секунд
-curl -s -L --head -m 8 --connect-timeout 5 --max-time 8 -o NUL "%CheckURL%" 2>NUL
 
+curl -4 -s -L --head -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
     REM Успешно, сервер доступен
     echo Connection successful.
@@ -234,7 +236,7 @@ set "sourcePath=%~dp0"
 REM Re-calculate amount of *.bat configs and resize console every time we enter the menu (prevents list from «исчезать» after returning)
 set "BatCount=0"
 for %%f in ("%sourcePath%configs\*.bat") do set /a BatCount+=1
-set /a ListBatCount=BatCount+25
+set /a ListBatCount=BatCount+24
 mode con: cols=92 lines=%ListBatCount% >nul 2>&1
 
 REM Initialize color codes
@@ -335,7 +337,8 @@ if exist "%TEMP%\GZ_Updater.bat" (
     )
 )
 
-curl -s -L -I --connect-timeout 2 -o nul https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version
+
+curl -4 -s -L -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
     set "CheckStatus=FileCheckError"
@@ -624,17 +627,31 @@ if %YesCount% equ 3 (
 
 REM Set window title
 if not defined GoodbyeZapretVersion (
-    title GoodbyeZapret - Launcher
+    if /i "%branch%"=="beta" (
+        title GoodbyeZapret - Launcher - бета версия %beta_code%
+    ) else (
+        title GoodbyeZapret - Launcher
+    )
 ) else (
-    title GoodbyeZapret - Launcher %Current_GoodbyeZapret_version%
+    if /i "%branch%"=="beta" (
+        title GoodbyeZapret - Launcher v%Current_GoodbyeZapret_version% бета %beta_code% 
+    ) else (
+        title GoodbyeZapret - Launcher v%Current_GoodbyeZapret_version%
+    )
 )
 
 echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
 echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
 echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
 echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
-echo                                       /____/               /_/                   
-echo.
+
+if /i "%branch%"=="beta" (
+    echo                                       /____/  бета версия  /_/
+    echo.   
+) else (
+    echo                                       /____/               /_/                   
+    echo.
+)
 
 REM Check internet connection and file status
 if /i "%WiFi%"=="Off" (
@@ -703,7 +720,7 @@ set "choice="
 set "counter=0"
 
 REM Modernized config enumeration ----------------------------------------------------
-for %%F in ("%sourcePath%configs\*.bat") do (
+for %%F in ("%ParentDirPath%\configs\*.bat") do (
     set /a "counter+=1"
     set "ConfigName=%%~nF"
     set "ConfigFull=%%~nxF"
@@ -766,7 +783,6 @@ if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo.
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
-    echo                 %COL%[36m^[ CF ^] %COL%[37mОбход cloudflare ^(%cloudflare%%COL%[37m^)
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
     echo.
@@ -855,7 +871,7 @@ reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Old
 sc description GoodbyeZapret "%batFile:~0,-4%" >nul
 sc start "GoodbyeZapret" >nul
 if %errorlevel% equ 0 (
-    sc start "GoodbyeZapret" >nul 2>&1
+    cmd /c "sc start GoodbyeZapret" >nul
     if %errorlevel% equ 0 (
         echo  - Служба GoodbyeZapret успешно запущена %COL%[37m
     ) else (

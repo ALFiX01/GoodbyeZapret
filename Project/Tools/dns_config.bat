@@ -5,12 +5,9 @@ cls
 :: Check for administrative privileges
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo =======================================================
-    echo ERROR: This script requires elevated privileges.
-    echo Right-click and select "Run as administrator".
-    echo =======================================================
-    timeout /t 4 >nul
-    exit /b 1
+    echo  Requesting administrator privileges...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
+    exit /b
 )
 
 mode con: cols=55 lines=25 >nul 2>&1
@@ -45,7 +42,7 @@ for /l %%i in (1,1,%count%) do (
     powershell -Command "Write-Host ' %%i. !adapter_%%i!' -ForegroundColor Blue"
 )
 echo.
-echo ---------------------------
+echo -------------------------------------------------------
 
 :: Adapter selection loop
 :adapter_prompt
@@ -82,7 +79,7 @@ set "adapter_name=!adapter_%test%!"
 :: Display selected adapter info
 cls
 echo =======================================================
-echo        Selected Adapter: %adapter_name%
+echo         Selected Adapter: %adapter_name%
 echo =======================================================
 echo.
 echo Current DNS Settings:
@@ -91,6 +88,7 @@ for /f "tokens=*" %%a in ('netsh interface ipv4 show dnsservers name^="%adapter_
     powershell -Command "Write-Host '%%a' -ForegroundColor Blue"
 )
 echo.
+echo Press any key to continue to the menu...
 pause >nul
 
 :: DNS configuration menu
@@ -139,7 +137,7 @@ if "%dns_choice%"=="5" (
 :: Confirmation screen
 cls
 echo =======================================================
-echo        DNS Configuration Utility
+echo              DNS Configuration Utility
 echo =======================================================
 echo.
 echo WARNING: This will overwrite your current DNS settings
@@ -169,7 +167,7 @@ goto confirm_prompt
 :apply_settings
 cls
 echo =======================================================
-echo Applying DNS Settings to "%adapter_name%"
+echo   Applying DNS Settings to "%adapter_name%"
 echo =======================================================
 echo.
 

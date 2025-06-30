@@ -34,7 +34,7 @@ if "!ERRORLEVEL!"=="0" (
 )
 
 REM --- Stop and delete WinDivert service if it exists ---
-for %%S in (WinDivert WinDivert14) do (
+for %%S in (WinDivert) do (
     sc query "%%S" >nul 2>&1
     if !errorlevel! equ 0 (
         echo Stopping "%%S" service...
@@ -52,5 +52,4 @@ for %%S in (WinDivert WinDivert14) do (
 
 echo.
 powershell -Command "Write-Host 'Operation completed successfully!' -ForegroundColor Green"
-timeout /t 2 >nul 2>&1
 endlocal

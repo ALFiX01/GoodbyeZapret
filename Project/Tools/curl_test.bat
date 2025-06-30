@@ -28,7 +28,7 @@ for %%u in (%domains%) do (
     )
     set /a total+=1
     echo   Проверка %%u ...
-    curl -s -L -I --connect-timeout 2 -o nul "!url!"
+    curl -4 -s -L -I --connect-timeout 2 --max-time 2 --max-redirs 1 -o nul "!url!"
     if !ERRORLEVEL! EQU 0 (
         echo     Доступен.
         set /a CountOK+=1

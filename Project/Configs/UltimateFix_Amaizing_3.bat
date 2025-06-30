@@ -22,6 +22,7 @@ start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
 --filter-udp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=5 --dpi-desync-udplen-pattern=0xDEADBEEF --dpi-desync-fake-quic="%FAKE%quic_3.bin" --dpi-desync-repeats=7 --dpi-desync-cutoff=n2 --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=25 --dpi-desync-fake-quic="%FAKE%quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-youtube.txt" --dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=2 --dpi-desync-fake-tls-mod=dupsid,sni=drive.google.com --dpi-desync-autottl --new ^
+--filter-tcp=443 --hostlist-domains=googlevideo.com --hostlist="%LISTS%youtube_video-chanel-preview.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=25 --dpi-desync-fake-quic="%FAKE%quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtubeGV.txt" --dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=2 --dpi-desync-fake-tls-mod=dupsid,sni=drive.google.com --dpi-desync-autottl --new ^
 --filter-tcp=443 --hostlist="%LISTS%faceinsta.txt" --dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=2 --dpi-desync-fake-tls-mod=dupsid,sni=drive.google.com --dpi-desync-autottl --new ^
 --filter-tcp=443 --hostlist="%LISTS%custom-hostlist.txt" -dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=2 --dpi-desync-fake-tls-mod=dupsid,sni=drive.google.com --dpi-desync-autottl --new ^
@@ -37,7 +38,7 @@ if not "%1"=="am_admin" (
   powershell -Command "Start-Process -FilePath '%~f0' -ArgumentList 'am_admin' -Verb RunAs"
   exit /b
 )
-REM --- Gracefully stop and remove services that may interfere ---
+Echo Preparing...
 
 REM Stop & delete zapret service if it exists
 sc query "zapret" >nul 2>&1
@@ -54,12 +55,12 @@ if "%ERRORLEVEL%"=="0" (
 )
 
 REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-sc query "WinDivert" >nul 2>&1
-if %errorlevel% equ 0 (
-  sc stop WinDivert >nul 2>&1
-  REM give the driver a moment to unload
-  ping -n 3 127.0.0.1 > nul
-)
+REM sc query "WinDivert" >nul 2>&1
+REM if %errorlevel% equ 0 (
+  REM sc stop WinDivert >nul 2>&1
+  REM REM give the driver a moment to unload
+  REM ping -n 3 127.0.0.1 > nul
+REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul
