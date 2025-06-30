@@ -112,8 +112,16 @@ taskkill /F /IM winws.exe >nul 2>&1
 net stop "WinDivert" >nul 2>&1
 sc delete "WinDivert" >nul 2>&1
 
+
+curl -4 -s -L -I --connect-timeout 3 -o nul "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
+if errorlevel 1 (
+    echo        %COL%[91m ^[*^] Error: Failed to connect to GoodbyeZapret server %COL%[90m
+    timeout /t 5 >nul
+    exit
+)
+
 echo         ^[*^] Скачивание файлов
-curl -g -L -# -o %ProjecDir%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o "%ProjecDir%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%ProjecDir%\GoodbyeZapret.zip") do set FileSize=%%~zI
 if %FileSize% LSS 100 (

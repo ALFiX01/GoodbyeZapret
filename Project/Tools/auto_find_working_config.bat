@@ -68,7 +68,12 @@ for %%F in ("%configsDir%\*.bat") do (
         echo -----------------------------------------------------------------------
         echo             !GREEN!Найден рабочий конфиг: !configName!!RESET!
         echo -----------------------------------------------------------------------
-        goto :success
+        echo   !CYAN!Нажмите любую клавишу, чтобы продолжить поиск...!RESET!
+        pause >nul
+        call :SmartCleanup
+        echo   !CYAN!Продолжаем поиск...!RESET!
+        echo ------------------------------------------------------------
+        echo.
     ) else if !retCode! equ 1 (
         REM Конфиг разблокировал все домены кроме одного
         set /a foundAlmostWorking+=1
@@ -114,7 +119,6 @@ if defined __tmpList if not "%__tmpList%"=="" goto :loopAlmost
 exit /b
 
 :after_print
-:success
 :end
 endlocal
 pause
