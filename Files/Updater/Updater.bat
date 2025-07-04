@@ -48,7 +48,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=1.2"
+set "UpdaterVersion=1.3"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -124,6 +124,9 @@ if exist "%ParentDirPath%\GoodbyeZapret" (
   echo         ^[*^] Удаление предыдущей версии
   rd /s /q "%ParentDirPath%\GoodbyeZapret" >nul 2>&1
 )
+
+if exist "%ParentDirPath%\Launcher.bat" del /Q "%ParentDirPath%\Launcher.bat" >nul 2>&1
+if exist "%ParentDirPath%\Launcher.exe" del /Q "%ParentDirPath%\Launcher.exe" >nul 2>&1
 
 if exist "%ParentDirPath%\GoodbyeZapret.zip" (
     echo         ^[*^] Распаковка файлов
