@@ -16,7 +16,7 @@ set "LISTS=%parentDir%lists\"
 cd /d "%BIN%"
 
 start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
---wf-tcp=80,443 --wf-udp=443,50000-50090 ^
+--wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50100,1024-65535 ^
 --filter-tcp=80,443 --hostlist="%LISTS%exclude-autohostlist.txt" --new ^
 --filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%tls_clienthello_4.bin" --dpi-desync-autottl 2:2-8 --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=4 --dpi-desync-fake-quic="%FAKE%quic_4.bin" --dpi-desync-cutoff=n3 --dpi-desync-repeats=2 --new ^

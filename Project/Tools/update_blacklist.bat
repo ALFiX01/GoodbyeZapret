@@ -8,17 +8,17 @@ set "LISTS=%parentDir%lists"
 set errorFlag=0
 
 REM reestr_hostname.txt
-for %%f in ( reestr_hostname_resolvable.txt) do (
-    echo.
-    echo  Updating %%f...
-    curl -g -L -# -o "%LISTS%\%%f" "https://raw.githubusercontent.com/bol-van/rulist/refs/heads/main/%%f" >nul 2>&1
-    if exist "%LISTS%\%%f" (
-        echo  %%f Updated successfully.
-    ) else (
-        echo  Failed to update %%f.
-        set errorFlag=1
-    )
-)
+REM for %%f in ( reestr_hostname_resolvable.txt) do (
+REM     echo.
+REM     echo  Updating %%f...
+REM     curl -g -L -# -o "%LISTS%\%%f" "https://raw.githubusercontent.com/bol-van/rulist/refs/heads/main/%%f" >nul 2>&1
+REM     if exist "%LISTS%\%%f" (
+REM         echo  %%f Updated successfully.
+REM     ) else (
+REM         echo  Failed to update %%f.
+REM         set errorFlag=1
+REM     )
+REM )
 
 echo.
 echo  Updating russia-blacklist.txt...

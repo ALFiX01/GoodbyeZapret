@@ -16,7 +16,7 @@ set "LISTS=%parentDir%lists\"
 cd /d "%BIN%"
 
 start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
---wf-tcp=80,443 --wf-udp=443,50000-65535 ^
+--wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50100,1024-65535 ^
 --filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^

@@ -50,8 +50,8 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Set version information
-set "Current_GoodbyeZapret_version=2.0.0"
-set "Current_GoodbyeZapret_version_code=30Y01"
+set "Current_GoodbyeZapret_version=2.0.1"
+set "Current_GoodbyeZapret_version_code=04YL01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -64,6 +64,7 @@ set "L_EnableLUA=1"
 set "L_EnableSecureUIAPaths=1"
 set "L_FilterAdministratorToken=0"
 set "L_PromptOnSecureDesktop=0"
+set "L_ValidateAdminCodeSignatures=0"
 
 REM UAC registry path
 set "UAC_HKLM=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
@@ -78,6 +79,7 @@ for %%i in (
     EnableSecureUIAPaths
     FilterAdministratorToken
     PromptOnSecureDesktop
+    ValidateAdminCodeSignatures
 ) do (
     REM Check if key exists before reading
     reg query "%UAC_HKLM%" /v "%%i" >nul 2>&1
@@ -783,6 +785,7 @@ if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo.
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    echo                 %COL%[36m^[ AC ^] %COL%[37mЗапустить автоподбор конфига
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
     echo.
@@ -803,6 +806,9 @@ if /i "%choice%"=="ый" goto SeqStart
 
 if /i "%choice%"=="ST" goto CurrentStatus
 if /i "%choice%"=="ые" goto CurrentStatus
+
+if /i "%choice%"=="AC" goto ConfigAutoFinder
+if /i "%choice%"=="фс" goto ConfigAutoFinder
 
 REM Handle update option only if update is available
 if "%UpdateNeed%"=="Yes" (
@@ -1549,3 +1555,8 @@ if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto 
 if /i "%choice%"=="U" ( goto FullUpdate )
 if /i "%choice%"=="г" ( goto FullUpdate )
 goto Update_Need_screen
+
+
+:ConfigAutoFinder
+start "" "%ParentDirPath%\tools\auto_find_working_config.bat"
+goto MainMenu

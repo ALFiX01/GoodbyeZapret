@@ -15,3 +15,13 @@ fb.com
 fb.me
 edgekey.net
 edgesuite.net
+edge-chat.instagram.com
+fonts.googleapis.com
+gateway.instagram.com
+scontent-lhr6-1.cdninstagram.com
+scontent-lhr6-2.cdninstagram.com
+scontent-lhr8-1.cdninstagram.com
+scontent-lhr8-2.cdninstagram.com
+static.xx.fbcdn.net
+scontent-waw2-1.cdninstagram.com
+scontent-waw2-2.cdninstagram.com

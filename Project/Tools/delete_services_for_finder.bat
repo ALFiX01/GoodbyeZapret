@@ -2,6 +2,7 @@
 setlocal EnableDelayedExpansion
 
 REM --- Check for administrator privileges ---
+chcp 850 >nul 2>&1
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  Requesting administrator privileges...

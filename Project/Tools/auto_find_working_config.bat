@@ -6,6 +6,8 @@ REM  auto_find_working_config.bat
 REM  Подбор рабочего конфига из папки Configs
 REM ------------------------------------------------------------
 
+mode con: cols=106 lines=37 >nul 2>&1
+
 REM --- Определяем необходимые директории ---
 set "toolsDir=%~dp0"
 set "toolsDir=%toolsDir:~0,-1%"  REM убираем завершающий обратный слеш
@@ -40,7 +42,7 @@ for %%F in ("%configsDir%\*.bat") do (
     set "configPath=%%~fF"
     set "configName=%%~nxF"
 
-    echo !CYAN!Запуск конфига !configName! ...!RESET!
+    echo !CYAN! Запуск конфига !configName! ...!RESET!
     call "!configPath!"
 
     REM Небольшая пауза на запуск служб/правил
@@ -136,5 +138,7 @@ goto :eof
 
 :do_cleanup
 echo   !CYAN!Очистка окружения ...!RESET!
+chcp 850 >nul 2>&1
 call "%toolsDir%\delete_services_for_finder.bat" >nul
+chcp 65001 >nul
 goto :eof

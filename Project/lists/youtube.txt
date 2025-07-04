@@ -20,3 +20,6 @@ youtubekids.com
 7tv.app
 7tv.io
 10tv.app
+ytimg.l.google.com
+manifest.googlevideo.com
+
