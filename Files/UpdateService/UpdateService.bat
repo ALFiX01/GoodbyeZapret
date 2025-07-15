@@ -167,7 +167,7 @@ if %errorlevel% equ 0 (
 :end_GoodbyeZapret_Config
 echo [INFO] %time:~0,8% - Update Check - Скачивание файлов !Actual_GoodbyeZapret_version! >> "%ParentDirPath%\Log.txt"
 echo  ^[*^] Скачивание файлов !Actual_GoodbyeZapret_version!
-curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o "%TEMP%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%TEMP%\GoodbyeZapret.zip") do set FileSize=%%~zI
 if %FileSize% LSS 100 (
@@ -203,9 +203,11 @@ if %errorlevel% equ 0 (
 )
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
+    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%" set "batPath=Preset"
+    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%" set "batPath=Custom"
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
-    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat" (
-        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat\"\""
+    if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\""
         sc config "GoodbyeZapret" start= auto
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
@@ -217,7 +219,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         timeout /t 1 >nul 2>&1
         exit
     ) else (
-        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
+        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
         start "" "%ParentDirPath%\Launcher.exe"
@@ -227,8 +229,8 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
 ) else (
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%ParentDirPath%\Log.txt"
     if defined GoodbyeZapret_LastStartConfig (
-        if exist "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" (
-            start "" "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" 
+        if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" (
+            start "" "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" 
         )
     )
     start "" "%ParentDirPath%\Launcher.exe"

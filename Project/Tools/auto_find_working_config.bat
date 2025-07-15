@@ -13,10 +13,24 @@ set "toolsDir=%~dp0"
 set "toolsDir=%toolsDir:~0,-1%"  REM убираем завершающий обратный слеш
 for %%i in ("%toolsDir%") do set "projectDir=%%~dpi"
 set "projectDir=%projectDir:~0,-1%"
-set "configsDir=%projectDir%\Configs"
-
+set "configsDir=%projectDir%\Configs\Preset"
+REM --- Проверяем существование директории с конфигами заранее ---
 if not exist "%configsDir%" (
     echo [ERROR] Папка с конфигами не найдена: "%configsDir%".
+    pause
+    goto :end
+)
+
+set "batFileFound=0"
+for %%F in ("%configsDir%\*.bat") do (
+    set "batFileFound=1"
+    goto :bat_found
+)
+:bat_found
+
+if "!batFileFound!"=="0" (
+    echo [ОШИБКА] В папке "%configsDir%" нет ни одного .bat файла.
+    pause
     goto :end
 )
 
@@ -26,11 +40,12 @@ set "foundAlmostWorking=0"
 
 REM -- Цвета вывода ---------------------------------------------------
 for /F %%# in ('echo prompt $E^| cmd') do set "ESC=%%#"
-set "GREEN=!ESC![32m"
-set "RED=!ESC![31m"
-set "YELLOW=!ESC![33m"
-set "CYAN=!ESC![36m"
+REM --- ANSI цветовые коды ---
 set "RESET=!ESC![0m"
+set "GREEN=!ESC![32m"
+set "YELLOW=!ESC![33m"
+set "RED=!ESC![31m"
+set "CYAN=!ESC![36m"
 
 echo.
 echo  Поиск рабочего конфига в "%configsDir%" ...

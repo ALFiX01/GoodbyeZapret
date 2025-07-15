@@ -17,8 +17,12 @@ set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 
-REM --- Список доменов в переменной ---
+REM --- Список доменов---
 set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com i.ytimg.com discord.com cloudflare.com raw.githubusercontent.com"
+
+REM --- Расширенный Список доменов---
+REM set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com rr7---sn-jvhnu5g-n8vy.googlevideo.com rr16---sn-n8v7znlk.googlevideo.com i.ytimg.com discord.com cloudflare.com raw.githubusercontent.com"
+
 
 REM Для GitHub файла используем отдельную переменную
 set "github_path=/ALFiX01/GoodbyeZapret/main/GoodbyeZapret_Version"

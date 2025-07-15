@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Руководство пользователя — GoodbyeZapret</title>
+  <style>
+    /* Basic Reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* Modern Color Palette */
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1c22;
+      --surface-alt: #181b20;
+      --primary: #00b4d8;
+      --primary-light: #4dd0e1;
+      --accent-yellow: #ffb300;
+      --highlight-bg: #242424;
+      --highlight-text: #ffda8a;
+      --text: #e0e0e0;
+      --text-muted: #888;
+    }
+
+    body {
+      font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      padding: 30px 20px;
+      scroll-behavior: smooth;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      padding: 1px 50px;
+    }
+
+    h1 {
+      color: #00b4d8;
+      margin-top: 1.1em;
+      margin-bottom: 0.7em;
+      font-weight: 600;
+    }
+
+    h2, h3, h4 {
+      color: #00b4d8;
+      margin-top: 1.4em;
+      margin-bottom: 0.7em;
+      font-weight: 600;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      text-align: center;
+      margin-bottom: 1.2em;
+      position: relative;
+      padding-bottom: 15px;
+    }
+
+    h1::after {
+      content: "";
+      display: block;
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, #00b4d8, #0077b6);
+      margin: 15px auto 0;
+      border-radius: 2px;
+    }
+
+    h2 { 
+      font-size: 1.9em; 
+      border-bottom: 1px solid #eaeaea;
+      padding-bottom: 8px;
+    }
+    
+    h3 { 
+      font-size: 1.5em; 
+      color: #4dd0e1;
+    }
+    
+    h4 { 
+      font-size: 1.2em; 
+      color: #4dd0e1;
+    }
+
+    p { 
+      margin: 1em 0;
+      line-height: 1.7; 
+    }
+
+    ul, ol { 
+      margin: 1em 0 1em 1.5em; 
+      line-height: 1.7;
+    }
+    
+    li { 
+      margin: 0.5em 0; 
+    }
+
+    code {
+      background: #263238;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-family: "Consolas", monospace;
+      font-size: 0.95em;
+      color: #81c784;
+    }
+
+    /* Callout / заметки */
+    .highlight {
+      background: var(--highlight-bg);
+      border-left: 5px solid var(--accent-yellow);
+      padding: 12px 18px;
+      border-radius: 10px;
+      margin: 1.2em 0;
+      font-style: italic;
+      color: var(--highlight-text);
+    }
+
+    /* Сценарии */
+    .scenario {
+      background: var(--surface-alt);
+      border-left: 5px solid var(--primary);
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.05);
+      margin-bottom: 2.5em;
+      border-bottom: none;
+    }
+    .scenario h2 {
+      margin-top: 0;
+      border: none;
+      color: #00b4d8;
+    }
+
+    nav {
+      margin-bottom: 2.5em;
+      background: rgba(13,27,42,0.8);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    nav h2 {
+      color: #fff;
+      margin-top: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 10px;
+    }
+
+    nav ul {
+      list-style: none;
+      margin: 15px 0 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    nav li {
+      margin: 5px 0;
+    }
+
+    nav a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color 0.3s, transform 0.3s;
+      display: block;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    nav a:hover { 
+      background: rgba(255,255,255,0.08);
+      color: var(--primary-light); 
+      transform: translateX(6px);
+    }
+
+    section {
+      margin-bottom: 2.5em;
+      padding-bottom: 0.5em;
+      border-bottom: 1px solid #333;
+    }
+
+    section:last-of-type {
+      border-bottom: none;
+    }
+
+    strong {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .status-indicator {
+      font-weight: bold;
+    }
+
+    .status-red {
+      color: #ff5252;
+    }
+
+    .status-yellow {
+      color: #ffeb3b;
+    }
+
+    .status-green {
+      color: #66bb6a;
+    }
+
+    footer {
+      margin-top: 3em;
+      text-align: center;
+      font-size: 0.9em;
+      color: #888;
+      padding-top: 20px;
+      border-top: 1px solid #333;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color 0.25s;
+    }
+
+    a:hover {
+      color: var(--primary-light);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 25px;
+      }
+      
+      nav ul {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Руководство пользователя<br>GoodbyeZapret</h1>
+
+    <nav>
+      <h2>Оглавление</h2>
+      <ul>
+        <li><a href="#intro">1. Введение</a></li>
+        <li><a href="#first-run">2. Запуск и поиск конфига</a></li>
+        <li><a href="#autostart">3. Автозапуск</a></li>
+        <li><a href="#update">4. Обновление программы</a></li>
+        <li><a href="#diagnostics">5. Быстрая диагностика</a></li>
+        <li><a href="#cleanup">6. Удаление и сброс</a></li>
+        <li><a href="#faq">7. Часто задаваемые вопросы</a></li>
+        <li><a href="#disclaimer">8. Дисклеймер и контакты</a></li>
+      </ul>
+    </nav>
+
+    <section id="intro">
+      <h2>1. Введение</h2>
+      <p><strong>GoodbyeZapret</strong> — утилита на базе WinDivert и Zapret для обхода глубокого анализа пакетов (DPI).
+      Программа перехватывает и модифицирует сетевые пакеты, делая ранее недоступные ресурсы доступными.</p>
+      <p><em>Все действия необходимо выполнять <strong>от имени администратора</strong>.</em></p>
+
+      <h3>Индикация состояния службы</h3>
+      <p>В главном меню программы цвет крупной надписи <strong>GoodbyeZapret</strong> показывает состояние службы:</p>
+      <ul>
+        <li><span class="status-indicator status-red">Красный</span> — служба не установлена</li>
+        <li><span class="status-indicator status-yellow">Жёлтый</span> — есть проблемы</li>
+        <li><span class="status-indicator status-green">Зелёный</span> — служба работает</li>
+      </ul>
+
+      <h3>Папки проекта</h3>
+      <ul>
+        <li><code>bin</code> — исполняемые файлы WinDivert/WinWS;</li>
+        <li><code>configs/preset</code> — готовые конфиги обхода;</li>
+        <li><code>configs/custom</code> — пользовательские конфиги обхода, которые не изменяются при обновлении;</li>
+        <li><code>configs/custom/Helpers</code> — вспомогательные сторонние утилиты, которые помогут в создании и редактировании конфигов (скачать их можно через <code>configs/custom/Helpers/download_helpers.bat</code>);</li>
+        <li><code>lists</code> — списки доменов/IP;</li>
+        <li><code>tools</code> — вспомогательные утилиты (обновление, поиск, очистка).</li>
+      </ul>
+      <div class="highlight">«Конфиг» — это BAT-файл (скрипт Windows) из папки <code>configs/preset</code> или <code>configs/custom</code>. Он содержит набор команд для запуска обхода DPI и может быть запущен двойным кликом либо через <strong>Launcher.exe</strong>.</div>
+    </section>
+
+    <section id="first-run" class="scenario">
+      <h2>2. Сценарий «Первый запуск и поиск рабочего конфига»</h2>
+      <p>Запускаем GoodbyeZapret и при необходимости активируем скрипт автоматического поиска рабочего конфига.</p>
+      <ol>
+        <li>Перейдите в папку <code>GoodbyeZapret</code> и запустите <code>Launcher.exe</code>.</li>
+        <li>В меню будет отображен список доступных конфигов.</li>
+        <li>Введите нужный номер конфига, например <code>1</code> (<code>UltimateFix.bat</code>), и жмите Enter.</li>
+        <li>Оставьте окно открытым и проверьте доступ к ранее заблокированным сайтам и приложениям.</li>
+        <li>Если сайты открываются — настройка завершена. Если нет, выполните автоматический подбор:
+          <ol type="a">
+            <li>Запустите <code>tools\auto_find_working_config.bat</code>.</li>
+            <li>Скрипт протестирует все конфиги в <code>configs</code> и выделит полностью рабочий зелёным.</li>
+            <li>Когда auto_find_working_config.bat найдёт рабочий конфиг, он оставит его запущенным — проверьте доступ.</li>
+            <li>Если всё работает, запомните имя найденного файла (например, <code>UltimateFix_7.bat</code>), закройте окно конфига и запустите конфиг вручную или добавьте в автозапуск (см. сценарий&nbsp;3).</li>
+          </ol>
+        </li>
+      </ol>
+
+      <p>Любой конфиг можно запускать напрямую двойным кликом по файлу из папки <code>configs</code>.</p>
+    </section>
+
+    <section id="autostart" class="scenario">
+      <h2>3. Сценарий «Автозапуск»</h2>
+      <p>Позволяет запускать обход при старте Windows.</p>
+      <ol>
+        <li>Запустите <code>Launcher.exe</code>.</li>
+        <li>Выберите желаемый скрипт (прописав номер конфига) и нажмите Enter.
+          <ul>
+            <li>Программа запишет параметры в реестр и создаст службу.</li>
+          </ul>
+        </li>
+        <li>Перезагрузите ПК и проверьте, что сайты и приложения снова работают.</li>
+      </ol>
+
+      <h4>Удаление из автозапуска</h4>
+      <ol>
+        <li>Запустите <code>Launcher.exe</code>.</li>
+        <li>Введите <code>DS</code>.</li>
+      </ol>
+    </section>
+
+    <section id="update" class="scenario">
+      <h2>4. Сценарий «Обновление программы»</h2>
+      <h3>Автоматическое обновление</h3>
+      <ol>
+        <li>Запустите <code>tools\Updater.exe</code>.
+          <ul>
+            <li>При успешном подключении к GitHub файлы заменятся автоматически.</li>
+          </ul>
+        </li>
+        <li>После обновления перезапустите активные скрипты.</li>
+      </ol>
+
+      <h3>Ручное обновление</h3>
+      <ol>
+        <li>Скачайте свежий архив релиза и распакуйте поверх старой версии <em>с заменой файлов</em>.</li>
+        <li>Проверьте сохранность <code>configs</code> и собственных списков в <code>lists</code> (при необходимости сделайте резервную копию).</li>
+      </ol>
+    </section>
+
+    <section id="diagnostics" class="scenario">
+      <h2>5. Сценарий «Быстрая диагностика»</h2>
+      <ol>
+        <li>Откройте <code>Launcher.exe</code>.</li>
+        <li>В меню введите <code>ST</code> — запустится встроенный алгоритм диагностики.</li>
+        <li>Следуйте подсказкам для устранения проблем.</li>
+      </ol>
+    </section>
+
+    <section id="cleanup" class="scenario">
+      <h2>6. Сценарий «Удаление и сброс»</h2>
+      <ol>
+        <li>Остановите все окна GoodbyeZapret.</li>
+        <li>Запустите <code>tools\delete_services.bat</code> для очистки служб и процессов.</li>
+        <li>Удалите папку <code>GoodbyeZapret</code>.</li>
+        <li>(Опционально) удалите ключ <code>HKCU\Software\ALFiX inc.\GoodbyeZapret</code>.</li>
+      </ol>
+    </section>
+
+    <section id="faq">
+      <h2>7. Часто задаваемые вопросы (FAQ)</h2>
+      <ul>
+        <li><strong>Можно ли использовать вместе с VPN?</strong> — НЕТ.</li>
+        <li><strong>Как проверить, что конфиг мне подходит?</strong> — Откройте ранее недоступный сайт. Если загружается — конфиг подходит.</li>
+        <li><strong>Скрипт запустился, но сайты всё равно заблокированы.</strong>
+          <ol>
+            <li>Запустите другой конфиг.</li>
+            <li>Проверьте QUIC и TLS 1.3 в <code>chrome://flags</code> или <code>edge://flags</code> (должны быть <em>Default</em>).</li>
+            <li>Временно отключите встроенный VPN/прокси браузера.</li>
+          </ol>
+        </li>
+        <li><strong>Антивирус удаляет файлы.</strong> — Добавьте папку в исключения или скомпилируйте проект самостоятельно.</li>
+      </ul>
+    </section>
+
+    <section id="disclaimer">
+      <h2>8. Дисклеймер и контакты</h2>
+      <p>GoodbyeZapret предоставляется «как есть». Авторы не несут ответственности за возможные последствия использования.</p>
+      <p>Поддержка и новости: Telegram-канал <a href="https://t.me/+QUADX-YqFUJhM2Fi" target="_blank" rel="noopener">https://t.me/+QUADX-YqFUJhM2Fi</a></p>
+    </section>
+
+    <footer>
+      GoodbyeZapret © 2025 ALFiX
+      <br><br>
+    </footer>
+  </div>
+</body>
+</html> 

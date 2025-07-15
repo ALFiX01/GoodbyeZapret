@@ -36,9 +36,10 @@
 setlocal EnableDelayedExpansion
 
 :: Запуск от имени администратора
-reg add HKLM /F >nul 2>&1
+net session >nul 2>&1
 if %errorlevel% neq 0 (
-    start "" /wait /I /min powershell -NoProfile -Command "start -verb runas '%~s0'" && exit /b
+    echo  Requesting administrator privileges...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
     exit /b
 )
 
@@ -48,7 +49,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=1.3"
+set "UpdaterVersion=1.4"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -109,9 +110,9 @@ REM Если ключ нигде не найден, установить зна�
 
 :end_GoodbyeZapret_Config
 echo         ^[*^] Скачивание файлов
-curl -g -L -# -o %ParentDirPath%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+curl -g -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
-for %%I in ("%ParentDirPath%\GoodbyeZapret.zip") do set FileSize=%%~zI
+for %%I in ("%ParentDirPath%\GoodbyeZapret.zip") do set "FileSize=%%~zI"
 if %FileSize% LSS 100 (
     echo       %COL%[91m ^[*^] Error - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^) %COL%[90m
     pause
@@ -130,10 +131,39 @@ if exist "%ParentDirPath%\Launcher.exe" del /Q "%ParentDirPath%\Launcher.exe" >n
 
 if exist "%ParentDirPath%\GoodbyeZapret.zip" (
     echo         ^[*^] Распаковка файлов
+    REM Создаем временную директорию для распаковки
+    set "TempExtract=%ParentDirPath%\GZ_Temp"
+    if exist "!TempExtract!" rd /s /q "!TempExtract!" >nul 2>&1
+    mkdir "!TempExtract!" >nul 2>&1
+
     chcp 850 >nul 2>&1
-    powershell -NoProfile Expand-Archive '%ParentDirPath%\GoodbyeZapret.zip' -DestinationPath '%ParentDirPath%' >nul 2>&1
+    powershell -NoProfile Expand-Archive '%ParentDirPath%\GoodbyeZapret.zip' -DestinationPath '!TempExtract!' >nul 2>&1
     chcp 65001 >nul 2>&1
     del /Q "%ParentDirPath%\GoodbyeZapret.zip"
+
+    REM Путь к распакованной директории проекта
+    set "ExtractRoot=!TempExtract!"
+
+    echo         ^[*^] Копирование основных файлов и папок (кроме tools и configs)
+    robocopy "!ExtractRoot!" "%ParentDirPath%" /E /XD "tools" "configs" >nul
+
+    echo         ^[*^] Копирование файлов из папки tools
+    if exist "!ExtractRoot!\tools" (
+        mkdir "%ParentDirPath%\tools" >nul 2>&1
+        robocopy "!ExtractRoot!\tools" "%ParentDirPath%\tools" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+    )
+
+    echo         ^[*^] Копирование пресетов конфигурации
+    if exist "!ExtractRoot!\configs\!batPath!" (
+        robocopy "!ExtractRoot!\configs\!batPath!" "%ParentDirPath%\configs\!batPath!" /E >nul
+    )
+
+    echo         ^[*^] Копирование Launcher файлов
+    if exist "!TempExtract!\Launcher.bat" copy /Y "!TempExtract!\Launcher.bat" "%ParentDirPath%" >nul
+    if exist "!TempExtract!\Launcher.exe" copy /Y "!TempExtract!\Launcher.exe" "%ParentDirPath%" >nul
+
+    REM Удаляем временную директорию
+    if exist "!TempExtract!" rd /s /q "!TempExtract!" >nul 2>&1
 ) else (
     echo        %COL%[91m ^[*^] Error: File not found: %ParentDirPath%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
@@ -148,9 +178,11 @@ if %errorlevel% equ 0 (
 )
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
+    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%" set "batPath=Preset"
+    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%" set "batPath=Custom"
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
-    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat" (
-        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat\"\""
+    if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\""
         sc config "GoodbyeZapret" start= auto
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
@@ -165,7 +197,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         timeout /t 1 >nul 2>&1
         exit
     ) else (
-        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
+        echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
         start "" "%ParentDirPath%\Launcher.exe"
@@ -175,8 +207,8 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
 ) else (
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_LastStartConfig% >> "%ParentDirPath%\Log.txt"
     if defined GoodbyeZapret_LastStartConfig (
-        if exist "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" (
-            start "" "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" 
+        if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" (
+            start "" "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" 
         )
     )
     if exist "%ParentDirPath%\Log.txt" (

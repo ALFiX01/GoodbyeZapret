@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN6PjD8DamM+8FDKWpjYUpki0nhDnfENHAldai6tbxk9qmFM+G2GOKc=
+::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN4bfZzS3bqyB+8c7kf9cKwsxmhfjPcKDQ1RfR2lIAY3pg4=
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF65
@@ -49,14 +49,13 @@ set "ErrorCount=0"
 :: Get the parent directory path more reliably
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
-:: Set version information
-set "Current_GoodbyeZapret_version=2.0.1"
+:: Version information
+set "Current_GoodbyeZapret_version=2.1.0"
 set "Current_GoodbyeZapret_version_code=04YL01"
 set "branch=Stable"
 set "beta_code=0"
 
 REM /// UAC Settings ///
-REM UAC Settings
 set "L_ConsentPromptBehaviorAdmin=0"
 set "L_ConsentPromptBehaviorUser=3"
 set "L_EnableInstallerDetection=1"
@@ -197,7 +196,8 @@ if %errorlevel% neq 0 (
 )
 
 set "WiFi=Off"
-set "CheckURL=https://google.ru"
+set "CheckURL=https://ya.ru"
+set "CheckURL_BACKUP=https://mail.ru"
 
 echo Checking connectivity to update server ^(%CheckURL%^)...
 :: Используем curl для проверки доступности основного хоста обновлений
@@ -209,20 +209,27 @@ echo Checking connectivity to update server ^(%CheckURL%^)...
 :: --connect-timeout 5: Таймаут на подключение 5 секунд
 :: --max-time 8: Общий таймаут 8 секунд
 
+REM --- Attempt connectivity check with primary URL ---
 curl -4 -s -L --head -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
-    REM Успешно, сервер доступен
     echo Connection successful.
     set "WiFi=On"
 ) ELSE (
-    REM Попытка не удалась
-    echo.
-    echo   Error 02: Cannot reach the update server.
-    echo   Connection check to %CheckURL% failed ^(curl errorlevel: %ERRORLEVEL%^).
-    echo   Please check your internet connection, firewall settings,
-    echo   or if %CheckURL% is accessible from your network.
-    set "WiFi=Off"
-    timeout /t 3 >nul
+    REM Primary URL failed, try backup URL
+    echo Primary host unreachable, trying backup URL ^(%CheckURL_BACKUP%^)...
+    curl -4 -s -L --head -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "%CheckURL_BACKUP%"
+    IF %ERRORLEVEL% EQU 0 (
+        echo Connection successful via backup URL.
+        set "WiFi=On"
+    ) ELSE (
+        echo.
+        echo   Error 02: Cannot reach the update servers.
+        echo   Connection checks to %CheckURL% and %CheckURL_BACKUP% failed ^(curl errorlevel: %ERRORLEVEL%^).
+        echo   Please check your internet connection, firewall settings,
+        echo   or if those hosts are accessible from your network.
+        set "WiFi=Off"
+        timeout /t 3 >nul
+    )
 )
 
 if not exist "%ParentDirPath%" (
@@ -235,11 +242,14 @@ REM Initialize variables
 set "BatCount=0"
 set "sourcePath=%~dp0"
 
+REM --- Run health check in silent mode before sizing window ---
+set "SilentMode=1"
+call :CurrentStatus
+set "SilentMode="
+REM ------------------------------------------------------------
+
 REM Re-calculate amount of *.bat configs and resize console every time we enter the menu (prevents list from «исчезать» after returning)
-set "BatCount=0"
-for %%f in ("%sourcePath%configs\*.bat") do set /a BatCount+=1
-set /a ListBatCount=BatCount+24
-mode con: cols=92 lines=%ListBatCount% >nul 2>&1
+call :ResizeMenuWindow
 
 REM Initialize color codes
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -444,12 +454,6 @@ if "%StatusProject%"=="0" (
         sc delete "WinDivert" >nul 2>&1
     )
     
-    sc query "WinDivert14" >nul 2>&1
-    if %errorlevel% equ 0 (
-        net stop "WinDivert14" >nul 2>&1
-        sc delete "WinDivert14" >nul 2>&1
-    )
-    
     REM Clean up registry and directories
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     if exist "%ParentDirPath%\configs" rd /s /q "%ParentDirPath%\configs" >nul 2>&1
@@ -596,11 +600,12 @@ if %errorlevel% equ 0 (
 )
 
 REM Check WinDivert service status
-sc qc "WinDivert" >nul 2>&1
-if %errorlevel% equ 0 (
-    set "WinDivertStart=Yes"
-) else (
-    set "WinDivertStart=No"
+set "WinDivertStart=No"
+sc query "WinDivert" 2>NUL | find /I "RUNNING" >NUL
+if %errorlevel% equ 0 set "WinDivertStart=Yes"
+if "%WinDivertStart%"=="No" (
+    sc query "WinDivert14" 2>NUL | find /I "RUNNING" >NUL
+    if %errorlevel% equ 0 set "WinDivertStart=Yes"
 )
 
 REM Count running services/processes
@@ -609,22 +614,28 @@ if "%GoodbyeZapretStart%"=="Yes" set /a YesCount+=1
 if "%WinwsStart%"=="Yes" set /a YesCount+=1
 if "%WinDivertStart%"=="Yes" set /a YesCount+=1
 
+REM ------ New: run quick problem check silently ------
+set "SilentMode=1"
+call :CurrentStatus
+set "SilentMode="
+REM ----------------------------------------------------
+
 REM Display status based on running count
 if %YesCount% equ 3 (
-    echo Процесс %ProcessName% запущен.
+    REM запущены все сервисы
     cls
     echo.
     echo           %COL%[92m  ______                ____            _____                         __ 
 ) else if %YesCount% equ 2 (
-    echo Процесс %ProcessName% частично запущен.
+    REM запущены Winws и WinDivert
     cls
     echo.
     echo           %COL%[33m  ______                ____            _____                         __ 
 ) else (
-    echo Процесс %ProcessName% не найден.
+    REM запущен только GoodbyeZapret
     cls
     echo.
-    echo           %COL%[91m  ______                ____            _____                         __ 
+    echo           %COL%[90m  ______                ____            _____                         __ 
 )
 
 REM Set window title
@@ -651,7 +662,7 @@ if /i "%branch%"=="beta" (
     echo                                       /____/  бета версия  /_/
     echo.   
 ) else (
-    echo                                       /____/               /_/                   
+    echo                                       /____/               /_/
     echo.
 )
 
@@ -666,22 +677,13 @@ if /i "%WiFi%"=="Off" (
     echo.
 )
 
-REM Check cloudflare configuration
-set "LISTS=%ParentDirPath%\lists\"
-set "FILE=%LISTS%ipset-cloudflare.txt"
-
-if not exist "%FILE%" (
-    echo %COL%[91mОшибка: Файл ipset-cloudflare.txt не найден по пути: %FILE%%COL%[37m
-    goto :eof
+REM ------ New: warn user if system problems detected ------
+if %YesCount% geq 2 (
+if "%TotalCheck%"=="Problem" (
+    echo                        %COL%[91mВозможны проблемы в работе ^[ ST ^] - подробнее%COL%[37m
 )
-
-findstr /C:"0.0.0.0" "%FILE%" >nul 2>&1
-if %ERRORLEVEL%==0 (
-    set "cloudflare=%COL%[91mВЫКЛ"
-) else (
-    set "cloudflare=%COL%[92mВКЛ"
 )
-
+REM ---------------------------------------------------------
 
 REM ================================================================================================
 
@@ -722,7 +724,7 @@ set "choice="
 set "counter=0"
 
 REM Modernized config enumeration ----------------------------------------------------
-for %%F in ("%ParentDirPath%\configs\*.bat") do (
+for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
     set /a "counter+=1"
     set "ConfigName=%%~nF"
     set "ConfigFull=%%~nxF"
@@ -786,10 +788,12 @@ if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo.
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     echo                 %COL%[36m^[ AC ^] %COL%[37mЗапустить автоподбор конфига
+    echo                 %COL%[36m^[ IN ^] %COL%[37mОткрыть инструкцию
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
     echo.
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    echo                 %COL%[36m^[ IN ^] %COL%[37mОткрыть инструкцию
 )
 
 echo.
@@ -801,14 +805,16 @@ REM Handle user input with case-insensitive matching
 if /i "%choice%"=="DS" goto remove_service
 if /i "%choice%"=="вы" goto remove_service
 
-if /i "%choice%"=="SQ" goto SeqStart
-if /i "%choice%"=="ый" goto SeqStart
-
 if /i "%choice%"=="ST" goto CurrentStatus
 if /i "%choice%"=="ые" goto CurrentStatus
 
+if /i "%choice%"=="IN" goto OpenInstructions
+if /i "%choice%"=="шт" goto OpenInstructions
+
 if /i "%choice%"=="AC" goto ConfigAutoFinder
 if /i "%choice%"=="фс" goto ConfigAutoFinder
+
+if /i "%choice%"=="R" goto RR
 
 REM Handle update option only if update is available
 if "%UpdateNeed%"=="Yes" (
@@ -822,9 +828,15 @@ REM Handle configuration file selection and validation
 if "%choice:~-1%"=="s" (
     REM Manual start mode - open config file in explorer
     set "batFile=!file%choice:~0,-1%!"
-    if defined batFile (
-        echo Запустите %batFile% вручную
-        explorer "%ParentDirPath%\configs\%batFile%"
+
+    REM Определяем, в какой папке лежит выбранный bat
+    set "batRel="
+    if exist "%ParentDirPath%\configs\Preset\!batFile!" set "batRel=Preset\!batFile!" && set "batPath=Preset"
+    if exist "%ParentDirPath%\configs\Custom\!batFile!" set "batRel=Custom\!batFile!" && set "batPath=Custom"
+
+    if defined batRel (
+        echo Запустите "%ParentDirPath%\configs\!batPath!\!batFile!" вручную
+        explorer "%ParentDirPath%\configs\!batPath!\!batFile!"
         goto :end
     ) else (
         echo Неверный выбор. Пожалуйста, попробуйте снова.
@@ -833,6 +845,11 @@ if "%choice:~-1%"=="s" (
 ) else (
     REM Service installation mode
     set "batFile=!file%choice%!"
+
+    REM Определяем папку (Preset/Custom) для установки
+    set "batRel="
+    if exist "%ParentDirPath%\configs\Preset\!batFile!" set "batRel=Preset\!batFile!" & set "batPath=Preset"
+    if exist "%ParentDirPath%\configs\Custom\!batFile!" set "batRel=Custom\!batFile!" & set "batPath=Custom"
 )
 
 REM Initialize color variables if not already set
@@ -847,8 +864,8 @@ if not defined batFile (
 )
 
 REM Check if selected config file exists
-if not exist "%ParentDirPath%\configs\%batFile%" (
-    echo Ошибка: Файл конфигурации %batFile% не найден.
+if not exist "%ParentDirPath%\configs\!batRel!" (
+    echo Ошибка: Файл конфигурации !batRel! не найден.
     echo Пожалуйста, попробуйте снова.
     goto :eof
 )
@@ -857,24 +874,30 @@ REM Confirm installation with user
 cls
 echo %COL%[97m
 echo.
-echo  Подтвердите установку %COL%[36m%batFile:~0,-4%%COL%[97m в службу GoodbyeZapret
+echo  Подтвердите установку %COL%[36m!batFile!%COL%[97m в службу GoodbyeZapret
 echo %COL%[90m Нажмите любую клавишу для подтверждения... %COL%[37m
 echo.
 pause >nul 2>&1
 
 REM Clean up existing service before installing new one
 call :remove_service_before_installing
-goto :install_GZ_sevice
+call :install_GZ_sevice
 
 :install_GZ_sevice
 cls
 echo.
-echo  - %COL%[37m %batFile% устанавливается в службу GoodbyeZapret...
-sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\%batFile%\"\"" >nul 2>&1
+echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
+
+sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
 sc config "GoodbyeZapret" start= auto >nul 2>&1
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "%batFile:~0,-4%" /f >nul
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "%batFile:~0,-4%" /f >nul
-sc description GoodbyeZapret "%batFile:~0,-4%" >nul
+
+REM Извлекаем базовое имя файла (без папки и расширения) для записи в реестр/описание
+for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
+
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!batPath!" /f >nul
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "!BaseCfg!" /f >nul
+sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
 if %errorlevel% equ 0 (
     cmd /c "sc start GoodbyeZapret" >nul
@@ -886,12 +909,13 @@ if %errorlevel% equ 0 (
 )
 cls
 echo.
-echo  - %COL%[92m %batFile% установлен в службу GoodbyeZapret %COL%[37m
+echo   -%COL%[92m !batFile! установлен в службу GoodbyeZapret %COL%[37m
 set installing_service=0
 timeout /t 1 >nul 2>&1
 if exist "%ParentDirPath%\tools\curl_test.bat" (
     call "%ParentDirPath%\tools\curl_test.bat"
 )
+call :ResizeMenuWindow
 goto :end
 
 :remove_service
@@ -923,12 +947,13 @@ goto :end
         echo  Служба GoodbyeZapret не найдена
     )
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    call :ResizeMenuWindow
 goto :end
 
 :remove_service_before_installing
     cls
     echo.
-    echo  - %COL%[37m подготовка к установке %batFile% в GoodbyeZapret...
+    echo   -%COL%[37m подготовка к установке !batRel! в GoodbyeZapret...
     REM Цветной текст
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     echo.
@@ -966,21 +991,6 @@ if !ErrorCount! equ 0 (
     set "batFile="
     goto GoodbyeZapret_Menu
 )
-
-:SeqStart
-cls
-echo Запуск конфигов поочередно...
-set "counter=0"
-for %%F in ("%sourcePath%configs\*.bat") do (
-    set /a counter+=1
-    echo [!counter!] Запуск %%~nxF...
-    call :RunConfig "%%F"
-)
-echo.
-echo Все конфиги завершили выполнение.
-timeout /t 2 >nul
-goto :end
-
 
 :CurrentStatus
 REM Check Auto-update setting from registry
@@ -1060,17 +1070,41 @@ if defined KillerServices (
     set "KillerCheckResult=Ok"
 )
 
+REM === Поиск сервисов Intel Connectivity Network Service ===
+set "IntelCheckResult=Ok"
+set "IntelServices="
+set "IntelCheckTips="
+for /f "tokens=2 delims=:" %%a in ('sc query 2^>NUL ^| findstr /I "SERVICE_NAME:" ^| findstr /I "Intel" ^| findstr /I "Connectivity" ^| findstr /I "Network"') do (
+    set "IntelServiceName=%%a"
+    set "IntelServiceName=!IntelServiceName: =!"
+    if defined IntelServices (
+        set "IntelServices=!IntelServices!,!IntelServiceName!"
+    ) else (
+        set "IntelServices=!IntelServiceName!"
+    )
+)
+
+if defined IntelServices (
+    set "IntelCheckResult=Problem"
+    set "IntelCheckTips=Отключите/удалите Intel Connectivity Network ^(!IntelServices!^) ."
+) else (
+    set "IntelCheckResult=Ok"
+)
+
 REM === Поиск сервисов Check Point ===
 set "CheckpointCheckResult=Ok"
 set "CheckpointServices="
 set "CheckpointCheckTips="
-for /f "tokens=2 delims=:" %%a in ('sc query 2^>NUL ^| findstr /I "SERVICE_NAME:" ^| findstr /I "Check Point"') do (
-    set "CheckpointServiceName=%%a"
-    set "CheckpointServiceName=!CheckpointServiceName: =!"
-    if defined CheckpointServices (
-        set "CheckpointServices=!CheckpointServices!,!CheckpointServiceName!"
-    ) else (
-        set "CheckpointServices=!CheckpointServiceName!"
+
+REM Список целевых сервисов Check Point, которые необходимо обнаружить
+for %%S in (TracSrvWrapper EPWD) do (
+    sc query "%%S" 2>NUL | findstr /I "SERVICE_NAME" >NUL
+    if !errorlevel!==0 (
+        if defined CheckpointServices (
+            set "CheckpointServices=!CheckpointServices!,%%S"
+        ) else (
+            set "CheckpointServices=%%S"
+        )
     )
 )
 
@@ -1097,7 +1131,7 @@ for /f "tokens=2 delims=:" %%a in ('sc query 2^>NUL ^| findstr /I "SERVICE_NAME:
 
 if defined SmartByteServices (
     set "SmartByteCheckResult=Problem"
-    set "SmartByteCheckTips=Попробуйте удалить/отключить сервисы SmartByte ^(!SmartByteServices!^)."
+    set "SmartByteCheckTips=Отключите/удалите сервисы SmartByte ^(!SmartByteServices!^) ."
 ) else (
     set "SmartByteCheckResult=Ok"
 )
@@ -1118,7 +1152,7 @@ for /f "tokens=2 delims=:" %%a in ('sc query 2^>NUL ^| findstr /I "SERVICE_NAME:
 
 if defined VPNServices (
     set "VPNCheckResult=Problem"
-    set "VPNCheckTips=Убедитесь, что все VPN отключены ^(!VPNServices!^)."
+    set "VPNCheckTips=Отключите VPN ^(!VPNServices!^) ."
 ) else (
     set "VPNCheckResult=Ok"
 )
@@ -1145,10 +1179,10 @@ for /f "skip=1 tokens=*" %%a in ('wmic nicconfig where "IPEnabled=true" get DNSS
 REM Если DNS не настроены или используются локальные DNS
 if !dns_configured!==0 (
     set "DNSCheckResult=Problem"
-    set "DNSCheckTips=DNS серверы не настроены. Рекомендуется установить публичные DNS ^(Google DNS 8.8.8.8, 8.8.4.4^)"
+    set "DNSCheckTips=DNS не настроены. Задайте публичные DNS ^(8.8.8.8, 8.8.4.4^)"
 ) else if !dnsfound!==1 (
     set "DNSCheckResult=Problem"
-    set "DNSCheckTips=Обнаружены локальные DNS серверы ^(192.168.x.x^). Рекомендуется использовать Google DNS 8.8.8.8, 8.8.4.4"
+    set "DNSCheckTips=Локальные DNS ^(192.168.x.x^). Задайте публичные DNS ^(8.8.8.8, 8.8.4.4^)"
 ) else (
     set "DNSCheckResult=Ok"
 )
@@ -1159,7 +1193,7 @@ set "ProblemDetails="
 set "ProblemTips="
 
 REM Проверяем все результаты проверок
-for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult) do (
+for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult IntelCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult) do (
     if "!%%V!"=="Problem" (
         set "TotalCheck=Problem"
         if defined ProblemDetails (
@@ -1168,7 +1202,7 @@ for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult 
             set "ProblemDetails=%%V"
         )
         REM Находим соответствующие советы
-        for %%T in (BaseFilteringEngineCheckTips AdguardCheckTips KillerCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips) do (
+        for %%T in (BaseFilteringEngineCheckTips AdguardCheckTips KillerCheckTips IntelCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips) do (
             if "%%V"=="%%~nT" (
                 if defined ProblemTips (
                     set "ProblemTips=!ProblemTips! !%%T!"
@@ -1179,6 +1213,9 @@ for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult 
         )
     )
 )
+
+REM Exit early if running in silent mode (called from main menu)
+if "%SilentMode%"=="1" goto :eof
 
 REM Настройка размера консоли в зависимости от наличия проблем
 if "!TotalCheck!"=="Problem" (
@@ -1266,11 +1303,11 @@ set /p "choice=%DEL%   %COL%[90m:> "
 
 REM Handle menu choices with proper error checking
 if /i "%choice%"=="B" (
-    mode con: cols=92 lines=%ListBatCount% >nul 2>&1
+    call :ResizeMenuWindow
     goto MainMenu
 )
 if /i "%choice%"=="и" (
-    mode con: cols=92 lines=%ListBatCount% >nul 2>&1
+    call :ResizeMenuWindow
     goto MainMenu
 )
 if /i "%choice%"=="R" goto FullUpdate
@@ -1349,64 +1386,6 @@ if /i "%choice%"=="ф" (
 )
 
 goto CurrentStatus
-
-
-:cloudflare_toggle
-REM Initialize color variables if not already set
-if not defined COL (
-    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-)
-
-REM Toggle Cloudflare bypass state
-if /i "%GoodbyeZapret_CF_toogle%"=="on" (
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_CF_toogle" /t REG_SZ /d "off" /f >nul 2>&1
-    set "GoodbyeZapret_CF_toogle=off"
-) else (
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_CF_toogle" /t REG_SZ /d "on" /f >nul 2>&1
-    set "GoodbyeZapret_CF_toogle=on"
-)
-
-REM Set file paths
-set "LISTS=%ParentDirPath%\lists\"
-set "FILE=%LISTS%ipset-cloudflare.txt"
-
-REM Check if file exists
-if not exist "%FILE%" (
-    echo %COL%[91mОшибка! Файл ipset-cloudflare.txt не найден по пути: %FILE%%COL%[37m
-    timeout /t 3 >nul 2>&1
-    goto MainMenu
-)
-
-REM Check current state and toggle accordingly
-findstr /C:"0.0.0.0" "%FILE%" >nul 2>&1
-if %ERRORLEVEL%==0 (
-    echo %COL%[37mВключение обхода Cloudflare...%COL%[37m
-    >"%FILE%" (
-        echo 173.245.48.0/20
-        echo 103.21.244.0/22
-        echo 103.22.200.0/22
-        echo 103.31.4.0/22
-        echo 141.101.64.0/18
-        echo 108.162.192.0/18
-        echo 190.93.240.0/20
-        echo 188.114.96.0/20
-        echo 197.234.240.0/22
-        echo 198.41.128.0/17
-        echo 162.158.0.0/15
-        echo 104.16.0.0/13
-        echo 104.24.0.0/14
-        echo 172.64.0.0/13
-        echo 131.0.72.0/22
-    )
-) else (
-    echo %COL%[37mОтключение обхода Cloudflare...%COL%[37m
-    >"%FILE%" (
-        echo 0.0.0.0/32
-    )
-)
-
-timeout /t 2 >nul 2>&1
-goto MainMenu
 
 :FullUpdate
 start "Update GoodbyeZapret" "%ParentDirPath%\tools\Updater.exe"
@@ -1560,3 +1539,62 @@ goto Update_Need_screen
 :ConfigAutoFinder
 start "" "%ParentDirPath%\tools\auto_find_working_config.bat"
 goto MainMenu
+
+:ResizeMenuWindow
+REM Recalculate number of config files and adjust console size dynamically
+set "sourcePath=%~dp0"
+set "BatCount=0"
+for %%f in ("%sourcePath%configs\Preset\*.bat" "%sourcePath%configs\Custom\*.bat") do set /a BatCount+=1
+set /a ListBatCount=BatCount+25
+
+REM If service GoodbyeZapret installed, reduce height by 2 lines
+sc query "GoodbyeZapret" >nul 2>&1
+if %errorlevel% equ 0 (
+    set /a ListBatCount-=2
+)
+
+
+REM Доп. Корректировка высоты консоли-----------------------
+:: Сбрасываем старую логику и добавляем новую более точную
+
+REM Определяем количество запущенных компонентов (GoodbyeZapret, Winws, WinDivert)
+set "YesCount=0"
+sc query "GoodbyeZapret" >nul 2>&1
+if %errorlevel% equ 0 set /a YesCount+=1
+
+tasklist | find /i "Winws" >nul 2>&1
+if %errorlevel% equ 0 set /a YesCount+=1
+
+sc query "WinDivert" 2>NUL | find /I "RUNNING" >NUL
+if %errorlevel% equ 0 (
+    set /a YesCount+=1
+) else (
+    sc query "WinDivert14" 2>NUL | find /I "RUNNING" >NUL
+    if %errorlevel% equ 0 set /a YesCount+=1
+)
+
+REM Добавляем строку только если будет показано предупреждение «Возможны проблемы...»
+if %YesCount% geq 2 if "%TotalCheck%"=="Problem" set /a ListBatCount+=1
+
+REM Отсутствие интернета выводит отдельную строку
+if /i "%WiFi%"=="Off" set /a ListBatCount+=1
+
+REM Уведомление о доступном обновлении
+if /i "%UpdateNeed%"=="Yes" set /a ListBatCount+=1
+
+REM Ошибка проверки файлов/подключения к серверу
+if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
+REM --------------------------------------------------------
+
+mode con: cols=92 lines=%ListBatCount%
+goto :eof
+
+
+:OpenInstructions
+    if exist "%ParentDirPath%\instructions.html" (
+        start "" "%ParentDirPath%\instructions.html"
+    ) else (
+        echo Файл инструкции не найден: %ParentDirPath%\instructions.html
+        timeout /t 3 >nul
+    )
+    goto MainMenu

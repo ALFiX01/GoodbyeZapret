@@ -43,7 +43,7 @@ This repository includes source code and binary components originating from thir
 - Repository: https://github.com/basil00/WinDivert  
 - License: Dual-licensed under:  
   1. GNU Lesser General Public License (LGPL) v3, or  
-  2. GNU General Public License (GPL) v2  
+  2. GNU General Public License (GPL) v2
 - Note: This project includes unmodified binary distributions of WinDivert.  
   The corresponding source code and license information are available via the original repository.
 
