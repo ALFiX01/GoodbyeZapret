@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN6PjD8DamM+8FDKWpjYUpki0nhDnfENHAldai6tbxk9qmFM+G2GOKc=
+::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN4bfZzS3bqyB+8c7kf9cKwsxmhfjPcKDQ1RfR2lIAY3pg4=
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
@@ -49,7 +49,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=1.4"
+set "UpdaterVersion=2.0"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -129,7 +129,11 @@ if exist "%ParentDirPath%\GoodbyeZapret" (
 if exist "%ParentDirPath%\Launcher.bat" del /Q "%ParentDirPath%\Launcher.bat" >nul 2>&1
 if exist "%ParentDirPath%\Launcher.exe" del /Q "%ParentDirPath%\Launcher.exe" >nul 2>&1
 
-if exist "%ParentDirPath%\GoodbyeZapret.zip" (
+if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
+    echo        %COL%[91m ^[*^] Error: File not found: %ParentDirPath%\GoodbyeZapret.zip %COL%[90m
+    timeout /t 5 >nul
+    exit
+) else (
     echo         ^[*^] Распаковка файлов
     REM Создаем временную директорию для распаковки
     set "TempExtract=%ParentDirPath%\GZ_Temp"
@@ -154,8 +158,8 @@ if exist "%ParentDirPath%\GoodbyeZapret.zip" (
     )
 
     echo         ^[*^] Копирование пресетов конфигурации
-    if exist "!ExtractRoot!\configs\!batPath!" (
-        robocopy "!ExtractRoot!\configs\!batPath!" "%ParentDirPath%\configs\!batPath!" /E >nul
+    if exist "!ExtractRoot!\configs\Preset" (
+        robocopy "!ExtractRoot!\configs\Preset" "%ParentDirPath%\configs\Preset" /E >nul
     )
 
     echo         ^[*^] Копирование Launcher файлов
@@ -164,10 +168,6 @@ if exist "%ParentDirPath%\GoodbyeZapret.zip" (
 
     REM Удаляем временную директорию
     if exist "!TempExtract!" rd /s /q "!TempExtract!" >nul 2>&1
-) else (
-    echo        %COL%[91m ^[*^] Error: File not found: %ParentDirPath%\GoodbyeZapret.zip %COL%[90m
-    timeout /t 5 >nul
-    exit
 )
 
 tasklist | find /i "Winws" >nul
@@ -193,14 +193,14 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         if exist "%ParentDirPath%\Log.txt" (
             del /f /q "%ParentDirPath%\Log.txt" >nul
         )
-        start "" "%ParentDirPath%\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
         echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" "%ParentDirPath%\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul
         exit
     )
@@ -214,6 +214,6 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     if exist "%ParentDirPath%\Log.txt" (
     del /f /q "%ParentDirPath%\Log.txt" >nul
     )
-    start "" "%ParentDirPath%\Launcher.exe"
+    start "" "%ParentDirPath%\Launcher.bat"
     exit
 )

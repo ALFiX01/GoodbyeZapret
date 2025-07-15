@@ -1,7 +1,7 @@
 ::[Bat To Exe Converter]
 ::
 ::YAwzoRdxOk+EWAjk
-::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN6PjD8DamM+8FDKWpjYUpki0nhDnfENHAldai6tbxk9qmFM+G2GOKc=
+::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN4bfZzS3bqyB+8c7kf9cKwsxmhfjPcKDQ1RfR2lIAY3pg4=
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
@@ -215,14 +215,14 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
             echo  ^[*^] Служба GoodbyeZapret успешно запущена
         )
         echo  ^[*^] Обновление завершено
-        start "" "%ParentDirPath%\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
         echo [INFO] %time:~0,8% - Update Check - Error: File not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat >> "%ParentDirPath%\Log.txt"
         echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" "%ParentDirPath%\Launcher.exe"
+        start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul
         exit
     )
@@ -233,6 +233,6 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
             start "" "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" 
         )
     )
-    start "" "%ParentDirPath%\Launcher.exe"
+    start "" "%ParentDirPath%\Launcher.bat"
     exit
 )
