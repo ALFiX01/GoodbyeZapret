@@ -1,7 +1,5 @@
-youtube.com
 ytimg.com
 ggpht.com
 google.com
 google.ru
 googleusercontent.com
-doubleclick.net

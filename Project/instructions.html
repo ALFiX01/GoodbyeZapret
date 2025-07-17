@@ -37,7 +37,7 @@
       background: var(--surface);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 18px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
       padding: 1px 50px;
     }
 
@@ -244,6 +244,72 @@
         grid-template-columns: 1fr;
       }
     }
+    /* === Added: improvements === */
+    :root[data-theme='light'] {
+      --bg: #f4f6fa;
+      --surface: #ffffff;
+      --surface-alt: #f2f4f8;
+      --primary: #0081c7;
+      --primary-light: #00b4d8;
+      --accent-yellow: #ffb300;
+      --highlight-bg: #f5f5f5;
+      --highlight-text: #795548;
+      --text: #212121;
+      --text-muted: #555;
+    }
+
+    nav {
+      position: static;
+    }
+
+    nav a.active {
+      background: rgba(255,255,255,0.12);
+      color: var(--primary-light);
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      font-size: 1.4em;
+      cursor: pointer;
+      color: var(--primary);
+      transition: transform 0.3s, color 0.3s;
+    }
+    .theme-toggle:hover {
+      color: var(--primary-light);
+      transform: scale(1.15);
+    }
+
+    #backToTop {
+      position: fixed;
+      right: 30px;
+      bottom: 30px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 1.6em;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: background 0.3s;
+      z-index: 1000;
+    }
+    #backToTop:hover {
+      background: var(--primary-light);
+    }
+
+    code {
+      cursor: pointer;
+    }
+    /* === end improvements === */
   </style>
 </head>
 <body>
@@ -252,6 +318,7 @@
 
     <nav>
       <h2>Оглавление</h2>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">🌙</button>
       <ul>
         <li><a href="#intro">1. Введение</a></li>
         <li><a href="#first-run">2. Запуск и поиск конфига</a></li>
@@ -301,7 +368,7 @@
         <li>Если сайты открываются — настройка завершена. Если нет, выполните автоматический подбор:
           <ol type="a">
             <li>Запустите <code>tools\auto_find_working_config.bat</code>.</li>
-            <li>Скрипт протестирует все конфиги в <code>configs</code> и выделит полностью рабочий зелёным.</li>
+            <li>Скрипт протестирует все конфиги в <code>configs</code> и выделит полностью рабочим зелёным.</li>
             <li>Когда auto_find_working_config.bat найдёт рабочий конфиг, он оставит его запущенным — проверьте доступ.</li>
             <li>Если всё работает, запомните имя найденного файла (например, <code>UltimateFix_7.bat</code>), закройте окно конфига и запустите конфиг вручную или добавьте в автозапуск (см. сценарий&nbsp;3).</li>
           </ol>
@@ -396,5 +463,66 @@
       <br><br>
     </footer>
   </div>
+
+  <button id="backToTop" aria-label="Наверх">↑</button>
+  <script>
+    (function () {
+      // Theme toggle
+      const root = document.documentElement;
+      const toggleBtn = document.getElementById('theme-toggle');
+      const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)');
+      const storedTheme = localStorage.getItem('theme');
+
+      function applyTheme(theme) {
+        if (theme === 'light') {
+          root.dataset.theme = 'light';
+          toggleBtn.textContent = '🌞';
+        } else {
+          root.dataset.theme = 'dark';
+          toggleBtn.textContent = '🌙';
+        }
+      }
+
+      applyTheme(storedTheme || (systemPrefersLight.matches ? 'light' : 'dark'));
+
+      toggleBtn.addEventListener('click', () => {
+        const newTheme = root.dataset.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', newTheme);
+        applyTheme(newTheme);
+      });
+
+      // Scroll-spy for nav links
+      const sections = document.querySelectorAll('section[id]');
+      const navLinks = document.querySelectorAll('nav a');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            navLinks.forEach((link) => {
+              link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
+            });
+          }
+        });
+      }, { threshold: 0.35 });
+      sections.forEach((section) => observer.observe(section));
+
+      // Back-to-top button
+      const backBtn = document.getElementById('backToTop');
+      window.addEventListener('scroll', () => {
+        backBtn.style.display = window.scrollY > 500 ? 'flex' : 'none';
+      });
+      backBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Click-to-copy for code blocks
+      document.querySelectorAll('code').forEach((codeEl) => {
+        codeEl.addEventListener('click', () => {
+          navigator.clipboard.writeText(codeEl.textContent.trim());
+          codeEl.style.outline = `2px solid var(--primary-light)`;
+          setTimeout(() => { codeEl.style.outline = ''; }, 1200);
+        });
+      });
+    })();
+  </script>
 </body>
 </html> 

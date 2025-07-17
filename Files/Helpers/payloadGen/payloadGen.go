@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	uquic "github.com/refraction-networking/uquic"
@@ -444,9 +445,22 @@ func listenUDP(cropAt int, browser_id *int) {
 
 func saveToBinaryFile(b []byte, marker string, browser string) {
 	t := time.Now().Format("2006.01.02 15-04-05")
-	// replacer := strings.NewReplacer(".", "_")
-	// addressToConnWithReplaces := replacer.Replace(*flag_SNI)
-	filename := fmt.Sprintf("[%s][%s][%s][%s].bin", marker, browser, *flag_SNI, t)
+
+	// create a replacer to sanitize filename parts: replace spaces with underscores and remove brackets/parentheses
+	replacer := strings.NewReplacer(
+		" ", "_",
+		"(", "",
+		")", "",
+		"[", "",
+		"]", "",
+	)
+
+	sanitizedMarker := replacer.Replace(marker)
+	sanitizedBrowser := replacer.Replace(browser)
+	sanitizedSNI := replacer.Replace(*flag_SNI)
+	sanitizedTime := replacer.Replace(t)
+
+	filename := fmt.Sprintf("%s_%s_%s_%s.bin", sanitizedMarker, sanitizedBrowser, sanitizedSNI, sanitizedTime)
 
 	err := os.WriteFile(filename, b, 0200)
 	check(err)
