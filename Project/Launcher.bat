@@ -53,7 +53,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 set "Current_GoodbyeZapret_version=2.1.0"
 set "Current_GoodbyeZapret_version_code=04YL01"
 set "branch=Beta"
-set "beta_code=1"
+set "beta_code=2"
 
 REM /// UAC Settings ///
 set "L_ConsentPromptBehaviorAdmin=0"
@@ -199,7 +199,7 @@ set "WiFi=Off"
 set "CheckURL=https://ya.ru"
 set "CheckURL_BACKUP=https://mail.ru"
 
-echo Checking connectivity to update server ^(%CheckURL%^)...
+echo   Checking connectivity to update server ^(%CheckURL%^)...
 :: Используем curl для проверки доступности основного хоста обновлений
 :: -s: Silent mode (без прогресс-бара)
 :: -L: Следовать редиректам
@@ -210,16 +210,16 @@ echo Checking connectivity to update server ^(%CheckURL%^)...
 :: --max-time 8: Общий таймаут 8 секунд
 
 REM --- Attempt connectivity check with primary URL ---
-curl -4 -s -L --head -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "%CheckURL%"
+curl -4 -s -L --head -I --connect-timeout 2 --max-time 2 --max-redirs 1 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
-    echo Connection successful.
+    echo   Connection successful.
     set "WiFi=On"
 ) ELSE (
     REM Primary URL failed, try backup URL
-    echo Primary host unreachable, trying backup URL ^(%CheckURL_BACKUP%^)...
-    curl -4 -s -L --head -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "%CheckURL_BACKUP%"
+    echo   Primary host unreachable, trying backup URL ^(%CheckURL_BACKUP%^)...
+    curl -4 -s -L --head -I --connect-timeout 3 --max-time 2 --max-redirs 2 -o nul "%CheckURL_BACKUP%"
     IF %ERRORLEVEL% EQU 0 (
-        echo Connection successful via backup URL.
+        echo   Connection successful via backup URL.
         set "WiFi=On"
     ) ELSE (
         echo.
@@ -874,8 +874,8 @@ REM Confirm installation with user
 cls
 echo %COL%[97m
 echo.
-echo  Подтвердите установку %COL%[36m!batFile!%COL%[97m в службу GoodbyeZapret
-echo %COL%[90m Нажмите любую клавишу для подтверждения... %COL%[37m
+echo   Подтвердите установку %COL%[36m!batFile!%COL%[97m в службу GoodbyeZapret
+echo  %COL%[90m Нажмите любую клавишу для подтверждения... %COL%[37m
 echo.
 pause >nul 2>&1
 
@@ -912,8 +912,9 @@ echo.
 echo   -%COL%[92m !batFile! установлен в службу GoodbyeZapret %COL%[37m
 set installing_service=0
 timeout /t 1 >nul 2>&1
-if exist "%ParentDirPath%\tools\curl_test.bat" (
-    call "%ParentDirPath%\tools\curl_test.bat"
+if exist "%ParentDirPath%\tools\Config_Check\curl_check.exe" (
+    echo.
+    "%ParentDirPath%\tools\Config_Check\curl_check.exe" "!batFile!"
 )
 call :ResizeMenuWindow
 goto :end
@@ -1537,7 +1538,7 @@ goto Update_Need_screen
 
 
 :ConfigAutoFinder
-start "" "%ParentDirPath%\tools\auto_find_working_config.bat"
+start "" "%ParentDirPath%\tools\Config_Check\auto_find_working_config.exe"
 goto MainMenu
 
 :ResizeMenuWindow

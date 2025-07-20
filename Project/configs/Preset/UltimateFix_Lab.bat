@@ -3,12 +3,12 @@ chcp 65001 >nul
 
 goto :Preparing
 :Zapusk
-echo                ______                ____            _____                         __ 
-echo               / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
-echo              / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
-echo             / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
-echo             \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
-echo                                          /____/               /_/
+echo                      ______                ____            _____                         __ 
+echo                     / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo                    / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo                   / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+echo                   \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+echo                                                /____/               /_/
 set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
@@ -21,8 +21,9 @@ set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
 cd /d "%BIN%"
 
-:: YT (Вы можете выбрать один из вариантов просто закомментировав остальные) (REM в начале строки - значит стратегия не используется)
-set YTGV=--dpi-desync=multisplit --dpi-desync-split-pos=10,midsld --dpi-desync-split-seqovl=1
+:: YT (Вы можете выбрать один из вариантов просто закомментировав остальные) (REM в начале строки - значит стратегия не используется) 586.bin
+set YTGV=--dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_312.bin"
+REM set YTGV=--dpi-desync=multisplit --dpi-desync-split-pos=10,midsld --dpi-desync-split-seqovl=1
 REM set YTGV=--dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-85_google.com.bin" --dpi-desync-fake-tls-mod=rnd
 REM set YTGV=--dpi-desync=fakedsplit --dpi-desync-ttl=2 --dpi-desync-split-pos=1
 REM set YTGV=--dpi-desync=multisplit --dpi-desync-split-pos=10 --dpi-desync-split-seqovl=1
@@ -37,7 +38,7 @@ REM set YTGV=--ipcache-hostname --dpi-desync=syndata,fake,multisplit --dpi-desyn
 :: YTCHP (Вы можете выбрать один из вариантов просто закомментировав остальные) (REM в начале строки - значит стратегия не используется)
 set YTCHP=--dpi-desync=fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-106_google.com.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3
 
-REM --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0xFEA82025 --dpi-desync-fake-quic="%FAKE%QUIC_Initial_fonts_google_com_2025-07-10_19-03-42.bin" --dpi-desync-cutoff=n4 --dpi-desync-repeats=2 --new ^
+REM --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0xFEA82025 --dpi-desync-fake-quic="%FAKE%QUIC_Initial_fonts_google_com.bin" --dpi-desync-cutoff=n4 --dpi-desync-repeats=2 --new ^
 
 echo %CONFIG_NAME%
 echo.
@@ -48,10 +49,12 @@ echo Winws:
 REM set YTDB_prog_log=--debug=@"%~dp0log_debug.txt" 
 REM --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
 
+REM --filter-l3=ipv4 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
+
 start "%CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
---wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
---filter-l3=ipv4 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake,fakeddisorder --dpi-desync-fooling=datanoack --dpi-desync-autottl --dup=2 --dup-autottl --dup-cutoff=n3 --new ^
+--wf-tcp=80,443,444-65535 --wf-udp=443,444-65535 ^
+--filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
+--filter-udp=50000-50090 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%syn_packet.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%faceinsta.txt" --dpi-desync=fake,multisplit --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-split-pos=sld+1 --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3 --new ^

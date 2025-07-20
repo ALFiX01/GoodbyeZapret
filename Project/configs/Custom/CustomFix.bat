@@ -18,7 +18,7 @@ cd /d "%BIN%"
 
 start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50100,1024-65535 ^
---filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-106_fonts.google.com.bin" --dpi-desync-fake-tls-mod=rnd
+--filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-106_google.com.bin" --dpi-desync-fake-tls-mod=rnd
 goto :EOF
 
 :Preparing

@@ -49,7 +49,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.0"
+set "UpdaterVersion=2.1"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -180,6 +180,7 @@ if %errorlevel% equ 0 (
 if "%GoodbyeZapret_Config%" NEQ "None" (
     if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%" set "batPath=Preset"
     if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%" set "batPath=Custom"
+    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%" set "batPath="
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
     if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\""
@@ -209,6 +210,10 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     if defined GoodbyeZapret_LastStartConfig (
         if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" (
             start "" "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_LastStartConfig%" 
+        ) else (
+            if exist "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" (
+                start "" "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%"
+            )
         )
     )
     if exist "%ParentDirPath%\Log.txt" (

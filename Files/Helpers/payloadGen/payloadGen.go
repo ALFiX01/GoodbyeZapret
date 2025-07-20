@@ -7,11 +7,15 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"io"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	uquic "github.com/refraction-networking/uquic"
@@ -39,6 +43,9 @@ var (
 	loopbackPort = 4343
 
 	defaultSNI = "fonts.google.com"
+
+	generatedFiles []string
+	genFilesMutex  sync.Mutex
 )
 
 type browsers_TLS_CH_type []struct {
@@ -143,7 +150,7 @@ func init() {
 }
 
 func main() {
-	fmt.Printf("\nPayload Generator v%s by Ori\n\n-----------------\n\n", version)
+	fmt.Printf("\nPayload Generator v%s by Ori (modded by ALFiX)\n\n-----------------\n\n", version)
 
 	var bTLS_id, bQUIC_id int = -1, -1
 	if flag.NFlag() > 0 {
@@ -200,6 +207,8 @@ func main() {
 		<-udpListenerQuitted
 		fmt.Printf("\n-----------------\n\n")
 	}
+
+	moveGeneratedPrompt()
 
 	if flag.NFlag() > 0 {
 		fmt.Println("All done..")
@@ -410,7 +419,7 @@ func listenTCP(cropAt int, browser_id *int) {
 	hexString := hex.EncodeToString(buf)
 	fmt.Printf("Hex for TLS ClientHello: %s\n\n", hexString)
 
-	saveToBinaryFile(buf, "TLS_ClientHello", browsers_TLS_CH[*browser_id].name)
+	saveToBinaryFile(buf, "TLS_ClientHello", *browser_id)
 
 	tcpListenerQuitted <- true
 }
@@ -438,32 +447,46 @@ func listenUDP(cropAt int, browser_id *int) {
 	hexString := hex.EncodeToString(buf)
 	fmt.Printf("Hex for QUIC Initial: %s\n\n", hexString)
 
-	saveToBinaryFile(buf, "QUIC_Initial", browsers_QUIC_Initial[*browser_id].name)
+	saveToBinaryFile(buf, "QUIC_Initial", *browser_id)
 
 	udpListenerQuitted <- true
 }
 
-func saveToBinaryFile(b []byte, marker string, browser string) {
-	t := time.Now().Format("2006.01.02 15-04-05")
+func saveToBinaryFile(b []byte, marker string, _ int) {
+	// Determine base part of filename from marker
+	var base string
+	switch marker {
+	case "TLS_ClientHello":
+		base = "tls_clienthello"
+	case "QUIC_Initial":
+		base = "quic"
+	default:
+		base = strings.ToLower(marker)
+	}
 
-	// create a replacer to sanitize filename parts: replace spaces with underscores and remove brackets/parentheses
-	replacer := strings.NewReplacer(
-		" ", "_",
+	// Drop brackets/parentheses and spaces just in case
+	base = strings.NewReplacer(
+		" ", "",
 		"(", "",
 		")", "",
 		"[", "",
 		"]", "",
-	)
+	).Replace(base)
 
-	sanitizedMarker := replacer.Replace(marker)
-	sanitizedBrowser := replacer.Replace(browser)
-	sanitizedSNI := replacer.Replace(*flag_SNI)
-	sanitizedTime := replacer.Replace(t)
+	// create random two-digit number and random lowercase letter suffix
+	rand.Seed(time.Now().UnixNano())
+	num := rand.Intn(100) // 0-99
+	letter := 'a' + rune(rand.Intn(26))
+	suffix := fmt.Sprintf("%02d%c", num, letter)
 
-	filename := fmt.Sprintf("%s_%s_%s_%s.bin", sanitizedMarker, sanitizedBrowser, sanitizedSNI, sanitizedTime)
+	filename := fmt.Sprintf("%s_%s.bin", base, suffix)
 
 	err := os.WriteFile(filename, b, 0200)
 	check(err)
+
+	genFilesMutex.Lock()
+	generatedFiles = append(generatedFiles, filename)
+	genFilesMutex.Unlock()
 
 	fmt.Printf("Saved %d bytes as %s\n", len(b), filename)
 }
@@ -477,4 +500,90 @@ func check(err error) {
 		fmt.Scanln()
 		os.Exit(1)
 	}
+}
+
+func moveGeneratedPrompt() {
+	genFilesMutex.Lock()
+	defer genFilesMutex.Unlock()
+
+	if len(generatedFiles) == 0 {
+		return
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return // silently skip if we cannot determine path
+	}
+	exeDir := filepath.Dir(exePath)
+
+	destPath := findDestPath(exeDir)
+
+	fmt.Println("\nGenerated file(s):")
+	for _, f := range generatedFiles {
+		fmt.Printf("  %s\n", filepath.Base(f))
+	}
+
+	fmt.Printf("Move generated file(s) to %s? (y/N): ", destPath)
+	var s string
+	fmt.Scanln(&s)
+	if strings.ToLower(strings.TrimSpace(s)) != "y" {
+		return
+	}
+
+	if err := os.MkdirAll(destPath, 0755); err != nil {
+		fmt.Printf("Failed to create destination folder: %v\n", err)
+		return
+	}
+
+	for _, f := range generatedFiles {
+		src := f
+		dst := filepath.Join(destPath, filepath.Base(f))
+		if err := os.Rename(src, dst); err != nil {
+			// fallback to copy
+			if copyErr := copyFile(src, dst); copyErr != nil {
+				fmt.Printf("Failed to move %s: %v\n", src, err)
+				continue
+			}
+			os.Remove(src) // ignore error
+		}
+		fmt.Printf("Moved %s -> %s\n", src, dst)
+	}
+}
+
+// findDestPath walks up from startDir looking for an existing bin\fake folder.
+// If none exists, it returns the first ancestor joined with bin\fake.
+func findDestPath(startDir string) string {
+	curr := startDir
+	var lastCandidate string
+	for {
+		candidate := filepath.Join(curr, "bin", "fake")
+		lastCandidate = candidate
+		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+			return candidate
+		}
+		parent := filepath.Dir(curr)
+		if parent == curr { // reached filesystem root
+			return lastCandidate
+		}
+		curr = parent
+	}
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, in); err != nil {
+		return err
+	}
+	return out.Close()
 }
