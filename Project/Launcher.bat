@@ -51,9 +51,9 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 :: Version information
 set "Current_GoodbyeZapret_version=2.1.0"
-set "Current_GoodbyeZapret_version_code=04YL01"
-set "branch=Beta"
-set "beta_code=2"
+set "Current_GoodbyeZapret_version_code=22YL01"
+set "branch=Stable"
+set "beta_code=0"
 
 REM /// UAC Settings ///
 set "L_ConsentPromptBehaviorAdmin=0"
@@ -723,6 +723,15 @@ echo.
 set "choice="
 set "counter=0"
 
+REM -- Ensure pagination variables exist --
+if not defined Page set "Page=1"
+if not defined PageSize set "PageSize=25"
+REM ---------------------------------------
+
+REM ---------- Pagination indices ----------
+set /a StartIndex=(Page-1)*PageSize+1
+set /a EndIndex=StartIndex+PageSize-1
+
 REM Modernized config enumeration ----------------------------------------------------
 for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
     set /a "counter+=1"
@@ -754,10 +763,12 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
         set "Pad="
     )
 
-    if defined StatusText (
-        echo                 %COL%[36m!counter!.!Pad! %COL%[36m%%~nF !StatusColor!!StatusText!
-    ) else (
-        echo                 %COL%[36m!counter!.!Pad! %COL%[37m%%~nF
+    if !counter! geq !StartIndex! if !counter! leq !EndIndex! (
+        if defined StatusText (
+            echo                 %COL%[36m!counter!.!Pad! %COL%[36m%%~nF !StatusColor!!StatusText!
+        ) else (
+            echo                 %COL%[36m!counter!.!Pad! %COL%[37m%%~nF
+        )
     )
 
     set "file!counter!=!ConfigFull!"
@@ -765,6 +776,8 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
 REM ---------------------------------------------------------------------------------
 
 set /a "lastChoice=counter"
+set /a TotalPages=(counter+PageSize-1)/PageSize
+if %Page% gtr %TotalPages% set /a Page=%TotalPages%
 
 REM Display update notification if available
 if "%UpdateNeed%"=="Yes" (
@@ -786,15 +799,22 @@ if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo.
+    if not "%TotalCheck%"=="Problem" (
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    )
     echo                 %COL%[36m^[ AC ^] %COL%[37mЗапустить автоподбор конфига
-    echo                 %COL%[36m^[ IN ^] %COL%[37mОткрыть инструкцию
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
-    echo.
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
-    echo                 %COL%[36m^[ IN ^] %COL%[37mОткрыть инструкцию
 )
+
+REM ---- Pagination options ----
+if %TotalPages% gtr 1 (
+    echo.
+    if %Page% lss %TotalPages% echo                 %COL%[36m^[ N ^] %COL%[37mСледующая страница
+    if %Page% gtr 1 echo                 %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
+)
+REM ----------------------------
 
 echo.
 echo.
@@ -808,13 +828,29 @@ if /i "%choice%"=="вы" goto remove_service
 if /i "%choice%"=="ST" goto CurrentStatus
 if /i "%choice%"=="ые" goto CurrentStatus
 
-if /i "%choice%"=="IN" goto OpenInstructions
-if /i "%choice%"=="шт" goto OpenInstructions
-
 if /i "%choice%"=="AC" goto ConfigAutoFinder
 if /i "%choice%"=="фс" goto ConfigAutoFinder
 
 if /i "%choice%"=="R" goto RR
+
+REM --- Pagination input handling ---
+if /i "%choice%"=="N" (
+    set /a Page+=1
+    goto MainMenu
+)
+if /i "%choice%"=="т" (
+    set /a Page+=1
+    goto MainMenu
+)
+if /i "%choice%"=="B" (
+    if %Page% gtr 1 set /a Page-=1
+    goto MainMenu
+)
+if /i "%choice%"=="и" (
+    if %Page% gtr 1 set /a Page-=1
+    goto MainMenu
+)
+REM ---------------------------------
 
 REM Handle update option only if update is available
 if "%UpdateNeed%"=="Yes" (
@@ -840,7 +876,7 @@ if "%choice:~-1%"=="s" (
         goto :end
     ) else (
         echo Неверный выбор. Пожалуйста, попробуйте снова.
-        goto :eof
+        goto MainMenu
     )
 ) else (
     REM Service installation mode
@@ -860,14 +896,14 @@ if not defined COL (
 REM Validate configuration file selection
 if not defined batFile (
     echo Неверный выбор. Пожалуйста, попробуйте снова.
-    goto :eof
+    goto MainMenu
 )
 
 REM Check if selected config file exists
 if not exist "%ParentDirPath%\configs\!batRel!" (
     echo Ошибка: Файл конфигурации !batRel! не найден.
     echo Пожалуйста, попробуйте снова.
-    goto :eof
+    goto MainMenu
 )
 
 REM Confirm installation with user
@@ -1296,6 +1332,7 @@ echo.
 echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
 echo    %COL%[36m^[ %COL%[96mA %COL%[36m^] %COL%[93m%AutoUpdateTextParam% автообновление
 echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
+echo    %COL%[36m^[ %COL%[96mIN %COL%[36m^] %COL%[93mОткрыть инструкцию
 if "%UpdateNeed%"=="Yes" (
     echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
 )
@@ -1311,6 +1348,10 @@ if /i "%choice%"=="и" (
     call :ResizeMenuWindow
     goto MainMenu
 )
+
+if /i "%choice%"=="IN" goto OpenInstructions
+if /i "%choice%"=="шт" goto OpenInstructions
+
 if /i "%choice%"=="R" goto FullUpdate
 if /i "%choice%"=="к" goto FullUpdate
 
@@ -1483,7 +1524,7 @@ if exist "%TEMP%\GoodbyeZapret.zip" (
 
 echo        ^[*^] Создание ярлыка на рабочем столе...
 chcp 850 >nul 2>&1
-powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\GoodbyeZapret.lnk'); $Shortcut.TargetPath = '%ParentDirPath%\launcher.exe'; $Shortcut.Save()"
+powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\GoodbyeZapret.lnk'); $Shortcut.TargetPath = '%ParentDirPath%\launcher.bat'; $Shortcut.Save()"
 chcp 65001 >nul 2>&1
 
 echo.
@@ -1546,14 +1587,25 @@ REM Recalculate number of config files and adjust console size dynamically
 set "sourcePath=%~dp0"
 set "BatCount=0"
 for %%f in ("%sourcePath%configs\Preset\*.bat" "%sourcePath%configs\Custom\*.bat") do set /a BatCount+=1
-set /a ListBatCount=BatCount+25
+
+REM Ensure PageSize defined (default 25)
+if not defined PageSize set "PageSize=20"
+
+REM Determine number of configs to show on current page
+set /a VisibleConfigs=BatCount
+if %VisibleConfigs% gtr %PageSize% set /a VisibleConfigs=%PageSize%
+
+set /a ListBatCount=VisibleConfigs+23
+
+REM Add extra lines for pagination hints when more than one page
+set /a TotalPages=(BatCount+PageSize-1)/PageSize
+if %TotalPages% gtr 1 set /a ListBatCount+=2
 
 REM If service GoodbyeZapret installed, reduce height by 2 lines
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 (
     set /a ListBatCount-=2
 )
-
 
 REM Доп. Корректировка высоты консоли-----------------------
 :: Сбрасываем старую логику и добавляем новую более точную
@@ -1587,6 +1639,10 @@ REM Ошибка проверки файлов/подключения к сер�
 if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
 REM --------------------------------------------------------
 
+REM Limit maximum window height to avoid oversized console
+set /a MaxWinLines=52
+if %ListBatCount% gtr %MaxWinLines% set /a ListBatCount=%MaxWinLines%
+
 mode con: cols=92 lines=%ListBatCount%
 goto :eof
 
@@ -1599,3 +1655,23 @@ goto :eof
         timeout /t 3 >nul
     )
     goto MainMenu
+
+if /i "%choice%"=="N" (
+    set /a Page+=1
+    goto MainMenu
+)
+if /i "%choice%"=="т" (
+    set /a Page+=1
+    goto MainMenu
+)
+if /i "%choice%"=="B" (
+    if %Page% gtr 1 set /a Page-=1
+    goto MainMenu
+)
+if /i "%choice%"=="и" (
+    if %Page% gtr 1 set /a Page-=1
+    goto MainMenu
+)
+
+REM Return to main menu if no input provided
+if "%choice%"=="" goto MainMenu

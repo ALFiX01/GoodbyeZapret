@@ -354,14 +354,14 @@
         <li><code>lists</code> — списки доменов/IP;</li>
         <li><code>tools</code> — вспомогательные утилиты (обновление, поиск, очистка).</li>
       </ul>
-      <div class="highlight">«Конфиг» — это BAT-файл (скрипт Windows) из папки <code>configs/preset</code> или <code>configs/custom</code>. Он содержит набор команд для запуска обхода DPI и может быть запущен двойным кликом либо через <strong>Launcher.exe</strong>.</div>
+      <div class="highlight">«Конфиг» — это BAT-файл (скрипт Windows) из папки <code>configs/preset</code> или <code>configs/custom</code>. Он содержит набор команд для запуска обхода DPI и может быть запущен двойным кликом либо через <strong>Launcher.bat</strong>.</div>
     </section>
 
     <section id="first-run" class="scenario">
       <h2>2. Сценарий «Первый запуск и поиск рабочего конфига»</h2>
       <p>Запускаем GoodbyeZapret и при необходимости активируем скрипт автоматического поиска рабочего конфига.</p>
       <ol>
-        <li>Перейдите в папку <code>GoodbyeZapret</code> и запустите <code>Launcher.exe</code>.</li>
+        <li>Перейдите в папку <code>GoodbyeZapret</code> и запустите <code>Launcher.bat</code>.</li>
         <li>В меню будет отображен список доступных конфигов.</li>
         <li>Введите нужный номер конфига, например <code>1</code> (<code>UltimateFix.bat</code>), и жмите Enter.</li>
         <li>Оставьте окно открытым и проверьте доступ к ранее заблокированным сайтам и приложениям.</li>
@@ -382,7 +382,7 @@
       <h2>3. Сценарий «Автозапуск»</h2>
       <p>Позволяет запускать обход при старте Windows.</p>
       <ol>
-        <li>Запустите <code>Launcher.exe</code>.</li>
+        <li>Запустите <code>Launcher.bat</code>.</li>
         <li>Выберите желаемый скрипт (прописав номер конфига) и нажмите Enter.
           <ul>
             <li>Программа запишет параметры в реестр и создаст службу.</li>
@@ -393,7 +393,7 @@
 
       <h4>Удаление из автозапуска</h4>
       <ol>
-        <li>Запустите <code>Launcher.exe</code>.</li>
+        <li>Запустите <code>Launcher.bat</code>.</li>
         <li>Введите <code>DS</code>.</li>
       </ol>
     </section>
@@ -420,7 +420,7 @@
     <section id="diagnostics" class="scenario">
       <h2>5. Сценарий «Быстрая диагностика»</h2>
       <ol>
-        <li>Откройте <code>Launcher.exe</code>.</li>
+        <li>Откройте <code>Launcher.bat</code>.</li>
         <li>В меню введите <code>ST</code> — запустится встроенный алгоритм диагностики.</li>
         <li>Следуйте подсказкам для устранения проблем.</li>
       </ol>

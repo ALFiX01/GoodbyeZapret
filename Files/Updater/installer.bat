@@ -149,10 +149,10 @@ if exist "%ProjecDir%\GoodbyeZapret.zip" (
     exit
 )
 
-if exist "%ProjecDir%\Launcher.exe" (
-    start "" "%ProjecDir%\Launcher.exe"
+if exist "%ProjecDir%\Launcher.bat" (
+    start "" "%ProjecDir%\Launcher.bat"
 ) else (
-    echo        %COL%[91m ^[*^] Error: File not found: %ProjecDir%\Launcher.exe %COL%[90m
+    echo        %COL%[91m ^[*^] Error: File not found: %ProjecDir%\Launcher.bat %COL%[90m
     timeout /t 5 >nul
     exit
 )
