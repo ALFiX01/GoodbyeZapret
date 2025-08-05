@@ -50,7 +50,7 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.1"
+set "Current_GoodbyeZapret_version=2.1.1.01"
 set "Current_GoodbyeZapret_version_code=22YL01"
 set "branch=Stable"
 set "beta_code=0"
@@ -915,6 +915,14 @@ call :install_GZ_sevice
 
 :install_GZ_sevice
 cls
+if !batfile! == UltimateFix_ts-fooling.bat (
+    echo.
+    echo   для этого конфига необходимо включить TCP timestamps
+    netsh int tcp set global timestamps=enabled
+    echo.
+    echo   Выполнено автоматическое включение TCP timestamps
+    timeout /t 3 >nul
+)
 echo.
 echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
 
