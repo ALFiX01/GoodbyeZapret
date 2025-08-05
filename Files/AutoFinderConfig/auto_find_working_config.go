@@ -84,8 +84,7 @@ func main() {
 			fmt.Println("-------------------------------------------------------------------------------")
 			fmt.Printf("            %sНайден рабочий конфиг: %s%s\n", green, cfgName, reset)
 			fmt.Println("-------------------------------------------------------------------------------")
-			fmt.Printf("  %sНажмите Enter, чтобы продолжить поиск...%s\n", cyan, reset)
-			waitEnter()
+			waitEnter2()
 			smartCleanup(toolsDir)
 			fmt.Printf("  %sПродолжаем поиск...%s\n", cyan, reset)
 			fmt.Println("------------------------------------------------------------")
@@ -283,6 +282,11 @@ func setRegistry(cfg string) {
 
 func waitEnter() {
 	fmt.Print("Press Enter to exit...")
+	_, _ = bufio.NewReader(os.Stdin).ReadBytes('\n')
+}
+
+func waitEnter2() {
+	fmt.Printf("  %sНажмите Enter, чтобы продолжить поиск...%s\n", cyan, reset)
 	_, _ = bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 

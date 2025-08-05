@@ -5,13 +5,19 @@ set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 for %%i in ("%parentDir:~0,-1%") do set ProjectDir=%%~dpi
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
+set "GoodbyeZapret_LastStartConfig=%~nx0"
+
+if not defined GoodbyeZapret_LastStartConfig (
+  echo ERROR: GoodbyeZapret_LastStartConfig is not set
+  pause
+)
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
 cd /d "%parentDir%"
 
 
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
-set "CONFIG_NAME=GoodbyeZapret: UltimateFix 8"
+set "CONFIG_NAME=UltimateFix 8"
 set "LISTS=%ProjectDir%lists\"
 
 start "%CONFIG_NAME%" /min "%BIN%winws.exe" --wf-tcp=80,443 --wf-udp=443,50000-50100 ^

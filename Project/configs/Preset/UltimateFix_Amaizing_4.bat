@@ -3,14 +3,26 @@ chcp 65001 >nul
 
 goto :Preparing
 :Zapusk
+echo                         ______                ____            _____                         __ 
+echo                        / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo                       / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo                      / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+echo                      \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+echo                                                   /____/               /_/
 
 set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 for %%i in ("%parentDir:~0,-1%") do set ProjectDir=%%~dpi
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
+set "GoodbyeZapret_LastStartConfig=%~nx0"
 
-set "CONFIG_NAME=GoodbyeZapret: UltimateFix Amaizing 4"
+if not defined GoodbyeZapret_LastStartConfig (
+  echo ERROR: GoodbyeZapret_LastStartConfig is not set
+  pause
+)
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
+
+set "CONFIG_NAME=UltimateFix Amaizing 4"
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
@@ -19,7 +31,13 @@ cd /d "%BIN%"
 REM МОЖНО ИЗМЕНИТЬ ЭТО ЧИСЛО
 set "Dup=2"
 
-start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
+echo Config: %CONFIG_NAME%
+title GoodbyeZapret:   %CONFIG_NAME%
+echo.
+echo Winws:
+
+
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-autottl --new ^
@@ -69,5 +87,5 @@ REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul
-
+cls
 goto :Zapusk

@@ -50,7 +50,7 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.0"
+set "Current_GoodbyeZapret_version=2.1.1"
 set "Current_GoodbyeZapret_version_code=22YL01"
 set "branch=Stable"
 set "beta_code=0"
@@ -249,6 +249,7 @@ set "SilentMode="
 REM ------------------------------------------------------------
 
 REM Re-calculate amount of *.bat configs and resize console every time we enter the menu (prevents list from «исчезать» after returning)
+set "TotalCheck=Ok"
 call :ResizeMenuWindow
 
 REM Initialize color codes
@@ -331,16 +332,11 @@ if !errorlevel! equ 0 (
 )
 
 
-REM  for /f "usebackq delims=" %%a in ("%ParentDirPath%\bin\version.txt") do set "Current_Winws_version=%%a"
-REM for /f "usebackq delims=" %%a in ("%ParentDirPath%\lists\version.txt") do set "Current_List_version=%%a"
-REM for /f "usebackq delims=" %%a in ("%ParentDirPath%\configs\version.txt") do set "Current_configs_version=%%a"
-
 :: Загрузка нового файла GZ_Updater.bat
-
-REM Check WiFi status before proceeding with update operations
+REM Проверить состояние WiFi перед тем, как продолжить операции обновления
 if /i "!WiFi!"=="Off" goto skip_for_wifi
 
-REM Clean up temporary file if it exists
+REM Очистить временный файл, если он существует
 if exist "%TEMP%\GZ_Updater.bat" (
     del /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
     if exist "%TEMP%\GZ_Updater.bat" (
@@ -349,7 +345,6 @@ if exist "%TEMP%\GZ_Updater.bat" (
     )
 )
 
-
 curl -4 -s -L -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
@@ -357,7 +352,7 @@ IF !ERRORLEVEL! NEQ 0 (
     goto OnFileCheckError
 )
 
-REM Download version update file
+REM Скачать файл обновления версии
 curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 if errorlevel 1 (
     echo Error 04: Server error. Failed to connect to GoodbyeZapret update check server
@@ -365,16 +360,16 @@ if errorlevel 1 (
     goto OnFileCheckError
 )
 
-REM Verify successful download of GZ_Updater.bat
+REM Проверить успешность загрузки файла GZ_Updater.bat
 if not exist "%TEMP%\GZ_Updater.bat" (
     echo Error: Failed to download GZ_Updater.bat file
     set "CheckStatus=NoChecked"
     goto OnFileCheckError
 )
 
-REM Download Updater.exe if not present
+REM Скачайте Updater.exe, если он не установлен
 if not exist "%ParentDirPath%\tools\Updater.exe" (
-    REM Create tools directory if it doesn't exist
+    REM Создайте директорию tools, если она не существует
     if not exist "%ParentDirPath%\tools" (
         md "%ParentDirPath%\tools" >nul 2>&1
     )
@@ -387,7 +382,7 @@ if not exist "%ParentDirPath%\tools\Updater.exe" (
     )
 )
 
-REM Check file size of GZ_Updater.bat
+REM Проверьте размер файла GZ_Updater.bat
 set "FileSize=0"
 for %%I in ("%TEMP%\GZ_Updater.bat") do set "FileSize=%%~zI"
 
@@ -409,7 +404,7 @@ if "%CheckStatus%"=="FileCheckError" (
     goto OnFileCheckError
 )
 
-REM Execute downloaded Updater.bat file
+REM Выполнить загруженный файл Updater.bat
 call "%TEMP%\GZ_Updater.bat" >nul 2>&1
 if errorlevel 1 (
     echo Error 05: Start error. Failed to execute GZ_Updater.bat
@@ -434,27 +429,27 @@ if "%StatusProject%"=="0" (
     echo  Я был рад быть вам полезным, но пришло время прощаться.
     echo  Проект GoodbyeZapret был закрыт.
     echo.
-    REM Stop and remove GoodbyeZapret service
+    REM  GoodbyeZapret
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% equ 0 (
         net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
     )
     
-    REM Kill winws.exe process if running
+    REM  winws.exe
     tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
     if not errorlevel 1 (
         taskkill /F /IM winws.exe >nul 2>&1
     )
     
-    REM Stop and remove WinDivert services
+    REM  WinDivert
     sc query "WinDivert" >nul 2>&1
     if %errorlevel% equ 0 (
         net stop "WinDivert" >nul 2>&1
         sc delete "WinDivert" >nul 2>&1
     )
     
-    REM Clean up registry and directories
+    REM Clean up registry and directories 
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     if exist "%ParentDirPath%\configs" rd /s /q "%ParentDirPath%\configs" >nul 2>&1
     if exist "%ParentDirPath%\bin" rd /s /q "%ParentDirPath%\bin" >nul 2>&1
@@ -490,24 +485,24 @@ cls
 
 title GoodbyeZapret - Launcher
 
-REM Try to read value from registry
+REM Попробуйте прочитать значение из реестра
 for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
     set "GoodbyeZapret_Config=%%b"
     goto :GoodbyeZapret_Config_Found
 )
 
-REM If key not found, set default value
+REM Если ключ не найден, установите значение по умолчанию
 set "GoodbyeZapret_Config=Not found"
 
 :GoodbyeZapret_Config_Found
 
-REM Try to read value from new registry
+REM Попробуйте считать значение из нового реестра
 for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do (
     set "GoodbyeZapret_Version_OLD=%%b"
     goto :end_GoodbyeZapret_Version_OLD
 )
 
-REM Try to migrate value from old registry to new
+REM Попробуйте перенести значение из старого реестра в новый
 for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do (
     set "GoodbyeZapret_Version_OLD=%%b"
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%%b" /f >nul 2>&1
@@ -515,7 +510,7 @@ for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret
     goto :end_GoodbyeZapret_Version_OLD
 )
 
-REM If key not found anywhere, create with default value
+REM Если ключ не найден нигде, создайте его с значением по умолчанию.
 if not defined GoodbyeZapretVersion (
     set "GoodbyeZapretVersion=0.0.0"
 )
@@ -524,7 +519,7 @@ set "GoodbyeZapret_Version_OLD=Not found"
 
 :end_GoodbyeZapret_Version_OLD
 
-REM Error handling for missing version
+REM Обработка ошибок для отсутствующей версии
 if not defined GoodbyeZapretVersion (
     echo   Error 06: Read error. Failed to read value GoodbyeZapret_Version
     set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
@@ -533,13 +528,13 @@ if not defined GoodbyeZapretVersion (
     timeout /t 1 >nul
 )
 
-REM Error handling for missing config
+REM Обработка ошибок для отсутствующей конфигурации
 if not defined GoodbyeZapret_Config (
     echo   Error 07: Read error. Failed to read value GoodbyeZapret_Config
     timeout /t 2 >nul
 )
 
-REM Check for GoodbyeZapret service and get current config
+REM Проверьте сервис GoodbyeZapret и получите текущую конфигурацию
 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v Description >nul 2>&1
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do (
@@ -548,7 +543,7 @@ if %errorlevel% equ 0 (
     )
 )
 
-REM Check for old config in registry
+REM Проверьте старую конфигурацию в реестре
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do (
@@ -678,11 +673,10 @@ if /i "%WiFi%"=="Off" (
 )
 
 REM ------ New: warn user if system problems detected ------
-if %YesCount% geq 2 (
 if "%TotalCheck%"=="Problem" (
     echo                        %COL%[91mВозможны проблемы в работе ^[ ST ^] - подробнее%COL%[37m
 )
-)
+
 REM ---------------------------------------------------------
 
 REM ================================================================================================
@@ -798,11 +792,11 @@ REM Display different menu options based on current service status
 if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-    echo.
+    echo                 %COL%[36m^[ AC ^] %COL%[37mЗапустить автоподбор конфига
     if not "%TotalCheck%"=="Problem" (
+    echo.
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     )
-    echo                 %COL%[36m^[ AC ^] %COL%[37mЗапустить автоподбор конфига
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
@@ -1310,6 +1304,7 @@ REM     echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%   
 echo    └───────────────────────────────────────────────────────────────────────────────────┘
 echo.
 :: Вывод результатов
+
 if "%TotalCheck%"=="Problem" (
     echo     %COL%[91mВозможны проблемы в работе GoodbyeZapret%COL%[37m
     echo     └ 
@@ -1583,29 +1578,24 @@ start "" "%ParentDirPath%\tools\Config_Check\auto_find_working_config.exe"
 goto MainMenu
 
 :ResizeMenuWindow
-REM Recalculate number of config files and adjust console size dynamically
+REM Пересчитайте количество конфигурационных файлов и динамически настройте размер консоли.
 set "sourcePath=%~dp0"
 set "BatCount=0"
 for %%f in ("%sourcePath%configs\Preset\*.bat" "%sourcePath%configs\Custom\*.bat") do set /a BatCount+=1
 
-REM Ensure PageSize defined (default 25)
+REM Убедитесь, что размер страницы определен (по умолчанию 20)
 if not defined PageSize set "PageSize=20"
 
-REM Determine number of configs to show on current page
+REM Определите количество конфигураций, которые нужно показать на текущей странице
 set /a VisibleConfigs=BatCount
 if %VisibleConfigs% gtr %PageSize% set /a VisibleConfigs=%PageSize%
 
-set /a ListBatCount=VisibleConfigs+23
+set /a ListBatCount=VisibleConfigs+22
 
-REM Add extra lines for pagination hints when more than one page
+REM Добавьте дополнительные строки для подсказок по пагинации, когда страниц больше одной.
 set /a TotalPages=(BatCount+PageSize-1)/PageSize
 if %TotalPages% gtr 1 set /a ListBatCount+=2
 
-REM If service GoodbyeZapret installed, reduce height by 2 lines
-sc query "GoodbyeZapret" >nul 2>&1
-if %errorlevel% equ 0 (
-    set /a ListBatCount-=2
-)
 
 REM Доп. Корректировка высоты консоли-----------------------
 :: Сбрасываем старую логику и добавляем новую более точную
@@ -1621,22 +1611,39 @@ if %errorlevel% equ 0 set /a YesCount+=1
 sc query "WinDivert" 2>NUL | find /I "RUNNING" >NUL
 if %errorlevel% equ 0 (
     set /a YesCount+=1
-) else (
-    sc query "WinDivert14" 2>NUL | find /I "RUNNING" >NUL
-    if %errorlevel% equ 0 set /a YesCount+=1
 )
 
-REM Добавляем строку только если будет показано предупреждение «Возможны проблемы...»
-if %YesCount% geq 2 if "%TotalCheck%"=="Problem" set /a ListBatCount+=1
 
-REM Отсутствие интернета выводит отдельную строку
-if /i "%WiFi%"=="Off" set /a ListBatCount+=1
+REM Базовая логика подсчёта ListBatCount
+if %YesCount% geq 2 (
+    if "%TotalCheck%"=="Problem" (
+        set /a ListBatCount+=0
+    ) else (
+        set /a ListBatCount-=1
+    )
+) else (
+    if "%TotalCheck%"=="Problem" (
+        set /a ListBatCount+=1
+    ) else (
+        set /a ListBatCount+=2
+    )
+)
 
-REM Уведомление о доступном обновлении
-if /i "%UpdateNeed%"=="Yes" set /a ListBatCount+=1
+REM Отсутствие интернета — дополнительный+
+if /i "%WiFi%"=="Off" (
+    set /a ListBatCount+=1
+)
 
-REM Ошибка проверки файлов/подключения к серверу
-if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
+REM Требуется обновление — дополнительный +
+if /i "%UpdateNeed%"=="Yes" (
+    set /a ListBatCount+=1
+)
+
+REM Ошибка проверки файлов или сервера — дополнительный +
+if /i "%CheckStatus%"=="FileCheckError" (
+    set /a ListBatCount+=1
+)
+
 REM --------------------------------------------------------
 
 REM Limit maximum window height to avoid oversized console
@@ -1654,7 +1661,7 @@ goto :eof
         echo Файл инструкции не найден: %ParentDirPath%\instructions.html
         timeout /t 3 >nul
     )
-    goto MainMenu
+    goto CurrentStatus
 
 if /i "%choice%"=="N" (
     set /a Page+=1

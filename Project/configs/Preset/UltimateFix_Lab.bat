@@ -3,19 +3,25 @@ chcp 65001 >nul
 
 goto :Preparing
 :Zapusk
-echo                      ______                ____            _____                         __ 
-echo                     / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
-echo                    / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
-echo                   / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
-echo                   \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
-echo                                                /____/               /_/
+echo                         ______                ____            _____                         __ 
+echo                        / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo                       / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo                      / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+echo                      \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+echo                                                   /____/               /_/
 set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
+set "GoodbyeZapret_LastStartConfig=%~nx0"
 
-set "CONFIG_NAME=GoodbyeZapret: UltimateFix Lab"
+if not defined GoodbyeZapret_LastStartConfig (
+  echo ERROR: GoodbyeZapret_LastStartConfig is not set
+  pause
+)
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
+
+set "CONFIG_NAME=UltimateFix Lab"
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
@@ -40,8 +46,8 @@ set YTCHP=--dpi-desync=fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync
 
 REM --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0xFEA82025 --dpi-desync-fake-quic="%FAKE%QUIC_Initial_fonts_google_com.bin" --dpi-desync-cutoff=n4 --dpi-desync-repeats=2 --new ^
 
-echo %CONFIG_NAME%
-echo.
+echo Config: %CONFIG_NAME%
+title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
 
@@ -51,7 +57,7 @@ REM --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
 
 REM --filter-l3=ipv4 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 
-start "%CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443,444-65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 --filter-udp=50000-50090 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-cutoff=n4 --new ^

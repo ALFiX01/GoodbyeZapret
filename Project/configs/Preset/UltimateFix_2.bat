@@ -3,31 +3,42 @@ chcp 65001 >nul
 
 goto :Preparing
 :Zapusk
-
+echo                         ______                ____            _____                         __ 
+echo                        / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo                       / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo                      / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+echo                      \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+echo                                                   /____/               /_/
 set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
 for %%i in ("%parentDir:~0,-1%") do set ProjectDir=%%~dpi
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
+set "GoodbyeZapret_LastStartConfig=%~nx0"
 
-set "CONFIG_NAME=GoodbyeZapret: UltimateFix 2"
+if not defined GoodbyeZapret_LastStartConfig (
+  echo ERROR: GoodbyeZapret_LastStartConfig is not set
+  pause
+)
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
+
+set "CONFIG_NAME=UltimateFix 2"
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
 cd /d "%BIN%"
 
-start "%CONFIG_NAME%" /min "%BIN%winws.exe" ^
+echo Config: %CONFIG_NAME%
+title GoodbyeZapret:   %CONFIG_NAME%
+echo.
+echo Winws:
+
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50100,1024-65535 ^
 --filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-udp=443 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=7 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2
-
+--filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin"
 goto :EOF
 
 :Preparing
@@ -61,5 +72,5 @@ REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul
-
+cls
 goto :Zapusk

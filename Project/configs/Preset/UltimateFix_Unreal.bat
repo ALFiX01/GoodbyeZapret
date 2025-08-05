@@ -3,27 +3,34 @@ chcp 65001 >nul
 
 goto :Preparing
 :Zapusk
-echo                      ______                ____            _____                         __ 
-echo                     / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
-echo                    / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
-echo                   / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
-echo                   \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
-echo                                                /____/               /_/
+echo                         ______                ____            _____                         __ 
+echo                        / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo                       / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo                      / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+echo                      \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+echo                                                   /____/               /_/
 set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%~nx0" /f >nul
+set "GoodbyeZapret_LastStartConfig=%~nx0"
 
-set "CONFIG_NAME=GoodbyeZapret: UltimateFix Unreal"
-REM Основа на YTDSBystro 3.5.1
+if not defined GoodbyeZapret_LastStartConfig (
+  echo ERROR: GoodbyeZapret_LastStartConfig is not set
+  pause
+)
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
+
+set "CONFIG_NAME=UltimateFix Unreal"
+
+REM Основана YTDSBystro 3.5.1
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
 cd /d "%BIN%"
 
-echo %CONFIG_NAME%
-echo.
+echo Config: %CONFIG_NAME%
+title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
 
@@ -38,7 +45,8 @@ set YTDB_AUTOTTL= --dpi-desync-autottl
 rem set YTDB_TTL= --dpi-desync-ttl=5
 
 :: Сюда скопируйте стратегию для сайтов, которая у вас работает ::
-set "YTDB_TLS_MAIN=--dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin""
+REM set "YTDB_TLS_MAIN=--dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin""
+set "YTDB_TLS_MAIN=--dpi-desync=multisplit --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_4.bin""
 
 :: Сюда скопируйте стратегию для дискорда, которая работает у вас. Может быть копией YTDB_TLS_MAIN ::
 REM set "YTDB_TLS_MAIN2=--dpi-desync=fakedsplit --dpi-desync-split-pos=2,host+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-repeats=2 --dpi-desync-fooling=md5sig%YTDB_AUTOTTL%%YTDB_TTL%"
@@ -46,12 +54,12 @@ set "YTDB_TLS_MAIN2=--dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1
 
 :: Сюда скопируйте стратегию для квика ютуба, которая у вас работает  ::
 set "YTDB_QUIC_MAIN=--dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2"
-
+REM set "YTDB_QUIC_MAIN=--dpi-desync=ipfrag2 --dpi-desync-repeats=3 --dpi-desync-ttl=5"
 :: Здесь можно включить дебаг-лог убрав rem и выключить, добавив rem ::
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! ::
 rem set YTDB_prog_log=--debug=@%~dp0log_debug.txt
 
-start "%CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443,444-65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
