@@ -50,7 +50,7 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.1.02"
+set "Current_GoodbyeZapret_version=2.1.1.03"
 set "Current_GoodbyeZapret_version_code=22YL01"
 set "branch=Stable"
 set "beta_code=0"
@@ -519,13 +519,21 @@ set "GoodbyeZapret_Version_OLD=Not found"
 
 :end_GoodbyeZapret_Version_OLD
 
-REM Обработка ошибок для отсутствующей версии
+REM Проверяем, была ли ранее определена переменная GoodbyeZapretVersion
 if not defined GoodbyeZapretVersion (
-    echo   Error 06: Read error. Failed to read value GoodbyeZapret_Version
+    REM Если переменная не определена, устанавливаем значения по умолчанию.
+    REM Это происходит независимо от состояния Wi-Fi.
     set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
     set "Actual_GoodbyeZapret_version=0.0.0"
     set "UpdateNeed=No"
-    timeout /t 1 >nul
+
+    REM Теперь проверяем, почему переменная не была определена.
+    REM Если Wi-Fi НЕ выключен, значит, произошла ошибка чтения из сети.
+    if /I not "%WiFi%"=="off" (
+        echo.
+        echo   Error 06: Read error. Failed to read value GoodbyeZapret_Version
+        timeout /t 2 >nul
+    )
 )
 
 REM Обработка ошибок для отсутствующей конфигурации
@@ -921,7 +929,8 @@ if !batfile! == UltimateFix_ts-fooling.bat (
     netsh int tcp set global timestamps=enabled
     echo.
     echo   Выполнено автоматическое включение TCP timestamps
-    timeout /t 3 >nul
+    timeout /t 4 >nul
+    cls
 )
 echo.
 echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
@@ -1622,16 +1631,16 @@ if %errorlevel% equ 0 (
 )
 
 
-REM Базовая логика подсчёта ListBatCount
-if %YesCount% geq 2 (
-    if "%TotalCheck%"=="Problem" (
-        set /a ListBatCount+=0
-    ) else (
-        set /a ListBatCount-=1
+REM Сначала проверяем, есть ли проблема
+if /I "%TotalCheck%"=="Problem" (
+    REM Если проблема есть, то меняем счётчик, только если YesCount < 2
+    if %YesCount% lss 2 (
+        set /a ListBatCount+=1
     )
 ) else (
-    if "%TotalCheck%"=="Problem" (
-        set /a ListBatCount+=1
+    REM Если проблемы нет, смотрим на YesCount
+    if %YesCount% geq 2 (
+        set /a ListBatCount-=1
     ) else (
         set /a ListBatCount+=2
     )
@@ -1639,7 +1648,7 @@ if %YesCount% geq 2 (
 
 REM Отсутствие интернета — дополнительный+
 if /i "%WiFi%"=="Off" (
-    set /a ListBatCount+=1
+    set /a ListBatCount+=2
 )
 
 REM Требуется обновление — дополнительный +

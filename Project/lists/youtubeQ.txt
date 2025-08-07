@@ -1,12 +1,11 @@
 youtube.com
-googlevideo.com
 gvt1.com
-play.google.com
-ytimg.com
 ggpht.com
+play.google.com
 jnn-pa.googleapis.com
-googleadservices.com
+ytimg.com
 youtubeembeddedplayer.googleapis.com
 youtube.googleapis.com
 youtubei.googleapis.com
 googleusercontent.com
+googleadservices.com

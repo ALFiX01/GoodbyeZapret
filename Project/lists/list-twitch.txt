@@ -43,3 +43,13 @@ twitchcdn.net
 twitchcon.com
 twitchsvc.net
 vod-secure.twitch.tv
+7tv.app
+7tv.io
+a2z.com
+amazonaws.com
+betterttv.net
+cloudfront.net
+frankerfacez.com
+media-amazon.com
+
+
