@@ -50,8 +50,8 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.1.05"
-set "Current_GoodbyeZapret_version_code=07AV01"
+set "Current_GoodbyeZapret_version=2.1.1.06"
+set "Current_GoodbyeZapret_version_code=08AV01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -449,6 +449,13 @@ if "%StatusProject%"=="0" (
         sc delete "WinDivert" >nul 2>&1
     )
     
+    REM  monkey
+    sc query "monkey" >nul 2>&1
+    if %errorlevel% equ 0 (
+        net stop "monkey" >nul 2>&1
+        sc delete "monkey" >nul 2>&1
+    )
+    
     REM Clean up registry and directories 
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     if exist "%ParentDirPath%\configs" rd /s /q "%ParentDirPath%\configs" >nul 2>&1
@@ -602,15 +609,18 @@ if %errorlevel% equ 0 (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul 2>&1
 )
 
-REM Check WinDivert service status
+REM Проверка запущенных служб WinDivert
 set "WinDivertStart=No"
-sc query "WinDivert" 2>NUL | find /I "RUNNING" >NUL
-if %errorlevel% equ 0 set "WinDivertStart=Yes"
-if "%WinDivertStart%"=="No" (
-    sc query "WinDivert14" 2>NUL | find /I "RUNNING" >NUL
-    if %errorlevel% equ 0 set "WinDivertStart=Yes"
+
+for %%S in ("WinDivert" "WinDivert14" "monkey") do (
+    sc query %%~S 2>nul | find /I "RUNNING" >nul
+    if not errorlevel 1 (
+        set "WinDivertStart=Yes"
+        goto :DoneStartCheck
+    )
 )
 
+:DoneStartCheck
 REM Count running services/processes
 set "YesCount=0"
 if "%GoodbyeZapretStart%"=="Yes" set /a YesCount+=1
@@ -987,6 +997,8 @@ goto :end
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
+                net stop "monkey" >nul 2>&1
+                sc delete "monkey" >nul 2>&1
                 echo  Файл winws.exe остановлен
                 ipconfig /flushdns > nul
             )
@@ -1295,12 +1307,19 @@ if %errorlevel% equ 0 (
 ) else (
     echo    ^│ %COL%[91mX %COL%[37mWinws.exe: Не запущен                                                           %COL%[36m^│
 )
-sc qc windivert >nul
+
+sc qc WinDivert >nul 2>&1
 if %errorlevel% equ 0 (
-    echo    ^│ %COL%[92m√ %COL%[37mWinDivert: %COL%[92mУстановлен                                                           %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mWinDivert: Установлен                                                           %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                                        %COL%[36m^│
+    sc qc monkey >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo    ^│ %COL%[92m√ %COL%[37mWinDivert: Не установлен, но найден %COL%[93mmonkey                                      %COL%[36m^│
+    ) else (
+        echo    ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                                        %COL%[36m^│
+    )
 )
+
 if "%Auto-update%"=="1" (
     echo    ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                                        %COL%[36m^│
     set "AutoUpdateTextParam=Выключить"
@@ -1317,7 +1336,7 @@ echo    ^│ %COL%[90m───────────────────�
 if "%UpdateNeed%"=="Yes" (
     echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                              %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                           %COL%[36m^│
 )
 
 REM     echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                                                 %COL%[36m^│
@@ -1628,12 +1647,15 @@ if %errorlevel% equ 0 set /a YesCount+=1
 tasklist | find /i "Winws" >nul 2>&1
 if %errorlevel% equ 0 set /a YesCount+=1
 
-sc query "WinDivert" 2>NUL | find /I "RUNNING" >NUL
-if %errorlevel% equ 0 (
-    set /a YesCount+=1
+for %%S in ("WinDivert" "WinDivert14" "monkey") do (
+    sc query %%~S 2>nul | find /I "RUNNING" >nul
+    if not errorlevel 1 (
+        if %errorlevel% equ 0 set /a YesCount+=1
+        goto :DoneStartCheck_YesCount
+    )
 )
 
-
+:DoneStartCheck_YesCount
 REM Сначала проверяем, есть ли проблема
 if /I "%TotalCheck%"=="Problem" (
     REM Если проблема есть, то меняем счётчик, только если YesCount < 2

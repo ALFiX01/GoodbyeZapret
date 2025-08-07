@@ -34,7 +34,7 @@ if "!ERRORLEVEL!"=="0" (
 )
 
 REM --- Stop and delete WinDivert service if it exists ---
-for %%S in (WinDivert) do (
+for %%S in (WinDivert monkey) do (
     sc query "%%S" >nul 2>&1
     if !errorlevel! equ 0 (
         echo Stopping "%%S" service...
