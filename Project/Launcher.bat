@@ -50,8 +50,8 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.1.03"
-set "Current_GoodbyeZapret_version_code=22YL01"
+set "Current_GoodbyeZapret_version=2.1.1.04"
+set "Current_GoodbyeZapret_version_code=07AV01"
 set "branch=Stable"
 set "beta_code=0"
 
