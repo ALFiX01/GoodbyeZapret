@@ -49,7 +49,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.1"
+set "UpdaterVersion=2.1.1"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -96,9 +96,9 @@ if %errorlevel% equ 0 (
 )
 
 REM Попытка перенести значение из старого реестра в новый
-reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" >nul 2>&1
+reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1
 if %errorlevel% equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
+    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
     set "GoodbyeZapret_Config=%%b"
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /t REG_SZ /d "%%b" /f >nul
     reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul
@@ -178,8 +178,8 @@ if %errorlevel% equ 0 (
 )
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
-    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%" set "batPath=Preset"
-    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%" set "batPath=Custom"
+    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%.bat" set "batPath=Preset"
+    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%.bat" set "batPath=Custom"
     if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%" set "batPath="
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
     if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (

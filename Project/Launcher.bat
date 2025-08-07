@@ -50,7 +50,7 @@ set "ErrorCount=0"
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.1.04"
+set "Current_GoodbyeZapret_version=2.1.1.05"
 set "Current_GoodbyeZapret_version_code=07AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -941,8 +941,11 @@ sc config "GoodbyeZapret" start= auto >nul 2>&1
 REM Извлекаем базовое имя файла (без папки и расширения) для записи в реестр/описание
 for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
 
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!batPath!" /f >nul
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
+REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!batPath!" /f >nul
+REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
+
+ reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!BaseCfg!" /f >nul
+ reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!batPath!" /f >nul
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "!BaseCfg!" /f >nul
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
