@@ -152,6 +152,8 @@ net stop "WinDivert" >nul 2>&1
 sc delete "WinDivert" >nul 2>&1
 net stop "WinDivert14" >nul 2>&1
 sc delete "WinDivert14" >nul 2>&1
+net stop "monkey" >nul 2>&1
+sc delete "monkey" >nul 2>&1
 
 reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -203,9 +205,9 @@ if %errorlevel% equ 0 (
 )
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
-    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%" set "batPath=Preset"
-    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%" set "batPath=Custom"
-    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%" set "batPath="
+    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%.bat" set "batPath=Preset"
+    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%.bat" set "batPath=Custom"
+    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat" set "batPath="
     echo [INFO] %time:~0,8% - Update Check - Запуск конфигурации %GoodbyeZapret_Config% >> "%ParentDirPath%\Log.txt"
     if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\""

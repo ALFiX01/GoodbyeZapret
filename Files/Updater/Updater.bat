@@ -49,7 +49,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.1.1"
+set "UpdaterVersion=2.1.2"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -83,6 +83,8 @@ net stop "WinDivert" >nul 2>&1
 sc delete "WinDivert" >nul 2>&1
 net stop "WinDivert14" >nul 2>&1
 sc delete "WinDivert14" >nul 2>&1
+net stop "monkey" >nul 2>&1
+sc delete "monkey" >nul 2>&1
 
 reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1
 if %errorlevel% equ 0 (
