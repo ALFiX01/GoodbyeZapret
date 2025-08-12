@@ -3,6 +3,10 @@ nnmclub.to
 nnmstatic.win
 rutracker.org
 #Конец блока для удаления
+aus5.mozilla.org
+dns.cloudflare.com
+githubusercontent.com
+pinterest.com
 stream.voidboost.cc
 google.com
 nexusmods.com
@@ -12,7 +16,12 @@ twitch.tv
 ttvnw.net
 static-cdn.jtvnw.net
 steamcommunity.com
+steamusercontent.com
+steamcommunity-a.akamaihd.net
+steampipe.steamcontent.com
 steampowered.com
+steamserver.net
+steamstatic.com
 tarkov.com
 escapefromtarkov.com
 browser-intake-datadoghq.com

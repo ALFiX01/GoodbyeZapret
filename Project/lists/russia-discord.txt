@@ -19,6 +19,7 @@ discordInvites.net
 discordactivities.com
 discordapp.com
 discordapp.io
+stable.dl2.discordapp.net
 discordapp.net
 discordbee.com
 discordbotlist.com

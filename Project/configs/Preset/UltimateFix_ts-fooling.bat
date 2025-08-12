@@ -21,6 +21,7 @@ if not defined GoodbyeZapret_LastStartConfig (
   echo ERROR: GoodbyeZapret_LastStartConfig is not set
   pause
 )
+
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
 
 set "CONFIG_NAME=UltimateFix ts-fooling"
@@ -35,20 +36,29 @@ echo Config: %CONFIG_NAME%
 title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
+REM --wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
+REM --filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fooling=ts --dup-cutoff=n3 --new ^
 
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! ::
 rem set YTDB_prog_log=--debug=@%~dp0log_debug.txt
 REM --dpi-desync=fake --dpi-desync-fooling=ts \\\\ --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
 REM --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1
+
+start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" ^
+--wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6
+
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-l3=ipv4,ipv6 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099 ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fooling=ts --dup-cutoff=n3 --new ^
---filter-tcp=443 --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --new ^
+--filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
+--filter-tcp=443 --dpi-desync-any-protocol --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n4 --new ^
+--filter-udp=443 --dpi-desync-any-protocol --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake --dpi-desync-fooling=ts --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-domains=updates.discord.com, stable.dl2.discordapp.net, rutracker.org, static.rutracker.cc, cdn77.com --dpi-desync=fake --dpi-desync-fooling=ts --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --ipset-exclude-ip=1.1.1.1, 1.0.0.1, 212.109.195.93, 83.220.169.155, 141.105.71.21 --ipset="%LISTS%ipset-cloudflare2.txt" --dpi-desync=syndata,multisplit --dpi-desync-split-seqovl=1 --dpi-desync-fake-syndata="%FAKE%tls_clienthello_16.bin" --dup=2 --dup-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=syndata,fake --dpi-desync-fooling=ts --dpi-desync-fake-syndata="%FAKE%fake_tls_1.bin" --new ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --ipset-exclude-ip=1.1.1.1, 1.0.0.1, 212.109.195.93, 83.220.169.155, 141.105.71.21 --dpi-desync=syndata,multisplit --dpi-desync-split-seqovl=1 --dpi-desync-fake-syndata="%FAKE%tls_clienthello_15.bin" --dup=2 --dup-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake --dpi-desync-fooling=ts
 
 goto :EOF

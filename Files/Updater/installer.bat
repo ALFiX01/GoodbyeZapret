@@ -43,10 +43,6 @@ if %errorlevel% neq 0 (
 )
 
 for /f "delims=" %%A in ('powershell -NoProfile -Command "(Get-Item '%~dp0').FullName"') do set "ParentDirPath=%%A" 
-
-set "currentDir=%~dp0"
-set "currentDir=%currentDir:~0,-1%\GoodbyeZapret"
-for %%i in ("%currentDir%") do set parentDir=%%~dpi
 set "ProjecDir=%ParentDirPath%GoodbyeZapret"
 
 if not exist "%ProjecDir%" (
@@ -58,6 +54,7 @@ chcp 65001 >nul 2>&1
 mode con: cols=80 lines=25 >nul 2>&1
 
 set "UpdaterVersion=1.2"
+set "ZIP_URL=https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/main/Files/GoodbyeZapret.zip"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -112,23 +109,32 @@ taskkill /F /IM winws.exe >nul 2>&1
 net stop "WinDivert" >nul 2>&1
 sc delete "WinDivert" >nul 2>&1
 
-
-curl -4 -s -L -I --connect-timeout 3 -o nul "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
+echo         ^[*^] Скачивание файлов
+where curl >nul 2>&1
 if errorlevel 1 (
-    echo        %COL%[91m ^[*^] Error: Failed to connect to GoodbyeZapret server %COL%[90m
-    timeout /t 5 >nul
-    exit
+    chcp 850 >nul 2>&1
+    powershell -NoProfile -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ProjecDir%\GoodbyeZapret.zip' -UseBasicParsing"
+    if errorlevel 1 (
+        echo        %COL%[91m ^[*^] Error: download failed %COL%[90m
+        timeout /t 5 >nul
+        exit /b 1
+    )
+    chcp 65001 >nul 2>&1
+) else (
+    curl -fS --retry 3 --retry-all-errors --connect-timeout 5 --max-time 180 -L -o "%ProjecDir%\GoodbyeZapret.zip" "%ZIP_URL%"
+    if errorlevel 1 (
+        echo        %COL%[91m ^[*^] Error: download failed %COL%[90m
+        timeout /t 5 >nul
+        exit /b 1
+    )
 )
 
-echo         ^[*^] Скачивание файлов
-curl -g -L -# -o "%ProjecDir%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
-
 for %%I in ("%ProjecDir%\GoodbyeZapret.zip") do set FileSize=%%~zI
-if %FileSize% LSS 100 (
+if %FileSize% LSS 10240 (
     echo       %COL%[91m ^[*^] Error - Файл GoodbyeZapret.zip поврежден или URL не доступен ^(Size %FileSize%^) %COL%[90m
-    pause
     del /Q "%ProjecDir%\GoodbyeZapret.zip"
-    exit
+    timeout /t 5 >nul
+    exit /b 1
 )
 
 REM Удаляем только предыдущую распакованную версию (если существует)
@@ -140,19 +146,26 @@ if exist "%ProjecDir%\GoodbyeZapret" (
 if exist "%ProjecDir%\GoodbyeZapret.zip" (
     echo         ^[*^] Распаковка файлов
     chcp 850 >nul 2>&1
-    powershell -NoProfile Expand-Archive '%ProjecDir%\GoodbyeZapret.zip' -DestinationPath '%ProjecDir%' >nul 2>&1
+    powershell -NoProfile -Command "$ErrorActionPreference='Stop'; Expand-Archive -LiteralPath '%ProjecDir%\GoodbyeZapret.zip' -DestinationPath '%ProjecDir%' -Force"
+    if errorlevel 1 (
+        echo        %COL%[91m ^[*^] Error: unzip failed %COL%[90m
+        timeout /t 5 >nul
+        exit /b 1
+    )
     chcp 65001 >nul 2>&1
     del /Q "%ProjecDir%\GoodbyeZapret.zip"
 ) else (
     echo        %COL%[91m ^[*^] Error: File not found: %ProjecDir%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
-    exit
+    exit /b 1
 )
 
 if exist "%ProjecDir%\Launcher.bat" (
     start "" "%ProjecDir%\Launcher.bat"
+) else if exist "%ProjecDir%\GoodbyeZapret\Launcher.bat" (
+    start "" "%ProjecDir%\GoodbyeZapret\Launcher.bat"
 ) else (
-    echo        %COL%[91m ^[*^] Error: File not found: %ProjecDir%\Launcher.bat %COL%[90m
+    echo        %COL%[91m ^[*^] Error: Launcher.bat not found %COL%[90m
     timeout /t 5 >nul
-    exit
+    exit /b 1
 )

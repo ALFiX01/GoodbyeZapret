@@ -6,12 +6,14 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -26,8 +28,8 @@ const (
 	yellow    = esc + "[33m"
 	red       = esc + "[31m"
 	cyan      = esc + "[36m"
-	checkMark = green + "✔" + reset
-	crossMark = red + "✖" + reset
+	checkMark = green + "OK" + reset
+	crossMark = red + "ERROR" + reset
 )
 
 // domains will be populated from domains.txt located next to the executable.
@@ -183,39 +185,33 @@ func runBatch(path string) {
 }
 
 func testDomains() (okCount int, failed []string) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _ string, addr string) (net.Conn, error) {
-				d := net.Dialer{Timeout: time.Second}
-				return d.DialContext(ctx, "tcp4", addr)
-			},
-			MaxIdleConns:          5,
-			ResponseHeaderTimeout: time.Second,
-		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 1 {
-				return http.ErrUseLastResponse // honor max-redirs=1
-			}
-			return nil
-		},
-		Timeout: 2 * time.Second,
+	// ограничим степень параллелизма
+	maxParallel := runtime.NumCPU() * 4
+	if maxParallel < 8 {
+		maxParallel = 8
 	}
+	if len(domains) < maxParallel {
+		maxParallel = len(domains)
+	}
+	sem := make(chan struct{}, maxParallel)
 
-	// prepare result storage matching domain order
 	type res struct {
 		ok     bool
 		domain string
-		err    error
+		reason string
 	}
 
 	results := make([]res, len(domains))
 	var wg sync.WaitGroup
 
 	for i, d := range domains {
-		idx, domain := i, d // capture for goroutine
+		idx, domain := i, d
 		wg.Add(1)
+		sem <- struct{}{}
 		go func() {
 			defer wg.Done()
+			defer func() { <-sem }()
+
 			url := domain
 			if strings.EqualFold(domain, "raw.githubusercontent.com") {
 				url += githubPath
@@ -223,9 +219,9 @@ func testDomains() (okCount int, failed []string) {
 			if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 				url = "https://" + url
 			}
-			req, _ := http.NewRequest(http.MethodHead, url, nil)
-			_, err := client.Do(req)
-			results[idx] = res{ok: err == nil, domain: domain, err: err}
+
+			ok, reason := checkDomainRobust(domain, url)
+			results[idx] = res{ok: ok, domain: domain, reason: reason}
 		}()
 	}
 
@@ -236,12 +232,167 @@ func testDomains() (okCount int, failed []string) {
 			fmt.Printf("  %-45s %s\n", r.domain, checkMark)
 			okCount++
 		} else {
-			fmt.Printf("  %-45s %s\n", r.domain, crossMark)
+			if r.reason == "" {
+				fmt.Printf("  %-45s %s\n", r.domain, crossMark)
+			} else {
+				fmt.Printf("  %-45s %s (%s)\n", r.domain, crossMark, r.reason)
+			}
 			failed = append(failed, r.domain)
 		}
 	}
 	fmt.Println()
 	return
+}
+
+// --- надёжная проверка домена с повтором и классификацией причин ---
+
+func buildHTTPClient() *http.Client {
+	return buildHTTPClientCustom(2*time.Second, 2*time.Second, 2500*time.Millisecond, 3500*time.Millisecond)
+}
+
+func buildHTTPClientCustom(dialTimeout, tlsTimeout, respHdrTimeout, overallTimeout time.Duration) *http.Client {
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   dialTimeout,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   tlsTimeout,
+		ResponseHeaderTimeout: respHdrTimeout,
+		ExpectContinueTimeout: 300 * time.Millisecond,
+		IdleConnTimeout:       30 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		DisableCompression:    true,
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			NextProtos: []string{"h2", "http/1.1"},
+		},
+		ForceAttemptHTTP2: true,
+	}
+	return &http.Client{Transport: transport, Timeout: overallTimeout}
+}
+
+func checkDomainRobust(domain, url string) (bool, string) {
+	dnsCtx, cancelDNS := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+	_, dnsErr := net.DefaultResolver.LookupIPAddr(dnsCtx, domain)
+	cancelDNS()
+
+	baseClient := buildHTTPClient()
+	var lastErr error
+	if ok, err := checkOnce(baseClient, domain, url); ok {
+		return true, ""
+	} else {
+		lastErr = err
+	}
+	if shouldRetry(lastErr) {
+		retryClient := buildHTTPClientCustom(3500*time.Millisecond, 3500*time.Millisecond, 3500*time.Millisecond, 5*time.Second)
+		if ok2, err2 := checkOnce(retryClient, domain, url); ok2 {
+			return true, ""
+		} else {
+			lastErr = err2
+		}
+	}
+
+	if dnsErr != nil {
+		return false, "DNS"
+	}
+	if lastErr != nil {
+		if isTimeoutErr(lastErr) {
+			return false, "TIMEOUT"
+		}
+		errStr := strings.ToLower(lastErr.Error())
+		if strings.Contains(errStr, "reset") || strings.Contains(errStr, "connection reset") || strings.Contains(errStr, "rst") {
+			return false, "RST"
+		}
+	}
+	if !tcpReachable(domain, 1800*time.Millisecond) {
+		return false, "TCP"
+	}
+	if !tlsHandshakeOk(domain, 2*time.Second) {
+		return false, "TLS"
+	}
+	return false, "HTTP"
+}
+
+func checkOnce(client *http.Client, domain, url string) (bool, error) {
+	// HEAD
+	headCtx, cancelHead := context.WithTimeout(context.Background(), client.Timeout)
+	headReq, _ := http.NewRequestWithContext(headCtx, http.MethodHead, url, nil)
+	headReq.Header.Set("User-Agent", "GoodbyeZapretChecker")
+	headReq.Header.Set("Accept", "*/*")
+	headReq.Header.Set("Accept-Encoding", "identity")
+	if resp, err := client.Do(headReq); err == nil {
+		resp.Body.Close()
+		cancelHead()
+		return true, nil
+	} else {
+		cancelHead()
+	}
+
+	// GET с Range
+	getCtx, cancelGet := context.WithTimeout(context.Background(), client.Timeout)
+	getReq, _ := http.NewRequestWithContext(getCtx, http.MethodGet, url, nil)
+	getReq.Header.Set("User-Agent", "GoodbyeZapretChecker")
+	getReq.Header.Set("Range", "bytes=0-0")
+	getReq.Header.Set("Accept-Encoding", "identity")
+	if resp, err := client.Do(getReq); err == nil {
+		resp.Body.Close()
+		cancelGet()
+		return true, nil
+	} else {
+		cancelGet()
+		return false, err
+	}
+}
+
+func tcpReachable(domain string, timeout time.Duration) bool {
+	d := &net.Dialer{Timeout: timeout}
+	conn, err := d.Dial("tcp", net.JoinHostPort(domain, "443"))
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+func tlsHandshakeOk(domain string, timeout time.Duration) bool {
+	d := &net.Dialer{Timeout: timeout}
+	conn, err := tls.DialWithDialer(d, "tcp", net.JoinHostPort(domain, "443"), &tls.Config{
+		ServerName:         domain,
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: false,
+		NextProtos:         []string{"h2", "http/1.1"},
+	})
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
+	return true
+}
+
+func shouldRetry(err error) bool {
+	if err == nil {
+		return false
+	}
+	if isTimeoutErr(err) {
+		return true
+	}
+	errStr := strings.ToLower(err.Error())
+	if strings.Contains(errStr, "temporary") || strings.Contains(errStr, "reset") {
+		return true
+	}
+	return false
+}
+
+func isTimeoutErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if nErr, ok := err.(net.Error); ok {
+		return nErr.Timeout()
+	}
+	return false
 }
 
 func smartCleanup(toolsDir string) {

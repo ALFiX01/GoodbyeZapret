@@ -39,17 +39,17 @@ rem set YTDB_prog_log=--debug=@%~dp0log_debug.txt
 REM --dpi-desync=fake --dpi-desync-fooling=ts \\\\\\\\\\\ --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
 REM --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
---wf-l3=ipv4,ipv6 --wf-tcp=80,443,4950-4955,6695-6705,1024-65535 --wf-udp=443,50000-50100 ^
+--wf-l3=ipv4,ipv6 --wf-tcp=80,443,4950-4955,6695-6705,1024-65535 --wf-udp=443,50000-50099 ^
 --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld --new ^
 --filter-tcp=4950-4955 --dpi-desync=fake,multidisorder --dpi-desync-split-pos=midsld --dpi-desync-repeats=8 --dpi-desync-fooling=md5sig,badseq --new ^
 --filter-tcp=6695-6705 --dpi-desync=fake,split2 --dpi-desync-repeats=8 --dpi-desync-fooling=md5sig --dpi-desync-autottl=2 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-udp=443 --dpi-desync=fake --dpi-desync-repeats=11 --new ^
---filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --new ^
---filter-udp=443 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare2.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin"
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --new ^
+--filter-udp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-tcp=80 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin"
 
 goto :EOF
 

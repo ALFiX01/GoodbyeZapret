@@ -33,16 +33,15 @@ echo.
 echo Winws:
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
---wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50100,1024-65535 ^
---filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-udp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-autottl --dpi-desync-fooling=badseq --dpi-desync-repeats=8 --new ^
---filter-udp=443 --ipset="%LISTS%ipset-cloudflare.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80 --ipset="%LISTS%ipset-cloudflare.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-autottl --dpi-desync-fooling=badseq --dpi-desync-repeats=8 --new ^
---filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=10 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2
+--wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
+--filter-udp=443 --hostlist="%LISTS%list-youtube.txt" --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
+--filter-tcp=80 --hostlist="%LISTS%list-youtube.txt" --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-l3=ipv4 --filter-tcp=443,1024-65535 --dpi-desync=syndata --new ^
+--filter-tcp=80 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-udp=5056,27002 --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n15 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-udp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=14 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n3
 
 goto :EOF
 

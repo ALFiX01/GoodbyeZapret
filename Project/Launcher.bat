@@ -46,12 +46,24 @@ if %errorlevel% neq 0 (
 setlocal EnableDelayedExpansion
 set "ErrorCount=0"
 
+IF "%PROCESSOR_ARCHITECTURE%"=="AMD64" (set "os_arch=64")
+IF "%PROCESSOR_ARCHITECTURE%"=="x86" (set "os_arch=32")
+IF DEFINED PROCESSOR_ARCHITEW6432 (set "os_arch=64")
+
+if %os_arch%==32 (
+color f2
+echo Windows x86 detected! Nothing to do.
+echo Press any key for exit
+pause > nul
+exit /b
+)
+
 :: Get the parent directory path more reliably
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.1.1.06"
-set "Current_GoodbyeZapret_version_code=08AV01"
+set "Current_GoodbyeZapret_version=2.2.0"
+set "Current_GoodbyeZapret_version_code=12AV01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -113,6 +125,15 @@ for %%i in (
         ) else (
             echo [INFO ] %TIME% - UAC parameter '%%i' successfully created with value 0x!expected_value!.
         )
+    )
+)
+
+rem Отключение "Предупреждение системы безопасности" 
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation 2>nul | find "0x1" >nul || (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d 1 /f >nul 2>&1
+    if not %ERRORLEVEL% equ 0 (
+        echo Error installing SaveZoneInformation
+        timeout /t 2 >nul
     )
 )
 
@@ -179,18 +200,6 @@ if %errorlevel% neq 0 (
             echo [ERROR] %TIME% - Failed to download UpdateService.exe
         )
 
-        REM Update Updater.exe
-        if exist "%ParentDirPath%\tools\Updater.exe" (
-            del "%ParentDirPath%\tools\Updater.exe" >nul 2>&1
-        )
-        echo [INFO ] %TIME% - Downloading Updater.exe...
-        curl -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
-        if exist "%ParentDirPath%\tools\Updater.exe" (
-            echo [INFO ] %TIME% - Updater.exe downloaded successfully
-        ) else (
-            echo [ERROR] %TIME% - Failed to download Updater.exe
-        )
-        
         echo [INFO ] %TIME% - Component update completed
     )
 )
@@ -210,7 +219,7 @@ echo   Checking connectivity to update server ^(%CheckURL%^)...
 :: --max-time 8: Общий таймаут 8 секунд
 
 REM --- Attempt connectivity check with primary URL ---
-curl -4 -s -L --head -I --connect-timeout 2 --max-time 2 --max-redirs 1 -o nul "%CheckURL%"
+curl -4 -sS -L -I --fail --retry 3 --retry-delay 1 --connect-timeout 3 --max-time 5 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
     echo   Connection successful.
     set "WiFi=On"
@@ -265,7 +274,6 @@ set "sourcePath=%~dp0"
 
 REM Set default values for GoodbyeZapret configuration
 set "GoodbyeZapret_Current=Не выбран"
-set "GoodbyeZapret_Current_TEXT=Текущий конфиг - Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
 set "GoodbyeZapret_Old=Отсутствует"
 
@@ -473,7 +481,6 @@ if not "%CheckStatus%"=="FileCheckError" (
         if defined Current_GoodbyeZapret_version_code (
             echo "%Actual_GoodbyeZapret_version_code%" | findstr /i "%Current_GoodbyeZapret_version_code%" >nul
             if errorlevel 1 (
-                echo - available update
                 set "UpdateNeed=Yes"
             ) else (
                 set "UpdateNeed=No"
@@ -554,7 +561,6 @@ reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /
 if %errorlevel% equ 0 (
     for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do (
         set "GoodbyeZapret_Current=%%b"
-        set "GoodbyeZapret_Current_TEXT=Current config - %%b"
     )
 )
 
@@ -571,12 +577,18 @@ if defined GoodbyeZapretVersion (
     reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
 )
 
-:GZ_loading_procces
-if "%UpdateNeed%"=="Yes" (
-    goto Update_Need_screen
+:GZ_loading_process
+if "%UpdateNeedShowScreen%"=="1" (
+    goto MainMenu
+) else (
+    if "%UpdateNeed%"=="Yes" (
+        set "UpdateNeedShowScreen=1"
+        goto Update_Need_screen
+    )
 )
 
 :MainMenu
+call :ResizeMenuWindow
 REM Check for last working config in registry
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastWorkConfig" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -678,7 +690,6 @@ if /i "%branch%"=="beta" (
     echo                                       /____/               /_/
     echo.
 )
-
 REM Check internet connection and file status
 if /i "%WiFi%"=="Off" (
     echo                            %COL%[90mОшибка: Нет подключения к интернету%COL%[37m
@@ -697,32 +708,6 @@ if "%TotalCheck%"=="Problem" (
 
 REM ---------------------------------------------------------
 
-REM ================================================================================================
-
-REM Calculate text length and center padding
-set "line_length=90"
-set "text_length=0"
-
-REM Count actual text length (more efficient method)
-for /l %%A in (0,1,89) do (
-    set "char=!GoodbyeZapret_Current_TEXT:~%%A,1!"
-    if "!char!"=="" goto :count_done
-    set /a text_length+=1
-)
-:count_done
-
-REM Calculate padding spaces for centering
-set /a spaces=(line_length - text_length) / 2
-
-REM Build padding string (handle negative values)
-set "padding="
-if %spaces% gtr 0 (
-    for /l %%A in (1,1,%spaces%) do set "padding=!padding! "
-)
-
-
-REM ================================================================================================
-
 REM Display separator line
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 
@@ -737,7 +722,7 @@ set "counter=0"
 
 REM -- Ensure pagination variables exist --
 if not defined Page set "Page=1"
-if not defined PageSize set "PageSize=25"
+if not defined PageSize set "PageSize=20"
 REM ---------------------------------------
 
 REM ---------- Pagination indices ----------
@@ -793,12 +778,10 @@ if %Page% gtr %TotalPages% set /a Page=%TotalPages%
 
 REM Display update notification if available
 if "%UpdateNeed%"=="Yes" (
-    if defined Actual_GoodbyeZapret_version (
-        echo.
-        echo                  %COL%[91mДоступно обновление GoodbyeZapret v%Actual_GoodbyeZapret_version%. ^[ UD ^] - обновить %COL%[37m
+    if defined GoodbyeZapretVersion (
+        title GoodbyeZapret v%Current_GoodbyeZapret_version% - ДОСТУПНО ОБНОВЛЕНИЕ
     ) else (
-        echo.
-        echo                       %COL%[91mДоступно обновление GoodbyeZapret. ^[ UD ^] - обновить %COL%[37m
+        title GoodbyeZapret - ДОСТУПНО ОБНОВЛЕНИЕ
     )
 )
 
@@ -808,22 +791,28 @@ echo.
 
 REM Display different menu options based on current service status
 if "%GoodbyeZapret_Current%"=="Не выбран" (
-    echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
-    echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-    echo                 %COL%[36m^[ AC ^] %COL%[37mЗапустить автоподбор конфига
     if not "%TotalCheck%"=="Problem" (
-    echo.
+    echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
+    echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+    echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    echo.
+    ) else (
+    echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
+    echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+    echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
+    echo.
     )
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    if %YesCount% equ 2 echo                 %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск и очистка WinDivert
 )
 
 REM ---- Pagination options ----
 if %TotalPages% gtr 1 (
     echo.
-    if %Page% lss %TotalPages% echo                 %COL%[36m^[ N ^] %COL%[37mСледующая страница
+    if %Page% lss %TotalPages% echo                 %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
     if %Page% gtr 1 echo                 %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
 )
 REM ----------------------------
@@ -842,6 +831,16 @@ if /i "%choice%"=="ые" goto CurrentStatus
 
 if /i "%choice%"=="AC" goto ConfigAutoFinder
 if /i "%choice%"=="фс" goto ConfigAutoFinder
+
+REM Quick restart available in main menu when two components are running
+if /i "%choice%"=="RS" if %YesCount% equ 2 (
+    set "QuickRestartFromMainMenu=1"
+    goto QuickRestart
+)
+if /i "%choice%"=="кы" if %YesCount% equ 2 (
+    set "QuickRestartFromMainMenu=1"
+    goto QuickRestart
+)
 
 if /i "%choice%"=="R" goto RR
 
@@ -929,19 +928,31 @@ pause >nul 2>&1
 
 REM Clean up existing service before installing new one
 call :remove_service_before_installing
-call :install_GZ_sevice
+call :install_GZ_service
 
-:install_GZ_sevice
+:install_GZ_service
 cls
-if !batfile! == UltimateFix_ts-fooling.bat (
-    echo.
-    echo   для этого конфига необходимо включить TCP timestamps
-    netsh int tcp set global timestamps=enabled
-    echo.
-    echo   Выполнено автоматическое включение TCP timestamps
-    timeout /t 4 >nul
+if "!batfile!"=="UltimateFix_ts-fooling.bat" (
+    REM Проверка, включались ли уже TCP timestamps
+    reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v TCP_Timestamps_Enabled >nul 2>&1
+    if errorlevel 1 (
+        echo.
+        echo   Для этого конфига необходимо включить TCP timestamps
+        netsh int tcp set global timestamps=enabled >nul 2>&1
+        REM Запоминаем, что включали
+        reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v TCP_Timestamps_Enabled /t REG_DWORD /d 1 /f >nul
+        timeout /t 1 >nul
+        echo.
+        echo   Выполнено автоматическое включение TCP timestamps
+    ) else (
+        echo.
+        echo   TCP timestamps уже были включены ранее, пропуск...
+    )
+    echo   Перехожу к установке конфига в службу
+    timeout /t 2 >nul
     cls
 )
+
 echo.
 echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
 
@@ -959,22 +970,24 @@ REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "!BaseCfg!" /f >nul
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
-if %errorlevel% equ 0 (
-    cmd /c "sc start GoodbyeZapret" >nul
-    if %errorlevel% equ 0 (
-        echo  - Служба GoodbyeZapret успешно запущена %COL%[37m
-    ) else (
-        echo  - Ошибка при запуске службы
-    )
-)
+REM if %errorlevel% equ 0 (
+REM     cmd /c "sc start GoodbyeZapret" >nul
+REM     if %errorlevel% equ 0 (
+REM         echo  - Служба GoodbyeZapret успешно запущена %COL%[37m
+REM     ) else (
+REM         echo  - Ошибка при запуске службы
+REM     )
+REM )
 cls
 echo.
 echo   -%COL%[92m !batFile! установлен в службу GoodbyeZapret %COL%[37m
 set installing_service=0
 timeout /t 1 >nul 2>&1
-if exist "%ParentDirPath%\tools\Config_Check\curl_check.exe" (
+if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
     echo.
-    "%ParentDirPath%\tools\Config_Check\curl_check.exe" "!batFile!"
+    REM Цветной текст
+    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+    "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
 )
 call :ResizeMenuWindow
 goto :end
@@ -985,13 +998,13 @@ goto :end
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     echo.
     sc query "GoodbyeZapret" >nul 2>&1
-    if %errorlevel% equ 0 (
+    if !errorlevel! equ 0 (
         net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
-        if %errorlevel% equ 0 (
+        if !errorlevel! equ 0 (
             echo %COL%[92m Служба GoodbyeZapret успешно удалена %COL%[37m
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
-            if "%ERRORLEVEL%"=="0" (
+            if "!errorlevel!"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
@@ -1043,7 +1056,7 @@ goto :end
     )
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     timeout /t 1 >nul 2>&1
-goto :install_GZ_sevice
+goto :install_GZ_service
 
 :end
 if !ErrorCount! equ 0 (
@@ -1226,12 +1239,21 @@ set "DNSCheckTips="
 set "dnsfound=0"
 set "dns_configured=0"
 
-REM Проверяем наличие настроенных DNS серверов
+REM Проверяем наличие настроенных DNS серверов (WMIC, затем PowerShell как запасной вариант)
 for /f "skip=1 tokens=*" %%a in ('wmic nicconfig where "IPEnabled=true" get DNSServerSearchOrder /format:table 2^>NUL') do (
     echo %%a | findstr /r /c:"[0-9]" >nul
     if !errorlevel!==0 (
         set "dns_configured=1"
-        REM Проверяем на использование локальных DNS (192.168.x.x)
+        echo %%a | findstr /i "192\.168\." >nul
+        if !errorlevel!==0 (
+            set "dnsfound=1"
+        )
+    )
+)
+
+IF !dns_configured!==0 (
+    for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; (Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object { $_.ServerAddresses } | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ } | Select-Object -Unique)"`) do (
+        set "dns_configured=1"
         echo %%a | findstr /i "192\.168\." >nul
         if !errorlevel!==0 (
             set "dnsfound=1"
@@ -1310,11 +1332,11 @@ if %errorlevel% equ 0 (
 
 sc qc WinDivert >nul 2>&1
 if %errorlevel% equ 0 (
-    echo    ^│ %COL%[92m√ %COL%[37mWinDivert: Установлен                                                           %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mWinDivert: %COL%[92mУстановлен                                                           %COL%[36m^│
 ) else (
     sc qc monkey >nul 2>&1
     if !errorlevel! equ 0 (
-        echo    ^│ %COL%[92m√ %COL%[37mWinDivert: Не установлен, но найден %COL%[93mmonkey                                      %COL%[36m^│
+        echo    ^│ %COL%[92m√ %COL%[37mmonkey: %COL%[92mУстановлен                                                              %COL%[36m^│
     ) else (
         echo    ^│ %COL%[91mX %COL%[37mWinDivert: Не установлен                                                        %COL%[36m^│
     )
@@ -1334,9 +1356,9 @@ echo    ^│ %COL%[37mВерсии:                                             
 echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
 
 if "%UpdateNeed%"=="Yes" (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                     %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                           %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                              %COL%[36m^│
 )
 
 REM     echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                                                 %COL%[36m^│
@@ -1367,6 +1389,7 @@ echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в мен
 echo    %COL%[36m^[ %COL%[96mA %COL%[36m^] %COL%[93m%AutoUpdateTextParam% автообновление
 echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
 echo    %COL%[36m^[ %COL%[96mIN %COL%[36m^] %COL%[93mОткрыть инструкцию
+echo    %COL%[36m^[ %COL%[96mRS %COL%[36m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
 if "%UpdateNeed%"=="Yes" (
     echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
 )
@@ -1388,6 +1411,9 @@ if /i "%choice%"=="шт" goto OpenInstructions
 
 if /i "%choice%"=="R" goto FullUpdate
 if /i "%choice%"=="к" goto FullUpdate
+
+if /i "%choice%"=="RS" goto QuickRestart
+if /i "%choice%"=="кы" goto QuickRestart
 
 REM Handle update option only if update is needed
 if "%UpdateNeed%"=="Yes" (
@@ -1463,7 +1489,74 @@ if /i "%choice%"=="ф" (
 
 goto CurrentStatus
 
+:QuickRestart
+    cls
+    if not defined COL (
+        for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+    )
+    echo.
+    echo    %COL%[36mВыполняется быстрый перезапуск и очистка WinDivert...%COL%[37m
+    
+    sc query "GoodbyeZapret" >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo    %COL%[91mСлужба GoodbyeZapret не установлена%COL%[37m
+        timeout /t 2 >nul 2>&1
+        if defined QuickRestartFromMainMenu (
+            set "QuickRestartFromMainMenu="
+            goto MainMenu
+        ) else (
+            goto CurrentStatus
+        )
+    )
+
+    echo    %COL%[90mОстановка службы GoodbyeZapret...%COL%[37m
+    net stop "GoodbyeZapret" >nul 2>&1
+
+    tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
+    if not errorlevel 1 (
+        echo    %COL%[90mОстановка winws.exe...%COL%[37m
+        taskkill /F /IM winws.exe >nul 2>&1
+    )
+
+    for %%S in (WinDivert WinDivert14 monkey) do (
+        sc query "%%S" >nul 2>&1
+        if !errorlevel! equ 0 (
+            echo    %COL%[90mОстановка %%S...%COL%[37m
+            net stop "%%S" >nul 2>&1
+        )
+    )
+
+    echo    %COL%[90mОчистка DNS-кэша...%COL%[37m
+    ipconfig /flushdns >nul 2>&1
+
+    echo    %COL%[90mЗапуск службы GoodbyeZapret...%COL%[37m
+    sc start "GoodbyeZapret" >nul 2>&1
+    echo    %COL%[92mПерезапуск выполнен успешно%COL%[37m
+    timeout /t 2 >nul 2>&1
+    if defined QuickRestartFromMainMenu (
+        set "QuickRestartFromMainMenu="
+        goto MainMenu
+    ) else (
+        goto CurrentStatus
+    )
+
 :FullUpdate
+REM === Update Updater.exe ===
+set "UpdaterPath=%ParentDirPath%\tools\Updater.exe"
+
+if exist "%UpdaterPath%" (
+    del /f /q "%UpdaterPath%" >nul 2>&1
+)
+
+echo [INFO ] %TIME% - Downloading Updater.exe...
+curl -g -L -s -o "%UpdaterPath%" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+
+if exist "%UpdaterPath%" (
+    echo [INFO ] %TIME% - Updater.exe downloaded successfully
+) else (
+    echo [ERROR] %TIME% - Failed to download Updater.exe
+)
+REM === Start Updater.exe ===
 start "Update GoodbyeZapret" "%ParentDirPath%\tools\Updater.exe"
 exit
 
@@ -1605,41 +1698,57 @@ echo.
 echo                      %COL%[92m ^[U^]%COL%[37m Обновить  / %COL%[91m ^[B^]%COL%[37m Пропустить
 echo.
 set /p "choice=%DEL%   %COL%[90m:> "
-if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
-if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && goto MainMenu
+if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && set "UpdateNeed=Yes" && goto MainMenu
+if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && set "UpdateNeed=Yes" && goto MainMenu
 if /i "%choice%"=="U" ( goto FullUpdate )
 if /i "%choice%"=="г" ( goto FullUpdate )
 goto Update_Need_screen
 
 
 :ConfigAutoFinder
+REM Цветной текст
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 start "" "%ParentDirPath%\tools\Config_Check\auto_find_working_config.exe"
 goto MainMenu
 
 :ResizeMenuWindow
 REM Пересчитайте количество конфигурационных файлов и динамически настройте размер консоли.
-set "sourcePath=%~dp0"
-set "BatCount=0"
-for %%f in ("%sourcePath%configs\Preset\*.bat" "%sourcePath%configs\Custom\*.bat") do set /a BatCount+=1
 
-REM Убедитесь, что размер страницы определен (по умолчанию 20)
+REM Базовый путь должен совпадать с логикой вывода в меню
+set "BasePath=%ParentDirPath%"
+
+REM Подсчёт числа конфигов надёжным способом
+set "PresetCount=0"
+set "CustomCount=0"
+for /f %%A in ('dir /b /a:-d "%BasePath%\configs\Preset\*.bat" 2^>nul ^| find /v /c ""') do set "PresetCount=%%A"
+for /f %%A in ('dir /b /a:-d "%BasePath%\configs\Custom\*.bat" 2^>nul ^| find /v /c ""') do set "CustomCount=%%A"
+set /a BatCount=PresetCount+CustomCount
+
+REM Пагинация: гарантируем значения по умолчанию и корректные границы
+if not defined Page set "Page=1"
 if not defined PageSize set "PageSize=20"
-
-REM Определите количество конфигураций, которые нужно показать на текущей странице
-set /a VisibleConfigs=BatCount
-if %VisibleConfigs% gtr %PageSize% set /a VisibleConfigs=%PageSize%
-
-set /a ListBatCount=VisibleConfigs+22
-
-REM Добавьте дополнительные строки для подсказок по пагинации, когда страниц больше одной.
 set /a TotalPages=(BatCount+PageSize-1)/PageSize
+if %TotalPages% lss 1 set /a TotalPages=1
+if %Page% lss 1 set /a Page=1
+if %Page% gtr %TotalPages% set /a Page=%TotalPages%
+
+set /a StartIndex=(Page-1)*PageSize+1
+set /a EndIndex=StartIndex+PageSize-1
+
+REM Сколько элементов реально видно на текущей странице
+set /a Remaining=BatCount-StartIndex+1
+if %Remaining% lss 0 set /a Remaining=0
+if %Remaining% gtr %PageSize% set /a Remaining=%PageSize%
+set /a VisibleOnPage=Remaining
+
+REM Базовое количество строк интерфейса (шапка, разделители, подсказки и блок действий)
+set /a BaseLines=22
+set /a ListBatCount=BaseLines+VisibleOnPage
+
+REM Подсказки по пагинации, если страниц больше одной
 if %TotalPages% gtr 1 set /a ListBatCount+=2
 
-
-REM Доп. Корректировка высоты консоли-----------------------
-:: Сбрасываем старую логику и добавляем новую более точную
-
-REM Определяем количество запущенных компонентов (GoodbyeZapret, Winws, WinDivert)
+REM Доп. корректировка высоты консоли в зависимости от статусов системы
 set "YesCount=0"
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 set /a YesCount+=1
@@ -1650,20 +1759,15 @@ if %errorlevel% equ 0 set /a YesCount+=1
 for %%S in ("WinDivert" "WinDivert14" "monkey") do (
     sc query %%~S 2>nul | find /I "RUNNING" >nul
     if not errorlevel 1 (
-        if %errorlevel% equ 0 set /a YesCount+=1
+        set /a YesCount+=1
         goto :DoneStartCheck_YesCount
     )
 )
 
 :DoneStartCheck_YesCount
-REM Сначала проверяем, есть ли проблема
 if /I "%TotalCheck%"=="Problem" (
-    REM Если проблема есть, то меняем счётчик, только если YesCount < 2
-    if %YesCount% lss 2 (
-        set /a ListBatCount+=1
-    )
+    if %YesCount% lss 2 set /a ListBatCount+=1
 ) else (
-    REM Если проблемы нет, смотрим на YesCount
     if %YesCount% geq 2 (
         set /a ListBatCount-=1
     ) else (
@@ -1671,26 +1775,23 @@ if /I "%TotalCheck%"=="Problem" (
     )
 )
 
-REM Отсутствие интернета — дополнительный+
-if /i "%WiFi%"=="Off" (
-    set /a ListBatCount+=2
+REM Учитываем дополнительный пункт RS в главном меню
+if %YesCount% equ 2 (
+    sc query "GoodbyeZapret" >nul 2>&1
+    if %errorlevel% equ 0 set /a ListBatCount+=1
 )
 
-REM Требуется обновление — дополнительный +
-if /i "%UpdateNeed%"=="Yes" (
-    set /a ListBatCount+=1
-)
+REM Предупреждения о сети/проверке файлов
+if /i "%WiFi%"=="Off" set /a ListBatCount+=1
+if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
+if not defined CheckStatus set "CheckStatus=WithoutChecked"
+if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" set /a ListBatCount+=1
 
-REM Ошибка проверки файлов или сервера — дополнительный +
-if /i "%CheckStatus%"=="FileCheckError" (
-    set /a ListBatCount+=1
-)
-
-REM --------------------------------------------------------
-
-REM Limit maximum window height to avoid oversized console
+REM Ограничения по высоте и минимальный размер
 set /a MaxWinLines=52
+set /a MinWinLines=27
 if %ListBatCount% gtr %MaxWinLines% set /a ListBatCount=%MaxWinLines%
+if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
 
 mode con: cols=92 lines=%ListBatCount%
 goto :eof

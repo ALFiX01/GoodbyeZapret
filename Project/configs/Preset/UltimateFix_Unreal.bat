@@ -50,11 +50,15 @@ set "YTDB_TLS_MAIN=--dpi-desync=multisplit --dpi-desync-split-seqovl=1 --dpi-des
 
 :: Сюда скопируйте стратегию для дискорда, которая работает у вас. Может быть копией YTDB_TLS_MAIN ::
 REM set "YTDB_TLS_MAIN2=--dpi-desync=fakedsplit --dpi-desync-split-pos=2,host+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-repeats=2 --dpi-desync-fooling=md5sig%YTDB_AUTOTTL%%YTDB_TTL%"
+REM set "YTDB_TLS_MAIN2=--dpi-desync=fake,multisplit --dpi-desync-split-seqovl=225 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_1.bin""
 set "YTDB_TLS_MAIN2=--dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3"
 
+
 :: Сюда скопируйте стратегию для квика ютуба, которая у вас работает  ::
-set "YTDB_QUIC_MAIN=--dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2"
 REM set "YTDB_QUIC_MAIN=--dpi-desync=ipfrag2 --dpi-desync-repeats=3 --dpi-desync-ttl=5"
+set "YTDB_QUIC_MAIN=--dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2"
+
+
 :: Здесь можно включить дебаг-лог убрав rem и выключить, добавив rem ::
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! ::
 rem set YTDB_prog_log=--debug=@%~dp0log_debug.txt
@@ -65,15 +69,15 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 --filter-udp=443 --ipset-ip=162.159.198.1,162.159.198.2,162.159.36.1,162.159.46.1,2606:4700:103::1,2606:4700:103::2 %YTDB_QUIC_MAIN% --dpi-desync-cutoff=n3 --new ^
 --filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" %YTDB_QUIC_MAIN% --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" %YTDB_TLS_MAIN2% --dpi-desync-cutoff=n5 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
+--filter-tcp=443 --dpi-desync-any-protocol --hostlist="%LISTS%russia-discord.txt" %YTDB_TLS_MAIN2% --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --dpi-desync-any-protocol --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3 --new ^
+--filter-tcp=80 --dpi-desync-any-protocol --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist-domains=updates.discord.com, stable.dl2.discordapp.net, rutracker.org, static.rutracker.cc, cdn77.com --dpi-desync=multisplit --dpi-desync-split-seqovl=293 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_12.bin" --new ^
---filter-l3=ipv4 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare2.txt" --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,18.244.96.0/19,18.244.128.0/19 --dpi-desync=multisplit --dpi-desync-split-seqovl=286 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_11.bin" --dup=2 --dup-cutoff=n3 --new ^
+--filter-l3=ipv4 --filter-tcp=443 --dpi-desync-any-protocol --ipset="%LISTS%ipset-cloudflare3.txt" --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,18.244.96.0/19,18.244.128.0/19 --dpi-desync=multisplit --dpi-desync-split-seqovl=286 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_11.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-tcp=80 --dpi-desync=syndata,multisplit --dpi-desync-split-seqovl=4 --dpi-desync-split-pos=host+2 --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=443,444-65535 --filter-l7=tls --ipset-exclude-ip=18.244.96.0/19,18.244.128.0/19 %YTDB_TLS_MAIN% --dpi-desync-cutoff=n5 --new ^
 --filter-tcp=444-65535 --filter-l7=unknown --ipset-exclude-ip=18.244.96.0/19,18.244.128.0/19 --dpi-desync-any-protocol=1 --dpi-desync=syndata --synack-split=synack --dpi-desync-fake-syndata="%FAKE%fake_syndata.bin" --dpi-desync-cutoff=n5 --new ^
---filter-udp=50000-50090 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-cutoff=n4 --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-cutoff=n4 --new ^
 --filter-udp=444-65535 --dpi-desync=fake,udplen --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=%YTDB_UDP_Repeats% --dpi-desync-cutoff=n%YTDB_Cutoff_Limit% --dpi-desync-ttl=%YTDB_TTL_Limit%
 
 goto :EOF

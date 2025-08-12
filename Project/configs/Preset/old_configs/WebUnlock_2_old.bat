@@ -21,10 +21,10 @@ set "CONFIG_NAME=WebUnlock 2"
 set "LISTS=%ProjectDir%lists\"
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
---wf-tcp=80,443 --wf-udp=443,50000-50090 ^
+--wf-tcp=80,443 --wf-udp=443,50000-50099 ^
 --filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%tls_clienthello_4.bin" --dpi-desync-autottl --new ^
 --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=2 --dpi-desync-fake-quic="%FAKE%quic_3.bin" --dpi-desync-cutoff=n3 --dpi-desync-repeats=2 --new ^
---filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=midsld+1 --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=5 --dpi-desync-udplen-pattern=0xDEADBEEF --dpi-desync-fake-quic="%FAKE%quic_2.bin" --dpi-desync-repeats=7 --dpi-desync-cutoff=n2 --new ^
 --filter-udp=50000-50090 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=n3 --new ^

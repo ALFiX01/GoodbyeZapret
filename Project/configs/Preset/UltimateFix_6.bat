@@ -33,14 +33,15 @@ echo.
 echo Winws:
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
---wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50090,1024-65535 ^
---filter-tcp=80,443 --hostlist="%LISTS%exclude-autohostlist.txt" --new ^
+--wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
+--filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 --filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%tls_clienthello_4.bin" --dpi-desync-autottl 2:2-8 --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=4 --dpi-desync-fake-quic="%FAKE%quic_4.bin" --dpi-desync-cutoff=n3 --dpi-desync-repeats=2 --new ^
 --filter-tcp=80 --hostlist="%LISTS%mycdnlist.txt" --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http=0x0F --dpi-desync-autottl 2:2-12 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-domains=googlevideo.com --hostlist="%LISTS%russia-youtube.txt" --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=7,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_4.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=fonts.google.com --dpi-desync-fooling=badseq --dpi-desync-autottl 2:2-12 --new ^
---filter-udp=50000-50090 --filter-l7=discord,stun --dpi-desync=fake --new ^
+--filter-tcp=443 --hostlist="%LISTS%mycdnlist.txt" --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist-domains=googlevideo.com --hostlist="%LISTS%russia-youtube.txt" --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=7,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_4.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=fonts.google.com --dpi-desync-fooling=badseq --dpi-desync-autottl 2:2-12 --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http=0x0F --dpi-desync-autottl 2:2-12 --new ^
+--filter-tcp=443 --ipset-exclude-ip=1.1.1.1, 1.0.0.1, 212.109.195.93, 83.220.169.155, 141.105.71.21 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=7,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_4.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=fonts.google.com --dpi-desync-fooling=badseq --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=host+1 --dpi-desync-fake-http=0x0F --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fakeddisorder --dpi-desync-split-pos=2,sld+1 --dpi-desync-fakedsplit-pattern="%FAKE%tls_clienthello_4.bin" --dpi-desync-fooling=badseq
 

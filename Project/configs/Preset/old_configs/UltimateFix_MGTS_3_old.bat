@@ -33,7 +33,7 @@ echo Winws:
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443 --wf-udp=443,50000-59000 ^
---filter-udp=50000-50090 --filter-l7=discord,stun --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake --dpi-desync-repeats=4 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube.txt" --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-ttl=4 --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake --dpi-desync-udplen-increment=10 --dpi-desync-repeats=7 --dpi-desync-udplen-pattern=0xDEADBEEF --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
