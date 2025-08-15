@@ -58,7 +58,7 @@
 
 ---
 > [!IMPORTANT]
-> Файлы Winws в [`bin`](./Project/bin) взяты из [zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws).
+> Файлы Winws в [`bin`](./Project/bin) взяты из [zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws)!
 > Спасибо [bol-van](https://github.com/bol-van).
 
 ---
