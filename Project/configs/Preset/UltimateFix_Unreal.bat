@@ -80,10 +80,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-cutoff=n4 --new ^
 --filter-udp=444-65535 --dpi-desync=fake,udplen --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=%YTDB_UDP_Repeats% --dpi-desync-cutoff=n%YTDB_Cutoff_Limit% --dpi-desync-ttl=%YTDB_TTL_Limit%
 
-REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
-tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-if errorlevel 1 (
-    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
+if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 (
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    )
 )
 
 goto :EOF

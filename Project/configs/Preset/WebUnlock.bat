@@ -47,10 +47,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-tcp=443 --hostlist-domains=googlevideo.com --hostlist="%LISTS%youtube_video-chanel-preview.txt" --dpi-desync=fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_14.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3 --new ^
 --filter-l3=ipv4 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,18.244.96.0/19,18.244.128.0/19 --dpi-desync=multisplit --dpi-desync-split-seqovl=286 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_11.bin" --dup=2 --dup-cutoff=n3
 
-REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
-tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-if errorlevel 1 (
-    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
+if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 (
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    )
 )
 
 goto :EOF

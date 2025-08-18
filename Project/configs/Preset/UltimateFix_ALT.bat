@@ -45,10 +45,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake,split --dpi-desync-autottl=5 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^
 --filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n3
 
-REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
-tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-if errorlevel 1 (
-    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
+if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 (
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    )
 )
 
 goto :EOF

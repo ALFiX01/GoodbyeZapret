@@ -56,10 +56,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --filter-l7=quic --dup=%Dup% --dup-autottl=+1:3-64 --dpi-desync=fake --dpi-desync-repeats=20 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --filter-l7=tls --dup=%Dup% --dup-autottl=+1:3-64 --dpi-desync=fake,multidisorder --dpi-desync-repeats=20 --dpi-desync-split-pos=1,midsld --dpi-desync-fooling=md5sig --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com
 
-REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
-tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-if errorlevel 1 (
-    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
+if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 (
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    )
 )
 
 goto :EOF

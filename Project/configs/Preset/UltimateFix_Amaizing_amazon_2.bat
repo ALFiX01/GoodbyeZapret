@@ -64,10 +64,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=host+1 --dpi-desync-fake-http=0x0E0E0F0E --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_9.bin" --dpi-desync-fooling=badseq --dpi-desync-autottl
 
-REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
-tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-if errorlevel 1 (
-    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
+if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 (
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    )
 )
 
 goto :EOF
