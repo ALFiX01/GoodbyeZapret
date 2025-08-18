@@ -928,8 +928,10 @@ if "!batfile!"=="UltimateFix_ts-fooling.bat" (
 
 echo.
 
-schtasks /Create /TN "GoodbyeZapretTray" /SC ONLOGON /RL HIGHEST /IT /F /TR "\"%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe\"" >nul 2>&1
-schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+    schtasks /Create /TN "GoodbyeZapretTray" /SC ONLOGON /RL HIGHEST /IT /F /TR "\"%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe\"" >nul 2>&1
+    schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+)
 
 echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
 
@@ -1513,7 +1515,9 @@ goto CurrentStatus
     echo    %COL%[92mПерезапуск выполнен успешно%COL%[37m
     timeout /t 2 >nul 2>&1
     echo    %COL%[90mЗапуск службы GoodbyeZapretTray    ...%COL%[37m
-    schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+    if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+        schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+    )
     if defined QuickRestartFromMainMenu (
         set "QuickRestartFromMainMenu="
         goto MainMenu

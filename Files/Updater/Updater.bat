@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.3"
+set "UpdaterVersion=2.4"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -94,7 +94,10 @@ net stop "monkey" >nul 2>&1
 sc delete "monkey" >nul 2>&1
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+    schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
+)
+
 
 call :log INFO "Stopped and removed services GoodbyeZapret/WinDivert/monkey"
 
@@ -189,6 +192,12 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         call :log INFO "Copied tools"
     )
 
+    if exist "!ExtractRoot!\tools\tray" (
+        mkdir "%ParentDirPath%\tools\tray" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\tray" "%ParentDirPath%\tools\tray" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied tray"
+    )
+
     echo         ^[*^] Копирование пресетов конфигурации
     if exist "!ExtractRoot!\configs\Preset" (
         robocopy "!ExtractRoot!\configs\Preset" "%ParentDirPath%\configs\Preset" /E >nul
@@ -221,7 +230,9 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\"" >nul 2>&1
         sc config "GoodbyeZapret" start= auto >nul 2>&1
-        schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+        if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+            schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+        )
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
