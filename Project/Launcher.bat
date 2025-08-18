@@ -29,8 +29,8 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.3.0"
-set "Current_GoodbyeZapret_version_code=19AV01"
+set "Current_GoodbyeZapret_version=2.3.01"
+set "Current_GoodbyeZapret_version_code=18AV01"
 set "branch=Stable"
 set "beta_code=0"
 
