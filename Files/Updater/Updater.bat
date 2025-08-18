@@ -94,7 +94,7 @@ net stop "monkey" >nul 2>&1
 sc delete "monkey" >nul 2>&1
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-schtasks /end /tn "GoodbyeZapretTray"
+schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 
 call :log INFO "Stopped and removed services GoodbyeZapret/WinDivert/monkey"
 
@@ -221,7 +221,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\"" >nul 2>&1
         sc config "GoodbyeZapret" start= auto >nul 2>&1
-        schtasks /run /tn "GoodbyeZapretTray"
+        schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (

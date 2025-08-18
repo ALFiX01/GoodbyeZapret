@@ -189,7 +189,7 @@ for %%S in (WinDivert WinDivert14 monkey) do (
 )
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-schtasks /end /tn "GoodbyeZapretTray"
+schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 
 rem Remember preferred config name
 set "GoodbyeZapret_Config=None"
@@ -332,7 +332,7 @@ if exist "%ParentDirPath%\configs\!cfg!.bat" set "batPath="
 if defined batPath if exist "%ParentDirPath%\configs\!batPath!\!cfg!.bat" (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!cfg!.bat\"\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1
-    schtasks /run /tn "GoodbyeZapretTray"
+    schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
     sc description GoodbyeZapret "!cfg!" >nul 2>&1
     sc start "GoodbyeZapret" >nul 2>&1
     if !errorlevel! equ 0 echo   ^[*^] Служба GoodbyeZapret успешно запущена
