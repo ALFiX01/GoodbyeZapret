@@ -5,7 +5,7 @@
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSjk=
+::cxAkpRVqdFKZSzk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
 ::eBoioBt6dFKZSDk=
@@ -188,6 +188,9 @@ for %%S in (WinDivert WinDivert14 monkey) do (
   )
 )
 
+taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+schtasks /end /tn "GoodbyeZapretTray"
+
 rem Remember preferred config name
 set "GoodbyeZapret_Config=None"
 reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1 && (
@@ -329,6 +332,7 @@ if exist "%ParentDirPath%\configs\!cfg!.bat" set "batPath="
 if defined batPath if exist "%ParentDirPath%\configs\!batPath!\!cfg!.bat" (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!cfg!.bat\"\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1
+    schtasks /run /tn "GoodbyeZapretTray"
     sc description GoodbyeZapret "!cfg!" >nul 2>&1
     sc start "GoodbyeZapret" >nul 2>&1
     if !errorlevel! equ 0 echo   ^[*^] Служба GoodbyeZapret успешно запущена

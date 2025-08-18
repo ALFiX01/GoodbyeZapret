@@ -76,10 +76,10 @@ func main() {
 
 			ok, reason := checkDomainRobust(domain, url)
 			if ok {
-				fmt.Printf("  %-37s %sOK%s\n", domain, colorGreen, colorReset)
+				fmt.Printf("  %-37s OK\n", domain)
 				atomic.AddInt32(&okCnt, 1)
 			} else {
-				fmt.Printf("  %-37s %sОШИБКА%s (%s)\n", domain, colorRed, colorReset, reason)
+				fmt.Printf("  %-37s ОШИБКА (%s)\n", domain, reason)
 			}
 		}(d)
 	}

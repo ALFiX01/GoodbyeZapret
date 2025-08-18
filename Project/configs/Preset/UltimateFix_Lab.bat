@@ -51,6 +51,7 @@ title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
 
+
 :: Здесь можно включить дебаг-лог убрав rem и выключить, добавив rem ::
 REM set YTDB_prog_log=--debug=@"%~dp0log_debug.txt" 
 REM --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
@@ -71,6 +72,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-l3=ipv4 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,18.244.96.0/19,18.244.128.0/19 --dpi-desync=multisplit --dpi-desync-split-seqovl=286 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_11.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=host+1 --dpi-desync-fake-http=0x0E0E0F0E --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_9.bin" --dpi-desync-fooling=badseq --dpi-desync-autottl
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
 
 goto :EOF
 

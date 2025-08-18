@@ -31,6 +31,7 @@ title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
 
+
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443 --wf-udp=443,50000-59000 ^
 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
@@ -44,6 +45,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-udp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=midsld --dpi-desync-repeats=6 --dpi-desync-fooling=md5sig,badseq
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
 
 goto :EOF
 

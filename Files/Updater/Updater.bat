@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.2"
+set "UpdaterVersion=2.3"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -93,7 +93,10 @@ sc delete "WinDivert14" >nul 2>&1
 net stop "monkey" >nul 2>&1
 sc delete "monkey" >nul 2>&1
 
-call :log INFO "Stopped and removed services (GoodbyeZapret/WinDivert/monkey)"
+taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+schtasks /end /tn "GoodbyeZapretTray"
+
+call :log INFO "Stopped and removed services GoodbyeZapret/WinDivert/monkey"
 
 REM Чтение конфигурации из реестра (новый ключ) или миграция со старого
 set "GoodbyeZapret_Config=None"
@@ -120,12 +123,12 @@ if exist "%ZipPath%" del /q "%ZipPath%" >nul 2>&1
 call :log INFO "Downloading archive from %DLURL% to %ZipPath%"
 
 REM Скачивание через curl (с последующим fallback на PowerShell)
-curl -f -L -# -o "%ZipPath%" "%DLURL%" >nul 2>&1
+curl -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%ZipPath%") do set "FileSize=%%~zI"
 if not exist "%ZipPath%" set "FileSize=0"
 if %FileSize% LSS 100 (
-  call :log INFO "Curl download looks invalid (size %FileSize%). Trying PowerShell fallback"
+  call :log INFO "Curl download looks invalid -size %FileSize%-. Trying PowerShell fallback"
   powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%DLURL%' -OutFile '%ZipPath%' -UseBasicParsing -ErrorAction Stop } catch { exit 1 }" >nul 2>&1
 )
 
@@ -218,6 +221,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\"" >nul 2>&1
         sc config "GoodbyeZapret" start= auto >nul 2>&1
+        schtasks /run /tn "GoodbyeZapretTray"
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (

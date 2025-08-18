@@ -36,6 +36,7 @@ title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
 
+
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
 --filter-l3=ipv6 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
@@ -53,6 +54,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-l3=ipv6 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare_ipV6.txt" --ipset-exclude-ip=2606:4700:4700::1111,2606:4700:4700::1001 --dpi-desync=multisplit --dpi-desync-split-seqovl=226 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_18.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=host+1 --dpi-desync-fake-http=0x0E0E0F0E --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_9.bin" --dpi-desync-fooling=badseq --dpi-desync-autottl
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
 
 goto :EOF
 

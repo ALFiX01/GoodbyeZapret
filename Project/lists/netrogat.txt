@@ -6,6 +6,7 @@ rutracker.org
 aus5.mozilla.org
 dns.cloudflare.com
 githubusercontent.com
+github.com
 pinterest.com
 stream.voidboost.cc
 google.com

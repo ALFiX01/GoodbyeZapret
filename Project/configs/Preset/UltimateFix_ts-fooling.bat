@@ -36,6 +36,7 @@ echo Config: %CONFIG_NAME%
 title GoodbyeZapret:   %CONFIG_NAME%
 echo.
 echo Winws:
+
 REM --wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
 REM --filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fooling=ts --dup-cutoff=n3 --new ^
 
@@ -44,22 +45,39 @@ rem set YTDB_prog_log=--debug=@%~dp0log_debug.txt
 REM --dpi-desync=fake --dpi-desync-fooling=ts \\\\ --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
 REM --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1
 
+REM --filter-tcp=443 --dpi-desync-any-protocol --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n4 --dpi-desync-repeats=6 --new ^
+
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" ^
---wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6
+--wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
+
+Rem --wf-tcp=80,443,444-65535 --wf-udp=443,444-65535 ^
+REM --wf-l3=ipv4,ipv6 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099 ^
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
---wf-l3=ipv4,ipv6 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099 ^
+--wf-l3=ipv4 --wf-tcp=80,443,444-65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
---filter-tcp=443 --dpi-desync-any-protocol --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n4 --new ^
---filter-udp=443 --dpi-desync-any-protocol --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=443 --hostlist-exclude="%LISTS%russia-blacklist.txt" --hostlist-exclude="%LISTS%custom-hostlist.txt" --hostlist-exclude="%LISTS%mycdnlist.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n5 --dpi-desync-repeats=6 --new ^
+--filter-tcp=80 --hostlist-exclude="%LISTS%russia-blacklist.txt" --hostlist-exclude="%LISTS%custom-hostlist.txt" --hostlist-exclude="%LISTS%mycdnlist.txt" --dpi-desync=syndata,fake --dpi-desync-fooling=ts --dpi-desync-fake-syndata="%FAKE%fake_tls_1.bin" --new ^
+--filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
+--filter-tcp=443 --hostlist-domains=updates.discord.com,stable.dl2.discordapp.net --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-repeats=3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake --dpi-desync-fooling=ts --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --hostlist-domains=updates.discord.com, stable.dl2.discordapp.net, rutracker.org, static.rutracker.cc, cdn77.com --dpi-desync=fake --dpi-desync-fooling=ts --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=syndata,fake --dpi-desync-fooling=ts --dpi-desync-fake-syndata="%FAKE%fake_tls_1.bin" --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --ipset-exclude-ip=1.1.1.1, 1.0.0.1, 212.109.195.93, 83.220.169.155, 141.105.71.21 --dpi-desync=syndata,multisplit --dpi-desync-split-seqovl=1 --dpi-desync-fake-syndata="%FAKE%tls_clienthello_15.bin" --dup=2 --dup-cutoff=n3 --new ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --hostlist-exclude-domains=githubusercontent.com --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,104.18.42.105,104.18.43.105 --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake --dpi-desync-fooling=ts
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
 
 goto :EOF
 

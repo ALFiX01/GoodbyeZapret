@@ -73,12 +73,18 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --filter-tcp=443 --dpi-desync-any-protocol --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3 --new ^
 --filter-tcp=80 --dpi-desync-any-protocol --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist-domains=updates.discord.com, stable.dl2.discordapp.net, rutracker.org, static.rutracker.cc, cdn77.com --dpi-desync=multisplit --dpi-desync-split-seqovl=293 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_12.bin" --new ^
---filter-l3=ipv4 --filter-tcp=443 --dpi-desync-any-protocol --ipset="%LISTS%ipset-cloudflare3.txt" --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,18.244.96.0/19,18.244.128.0/19 --dpi-desync=multisplit --dpi-desync-split-seqovl=286 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_11.bin" --dup=2 --dup-cutoff=n3 --new ^
+--filter-l3=ipv4 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,18.244.96.0/19,18.244.128.0/19 --dpi-desync=multisplit --dpi-desync-split-seqovl=652 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_11.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-tcp=80 --dpi-desync=syndata,multisplit --dpi-desync-split-seqovl=4 --dpi-desync-split-pos=host+2 --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=443,444-65535 --filter-l7=tls --ipset-exclude-ip=18.244.96.0/19,18.244.128.0/19 %YTDB_TLS_MAIN% --dpi-desync-cutoff=n5 --new ^
 --filter-tcp=444-65535 --filter-l7=unknown --ipset-exclude-ip=18.244.96.0/19,18.244.128.0/19 --dpi-desync-any-protocol=1 --dpi-desync=syndata --synack-split=synack --dpi-desync-fake-syndata="%FAKE%fake_syndata.bin" --dpi-desync-cutoff=n5 --new ^
 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-cutoff=n4 --new ^
 --filter-udp=444-65535 --dpi-desync=fake,udplen --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=%YTDB_UDP_Repeats% --dpi-desync-cutoff=n%YTDB_Cutoff_Limit% --dpi-desync-ttl=%YTDB_TTL_Limit%
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
 
 goto :EOF
 

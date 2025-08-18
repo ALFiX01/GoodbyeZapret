@@ -1,36 +1,3 @@
-::[Bat To Exe Converter]
-::
-::YAwzoRdxOk+EWAjk
-::fBw5plQjdCuDJOlwRJyA8qq3/Ngy6dtnt1etA6hLN6o2QAOtgN4bfZzS3bqyB+8c7kf9cKwsxmhfjPcKDQ1RfR2lIAY3pg4=
-::YAwzuBVtJxjWCl3EqQJgSA==
-::ZR4luwNxJguZRRnk
-::Yhs/ulQjdF65
-::cxAkpRVqdFKZSjk=
-::cBs/ulQjdF65
-::ZR41oxFsdFKZSDk=
-::eBoioBt6dFKZSDk=
-::cRo6pxp7LAbNWATEpCI=
-::egkzugNsPRvcWATEpCI=
-::dAsiuh18IRvcCxnZtBJQ
-::cRYluBh/LU+EWAnk
-::YxY4rhs+aU+IeA==
-::cxY6rQJ7JhzQF1fEqQJhZk4aHmQ=
-::ZQ05rAF9IBncCkqN+0xwdVs0
-::ZQ05rAF9IAHYFVzEqQIXJxRQTh2HBmqqFLAIiA==
-::eg0/rx1wNQPfEVWB+kM9LVsJDGQ=
-::fBEirQZwNQPfEVWB+kM9LVsJDGQ=
-::cRolqwZ3JBvQF1fEqQJQ
-::dhA7uBVwLU+EWHio0ksIaBJaT2Q=
-::YQ03rBFzNR3SWATElA==
-::dhAmsQZ3MwfNWATElA==
-::ZQ0/vhVqMQ3MEVWAtB9wSA==
-::Zg8zqx1/OA3MEVWAtB9wSA==
-::dhA7pRFwIByZRRnk
-::Zh4grVQjdCyDJGyX8VAjFD9VQg2LMFeeCbYJ5e31+/m7hUQJfPc9RKjU1bCMOeUp61X2cIIR5mhVks4PGCd0fwelbQcxuyBHrmHl
-::YB416Ek+ZW8=
-::
-::
-::978f952a14a936cc963da21a135fa983
 @echo off
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
@@ -62,8 +29,8 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.2.0"
-set "Current_GoodbyeZapret_version_code=12AV01"
+set "Current_GoodbyeZapret_version=2.3.0"
+set "Current_GoodbyeZapret_version_code=19AV01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -246,6 +213,12 @@ if not exist "%ParentDirPath%" (
 )
 
 :RR
+
+REM Проверяем, запущен ли GoodbyeZapretTray.exe, если нет — запускаем
+tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+if errorlevel 1 (
+    start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+)
 
 REM Initialize variables
 set "BatCount=0"
@@ -954,6 +927,10 @@ if "!batfile!"=="UltimateFix_ts-fooling.bat" (
 )
 
 echo.
+
+schtasks /Create /TN "GoodbyeZapretTray" /SC ONLOGON /RL HIGHEST /IT /F /TR "\"%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe\"" >nul 2>&1
+schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+
 echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
 
 sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
@@ -965,19 +942,11 @@ for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
 REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!batPath!" /f >nul
 REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
 
- reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!BaseCfg!" /f >nul
- reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!batPath!" /f >nul
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!BaseCfg!" /f >nul
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!batPath!" /f >nul
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "!BaseCfg!" /f >nul
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
-REM if %errorlevel% equ 0 (
-REM     cmd /c "sc start GoodbyeZapret" >nul
-REM     if %errorlevel% equ 0 (
-REM         echo  - Служба GoodbyeZapret успешно запущена %COL%[37m
-REM     ) else (
-REM         echo  - Ошибка при запуске службы
-REM     )
-REM )
 cls
 echo.
 echo   -%COL%[92m !batFile! установлен в службу GoodbyeZapret %COL%[37m
@@ -1022,6 +991,10 @@ goto :end
     ) else (
         echo  Служба GoodbyeZapret не найдена
     )
+
+    taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+    schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
+    schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     call :ResizeMenuWindow
 goto :end
@@ -1252,7 +1225,9 @@ for /f "skip=1 tokens=*" %%a in ('wmic nicconfig where "IPEnabled=true" get DNSS
 )
 
 IF !dns_configured!==0 (
+    chcp 850 >nul 2>&1
     for /f "usebackq delims=" %%a in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; (Get-DnsClientServerAddress -AddressFamily IPv4 | Where-Object { $_.ServerAddresses } | ForEach-Object { $_.ServerAddresses } | Where-Object { $_ } | Select-Object -Unique)"`) do (
+        chcp 65001 >nul 2>&1
         set "dns_configured=1"
         echo %%a | findstr /i "192\.168\." >nul
         if !errorlevel!==0 (
@@ -1512,6 +1487,10 @@ goto CurrentStatus
     echo    %COL%[90mОстановка службы GoodbyeZapret...%COL%[37m
     net stop "GoodbyeZapret" >nul 2>&1
 
+    echo    %COL%[90mОстановка GoodbyeZapretTray...%COL%[37m
+    taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+    schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
+
     tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
     if not errorlevel 1 (
         echo    %COL%[90mОстановка winws.exe...%COL%[37m
@@ -1533,6 +1512,8 @@ goto CurrentStatus
     sc start "GoodbyeZapret" >nul 2>&1
     echo    %COL%[92mПерезапуск выполнен успешно%COL%[37m
     timeout /t 2 >nul 2>&1
+    echo    %COL%[90mЗапуск службы GoodbyeZapretTray    ...%COL%[37m
+    schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
     if defined QuickRestartFromMainMenu (
         set "QuickRestartFromMainMenu="
         goto MainMenu
