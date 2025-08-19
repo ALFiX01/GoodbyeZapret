@@ -5,7 +5,7 @@
 ::YAwzuBVtJxjWCl3EqQJgSA==
 ::ZR4luwNxJguZRRnk
 ::Yhs/ulQjdF+5
-::cxAkpRVqdFKZSjk=
+::cxAkpRVqdFKZSzk=
 ::cBs/ulQjdF+5
 ::ZR41oxFsdFKZSDk=
 ::eBoioBt6dFKZSDk=
@@ -41,6 +41,12 @@ set "LogFile=%ParentDirPath%\Log.txt"
 
 chcp 65001 >nul 2>&1
 
+rem Detect interactive run (hold window open if launched as .bat) and allow override via args
+set "HOLD=0"
+if /i "%~x0"==".bat" set "HOLD=1"
+if /i "%~1"=="--hold" set "HOLD=1"
+if /i "%~1"=="--no-hold" set "HOLD=0"
+
 rem ---------------------------
 rem Core settings
 rem ---------------------------
@@ -53,15 +59,8 @@ if not defined CheckURL_BACKUP set "CheckURL_BACKUP=https://mail.ru"
 rem ---------------------------
 rem Helper: logging
 rem ---------------------------
-:_noop
-exit /b 0
 
-:log
-set "_lvl=%~1"
-shift
-set "_msg=%*"
->> "%LogFile%" echo [!_lvl!] %time:~0,8% - !_msg!
-exit /b 0
+
 
 rem ---------------------------
 rem Nice header (colors)
@@ -70,7 +69,7 @@ for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1)
 
 cls
 title GoodbyeZapret UpdateService
-call :log INFO "Update Service started"
+call :log START "UpdateService / Path: %ParentDirPath%"
 echo.
 echo        %COL%[36m ┌──────────────────────────────────────────────────────────────┐
 echo         │     %COL%[91m ██╗   ██╗██████╗ ██████╗  █████╗ ████████╗███████╗     %COL%[36m │
@@ -94,7 +93,7 @@ if errorlevel 1 (
     echo  %COL%[91mОшибка: нет подключения к серверам обновлений%COL%[37m
     call :log ERROR "No connectivity to update servers"
     timeout /t 3 >nul 2>&1
-    exit /b 1
+    goto :finish_err
 )
 
 rem ---------------------------
@@ -117,14 +116,14 @@ curl -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%TEMP%\GZ_Updater.bat" "http
 if errorlevel 1 (
     echo  %COL%[91mОшибка: не удалось скачать файл версии%COL%[37m
     call :log ERROR "Failed to download GoodbyeZapret_Version"
-    exit /b 1
+    goto :finish_err
 )
 
 call "%TEMP%\GZ_Updater.bat" >nul 2>&1
 if errorlevel 1 (
     echo  %COL%[91mОшибка: не удалось прочитать информацию об обновлении%COL%[37m
     call :log ERROR "Failed to execute GZ_Updater.bat"
-    exit /b 1
+    goto :finish_err
 )
 
 del /q "%TEMP%\GZ_Updater.bat" >nul 2>&1
@@ -139,6 +138,7 @@ rem ---------------------------
 rem Decide if update is needed
 rem ---------------------------
 set "UpdateNeed=No"
+
 if defined Actual_GoodbyeZapret_version_code if defined Current_GoodbyeZapret_version_code (
     if /i not "%Actual_GoodbyeZapret_version_code%"=="%Current_GoodbyeZapret_version_code%" set "UpdateNeed=Yes"
 ) else (
@@ -149,7 +149,7 @@ if defined Actual_GoodbyeZapret_version_code if defined Current_GoodbyeZapret_ve
 if /i not "%UpdateNeed%"=="Yes" (
     echo  %COL%[92mОбновления не найдены%COL%[37m
     if exist "%LogFile%" del /f /q "%LogFile%" >nul 2>&1
-    exit /b 0
+    goto :finish_ok
 )
 
 call :log INFO "Update available: v%Current_GoodbyeZapret_version_code% -> v%Actual_GoodbyeZapret_version_code%"
@@ -188,6 +188,11 @@ for %%S in (WinDivert WinDivert14 monkey) do (
   )
 )
 
+taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+    schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
+)
+
 rem Remember preferred config name
 set "GoodbyeZapret_Config=None"
 reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" >nul 2>&1 && (
@@ -198,24 +203,25 @@ call :log INFO "Downloading files for !Actual_GoodbyeZapret_version!"
 echo   ^[*^] Скачивание файлов !Actual_GoodbyeZapret_version!
 set "ZipPath=%TEMP%\GoodbyeZapret.zip"
 if exist "%ZipPath%" del /q /f "%ZipPath%" >nul 2>&1
+
 curl -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%ZipPath%" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 if errorlevel 1 (
     echo  %COL%[91mОшибка: не удалось скачать GoodbyeZapret.zip%COL%[37m
     call :log ERROR "Failed to download GoodbyeZapret.zip"
-    exit /b 1
+    goto :finish_err
 )
 
 for %%I in ("%ZipPath%") do set "FileSize=%%~zI"
 if not defined FileSize (
     echo  %COL%[91mОшибка: GoodbyeZapret.zip не найден или пустой%COL%[37m
     call :log ERROR "Downloaded zip missing or empty"
-    exit /b 1
+    goto :finish_err
 )
 if %FileSize% LSS 100 (
     echo  %COL%[91mОшибка: GoodbyeZapret.zip поврежден ^(Size %FileSize%^)%COL%[37m
     call :log ERROR "Zip too small (%FileSize% bytes)"
     del /q /f "%ZipPath%" >nul 2>&1
-    exit /b 1
+    goto :finish_err
 )
 
 call :log INFO "Extracting archive"
@@ -228,7 +234,7 @@ del /q /f "%ZipPath%" >nul 2>&1
 if not "%ps_err%"=="0" (
     echo  %COL%[91mОшибка распаковки архива%COL%[37m
     call :log ERROR "Expand-Archive failed (code %ps_err%)"
-    exit /b 1
+    goto :finish_err
 )
 
 rem Restore service from stored config (if available)
@@ -238,12 +244,59 @@ echo   ^[*^] Обновление завершено
 call :log INFO "Update finished"
 if exist "%ParentDirPath%\Launcher.bat" start "" "%ParentDirPath%\Launcher.bat"
 timeout /t 1 >nul 2>&1
-exit /b 0
+goto :finish_ok
 
 
 :: -------------------------------------------------------
 :: Functions
 :: -------------------------------------------------------
+:finish_ok
+rem Cleanup accidental file like v08AV01 created by shell redirection quirks
+set "FirstActual="
+if defined Actual_GoodbyeZapret_version_code for /f "tokens=1" %%A in ("!Actual_GoodbyeZapret_version_code!") do set "FirstActual=%%A"
+if defined FirstActual (
+  if exist "v!FirstActual!" del /f /q "v!FirstActual!" >nul 2>&1
+  if exist "%ParentDirPath%\tools\v!FirstActual!" del /f /q "%ParentDirPath%\tools\v!FirstActual!" >nul 2>&1
+)
+set "FirstCurrent="
+if defined Current_GoodbyeZapret_version_code for /f "tokens=1" %%A in ("!Current_GoodbyeZapret_version_code!") do set "FirstCurrent=%%A"
+if defined FirstCurrent (
+  if exist "v!FirstCurrent!" del /f /q "v!FirstCurrent!" >nul 2>&1
+  if exist "%ParentDirPath%\tools\v!FirstCurrent!" del /f /q "%ParentDirPath%\tools\v!FirstCurrent!" >nul 2>&1
+)
+if "%HOLD%"=="1" (
+  echo.
+  echo  %COL%[90mНажмите любую клавишу для выхода...%COL%[37m
+  pause >nul
+) else (
+  rem short delay to avoid blinking window
+  timeout /t 1 >nul 2>&1
+)
+exit /b 0
+
+:finish_err
+rem Cleanup accidental file like v08AV01 created by shell redirection quirks
+set "FirstActual="
+if defined Actual_GoodbyeZapret_version_code for /f "tokens=1" %%A in ("!Actual_GoodbyeZapret_version_code!") do set "FirstActual=%%A"
+if defined FirstActual (
+  if exist "v!FirstActual!" del /f /q "v!FirstActual!" >nul 2>&1
+  if exist "%ParentDirPath%\v!FirstActual!" del /f /q "%ParentDirPath%\v!FirstActual!" >nul 2>&1
+)
+set "FirstCurrent="
+if defined Current_GoodbyeZapret_version_code for /f "tokens=1" %%A in ("!Current_GoodbyeZapret_version_code!") do set "FirstCurrent=%%A"
+if defined FirstCurrent (
+  if exist "v!FirstCurrent!" del /f /q "v!FirstCurrent!" >nul 2>&1
+  if exist "%ParentDirPath%\v!FirstCurrent!" del /f /q "%ParentDirPath%\v!FirstCurrent!" >nul 2>&1
+)
+if "%HOLD%"=="1" (
+  echo.
+  echo  %COL%[91mПроизошла ошибка. Нажмите любую клавишу для выхода...%COL%[37m
+  pause >nul
+) else (
+  timeout /t 3 >nul 2>&1
+)
+exit /b 1
+
 :check_internet
 setlocal EnableDelayedExpansion
 set "attempt=0"
@@ -282,6 +335,9 @@ if exist "%ParentDirPath%\configs\!cfg!.bat" set "batPath="
 if defined batPath if exist "%ParentDirPath%\configs\!batPath!\!cfg!.bat" (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!cfg!.bat\"\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1
+      if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+        schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+      )
     sc description GoodbyeZapret "!cfg!" >nul 2>&1
     sc start "GoodbyeZapret" >nul 2>&1
     if !errorlevel! equ 0 echo   ^[*^] Служба GoodbyeZapret успешно запущена
@@ -306,3 +362,27 @@ if not defined foundPath if exist "%ParentDirPath%\configs\Custom\!cfgFile!" set
 if not defined foundPath if exist "%ParentDirPath%\configs\!cfgFile!" set "foundPath=%ParentDirPath%\configs\!cfgFile!"
 if defined foundPath start "" "!foundPath!"
 endlocal & exit /b 0
+
+:_noop
+exit /b 0
+
+:log
+set "_lvl=%~1"
+shift
+set "_msg=%*"
+rem Sanitize special redirection/control characters to avoid accidental file creation
+set "_msg=!_msg:^>=^>!"
+set "_msg=!_msg:^<=^<!"
+set "_msg=!_msg:^|=^|!"
+set "_msg=!_msg:&=^&!"
+set "_msg=!_msg:(=^(!"
+set "_msg=!_msg:)=^)!"
+if /i "!_lvl!"=="START" (
+  >> "%LogFile%" echo.
+  >> "%LogFile%" echo ======================================================================
+  >> "%LogFile%" echo [START] %date% %time:~0,8% - !_msg!
+  >> "%LogFile%" echo ======================================================================
+  exit /b 0
+)
+>> "%LogFile%" echo [!_lvl!] %time:~0,8% - !_msg!
+exit /b 0

@@ -29,7 +29,7 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.3.01"
+set "Current_GoodbyeZapret_version=2.3.1.01"
 set "Current_GoodbyeZapret_version_code=18AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -104,6 +104,41 @@ reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" 
     )
 )
 
+
+REM /// Предупреждения при запуске любых exe ///
+REM === Проверка и установка DisableSecuritySettingsCheck ===
+reg query "HKLM\SOFTWARE\Microsoft\Internet Explorer\Security" /v "DisableSecuritySettingsCheck" 2>nul | find "0x1" >nul
+if errorlevel 1 (
+    echo [INFO ] %TIME% - Setting DisableSecuritySettingsCheck=1
+    reg add "HKLM\SOFTWARE\Microsoft\Internet Explorer\Security" /f /v "DisableSecuritySettingsCheck" /t REG_DWORD /d 1 >nul 2>&1
+)
+
+REM === Проверка и установка LowRiskFileTypes ===
+set "ExpectedLowRisk=.exe;.bat;.cmd;.reg;.vbs;.msi;.msp;.com;.ps1;.ps2;.cpl"
+set "CurrentLowRisk="
+
+for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v "LowRiskFileTypes" ^| findstr /i "LowRiskFileTypes"') do set "CurrentLowRisk=%%i"
+
+if not defined CurrentLowRisk (
+    echo [INFO ] %TIME% - Setting LowRiskFileTypes=%ExpectedLowRisk%
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v LowRiskFileTypes /t REG_SZ /d "%ExpectedLowRisk%" /f >nul 2>&1
+) else (
+    if /i not "%CurrentLowRisk%"=="%ExpectedLowRisk%" (
+        echo [INFO ] %TIME% - Updating LowRiskFileTypes from "%CurrentLowRisk%" to "%ExpectedLowRisk%"
+        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v LowRiskFileTypes /t REG_SZ /d "%ExpectedLowRisk%" /f >nul 2>&1
+    )
+)
+set "CurrentLowRisk="
+
+REM === Проверка и установка параметра 1806 в зоне 3 ===
+reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v "1806" 2>nul | find "0x0" >nul
+if errorlevel 1 (
+    echo [INFO ] %TIME% - Setting parameter 1806=0 in zone 3
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /f /v "1806" /t REG_DWORD /d 0 >nul 2>&1
+)
+REM ///
+
+
 REM Check execution result
 if "!UAC_check!" == "Error" (
     echo [WARN ] %TIME% - Some UAC parameters could not be configured correctly.
@@ -155,20 +190,16 @@ if %errorlevel% neq 0 (
         REM Create tools folder if it doesn't exist
         if not exist "%ParentDirPath%\tools" mkdir "%ParentDirPath%\tools" >nul 2>&1
 
-        REM Update UpdateService.exe
-        if exist "%ParentDirPath%\tools\UpdateService.exe" (
-            del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-        )
-        echo [INFO ] %TIME% - Downloading UpdateService.exe...
-        curl -g -L -s -o "%ParentDirPath%\tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe"
-        if exist "%ParentDirPath%\tools\UpdateService.exe" (
-            echo [INFO ] %TIME% - UpdateService.exe downloaded successfully
-        ) else (
-            echo [ERROR] %TIME% - Failed to download UpdateService.exe
-        )
-
         echo [INFO ] %TIME% - Component update completed
     )
+)
+
+REM Проверяем, есть ли ключ Auto-update и равен ли он 1
+reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2>nul | find "1" >nul
+if %errorlevel%==0 (
+    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
+    if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
+    if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
 )
 
 set "WiFi=Off"
@@ -213,14 +244,6 @@ if not exist "%ParentDirPath%" (
 )
 
 :RR
-
-REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
-if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
-    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-    if errorlevel 1 (
-        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
-    )
-)
 
 REM Initialize variables
 set "BatCount=0"
@@ -471,6 +494,14 @@ if not "%CheckStatus%"=="FileCheckError" (
 
 :skip_for_wifi
 cls
+
+REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
+if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 (
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    )
+)
 
 title GoodbyeZapret - Launcher
 
@@ -1365,7 +1396,6 @@ echo.
 echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
 echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
-echo    %COL%[36m^[ %COL%[96mA %COL%[36m^] %COL%[93m%AutoUpdateTextParam% автообновление
 echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
 echo    %COL%[36m^[ %COL%[96mIN %COL%[36m^] %COL%[93mОткрыть инструкцию
 echo    %COL%[36m^[ %COL%[96mRS %COL%[36m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
@@ -1414,57 +1444,6 @@ if "%UpdateNeed%"=="Yes" (
     )
 )
 
-REM Handle auto-update toggle with improved logic
-if /i "%choice%"=="A" (
-    if /i "%AutoUpdateStatus%"=="On" (
-        REM Disable auto-update
-        reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
-        if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-        if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
-        echo    %COL%[92mАвтообновление отключено%COL%[37m
-        timeout /t 2 >nul
-    ) else (
-        REM Enable auto-update
-        reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
-        chcp 850 >nul 2>&1
-        powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk'); $Shortcut.TargetPath = '%ParentDirPath%\tools\UpdateService.exe'; $Shortcut.Save()" >nul 2>&1
-        chcp 65001 >nul 2>&1
-        if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-        curl -g -L -# -o "%ParentDirPath%\tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
-        if exist "%ParentDirPath%\tools\UpdateService.exe" (
-            echo    %COL%[92mАвтообновление включено%COL%[37m
-        ) else (
-            echo    %COL%[91mОшибка загрузки UpdateService.exe%COL%[37m
-        )
-        timeout /t 2 >nul
-    )
-)
-
-REM Handle Cyrillic 'A' key (ф)
-if /i "%choice%"=="ф" (
-    if /i "%AutoUpdateStatus%"=="On" (
-        REM Disable auto-update
-        reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
-        if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-        if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
-        echo    %COL%[92mАвтообновление отключено%COL%[37m
-        timeout /t 2 >nul
-    ) else (
-        REM Enable auto-update
-        reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "1" /f >nul 2>&1
-        chcp 850 >nul 2>&1
-        powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk'); $Shortcut.TargetPath = '%ParentDirPath%\tools\UpdateService.exe'; $Shortcut.Save()" >nul 2>&1
-        chcp 65001 >nul 2>&1
-        if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-        curl -g -L -# -o "%ParentDirPath%\tools\UpdateService.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/UpdateService/UpdateService.exe" >nul 2>&1
-        if exist "%ParentDirPath%\tools\UpdateService.exe" (
-            echo    %COL%[92mАвтообновление включено%COL%[37m
-        ) else (
-            echo    %COL%[91mОшибка загрузки UpdateService.exe%COL%[37m
-        )
-        timeout /t 2 >nul
-    )
-)
 
 goto CurrentStatus
 
