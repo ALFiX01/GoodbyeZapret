@@ -112,6 +112,15 @@
       color: #81c784;
     }
 
+    code2 {
+      background: #242b35;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-family: "Consolas", monospace;
+      font-size: 0.95em;
+      color: #66b7c5;
+    }
+
     /* Callout / заметки */
     .highlight {
       background: var(--highlight-bg);
@@ -356,7 +365,11 @@
         <li><code>configs/preset</code> — готовые конфиги обхода;</li>
         <li><code>configs/custom</code> — пользовательские конфиги обхода, которые не изменяются при обновлении;</li>
         <li><code>configs/custom/Helpers</code> — вспомогательные сторонние утилиты, которые помогут в создании и редактировании конфигов (скачать их можно через <code>configs/custom/Helpers/download_helpers.bat</code>);</li>
-        <li><code>lists</code> — списки доменов/IP;</li>
+        <li><code>lists</code> — списки доменов/IP;
+          <ul>
+            <li><code2>ipset-cloudflare1.txt</code2>, <code2>ipset-cloudflare2.txt</code2>, <code2>ipset-cloudflare3.txt</code2>, <code2>ipset-cloudflare4.txt</code2> — различные уровни блокировки (чем выше номер, тем больше IP-адресов и сетей включено для обхода блокировок)</li>
+          </ul>
+        </li>
         <li><code>tools</code> — вспомогательные утилиты (обновление, поиск, очистка).</li>
       </ul>
       <div class="highlight">«Конфиг» — это BAT-файл (скрипт Windows) из папки <code>configs/preset</code> или <code>configs/custom</code>. Он содержит набор команд для запуска обхода DPI и может быть запущен двойным кликом либо через <strong>Launcher.bat</strong>.</div>

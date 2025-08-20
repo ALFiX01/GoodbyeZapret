@@ -29,92 +29,200 @@ if not errorlevel 1 (
 )
 
 (
-echo 0.0.0.0 www.aomeitech.com
-echo 3.66.189.153 mail.proton.me
-echo 31.13.72.36 facebook.com
-echo 31.13.72.36 www.facebook.com
-echo 31.13.72.12 static.xx.fbcdn.net
-echo 31.13.72.12 external-hel3-1.xx.fbcdn.net
-echo 157.240.225.174 www.instagram.com
-echo 157.240.225.174 instagram.com
-echo 157.240.247.63 scontent.cdninstagram.com
-echo 157.240.247.63 scontent-hel3-1.cdninstagram.com
+echo ### dns.malw.link: hosts file
+echo # Последнее обновление: 2 августа 2025
+echo # Дополнение к zapret:
+echo 157.240.245.174 instagram.com
+echo 157.240.245.174 www.instagram.com
 echo 157.240.245.174 b.i.instagram.com
 echo 157.240.245.174 z-p42-chat-e2ee-ig.facebook.com
+echo 157.240.245.174 help.instagram.com
 echo 3.66.189.153 protonmail.com
+echo 3.66.189.153 mail.proton.me
+echo 52.223.13.41 tracker.openbittorrent.com
+
+echo # ChatGPT, OpenAI:
 echo 204.12.192.222 chatgpt.com
 echo 204.12.192.222 ab.chatgpt.com
 echo 204.12.192.222 auth.openai.com
 echo 204.12.192.222 auth0.openai.com
 echo 204.12.192.222 platform.openai.com
-echo 204.12.192.222 cdn.oaistatic.com
-echo 204.12.192.222 files.oaiusercontent.com
-echo 204.12.192.222 cdn.auth0.com
 echo 204.12.192.222 tcr9i.chat.openai.com
 echo 204.12.192.222 webrtc.chatgpt.com
-echo 204.12.192.222 android.chat.openai.com
+echo 204.12.192.219 android.chat.openai.com
 echo 204.12.192.222 api.openai.com
-echo 138.201.204.218 gemini.google.com
+echo 204.12.192.221 operator.chatgpt.com
+echo 204.12.192.222 sora.chatgpt.com
+echo 204.12.192.222 sora.com
+echo 204.12.192.222 sora.chatgpt.com
+echo 204.12.192.222 videos.openai.com
+
+echo # Сервисы Google:
+echo 204.12.192.222 gemini.google.com
 echo 204.12.192.222 aistudio.google.com
 echo 204.12.192.222 generativelanguage.googleapis.com
-echo 204.12.192.222 alkalimakersuite-pa.clients6.google.com
 echo 204.12.192.222 aitestkitchen.withgoogle.com
-echo 204.12.192.222 aisandbox-pa.googleapis.com
+echo 204.12.192.219 aisandbox-pa.googleapis.com
 echo 204.12.192.222 webchannel-alkalimakersuite-pa.clients6.google.com
+echo 204.12.192.221 alkalimakersuite-pa.clients6.google.com
+echo 204.12.192.221 assistant-s3-pa.googleapis.com
 echo 204.12.192.222 proactivebackend-pa.googleapis.com
 echo 204.12.192.222 o.pki.goog
 echo 204.12.192.222 labs.google
 echo 204.12.192.222 notebooklm.google
 echo 204.12.192.222 notebooklm.google.com
+echo 204.12.192.222 jules.google.com
+echo 204.12.192.222 stitch.withgoogle.com
+
+echo # Microsoft Copilot, Microsoft Rewards, Xbox, Xbox Cloud Gaming:
 echo 204.12.192.222 copilot.microsoft.com
-echo 204.12.192.222 www.bing.com
 echo 204.12.192.222 sydney.bing.com
 echo 204.12.192.222 edgeservices.bing.com
-echo 50.7.85.221 rewards.bing.com
+echo 204.12.192.221 rewards.bing.com
 echo 204.12.192.222 xsts.auth.xboxlive.com
+echo 204.12.192.222 xgpuwebf2p.gssv-play-prod.xboxlive.com
+echo 204.12.192.222 xgpuweb.gssv-play-prod.xboxlive.com
+
+echo # Spotify:
 echo 204.12.192.222 api.spotify.com
 echo 204.12.192.222 xpui.app.spotify.com
 echo 204.12.192.222 appresolve.spotify.com
 echo 204.12.192.222 login5.spotify.com
+echo 204.12.192.222 login.app.spotify.com
+echo 204.12.192.222 encore.scdn.co
+echo 204.12.192.222 ap-gew1.spotify.com
 echo 204.12.192.222 gew1-spclient.spotify.com
-echo 204.12.192.222 gew1-dealer.spotify.com
 echo 204.12.192.222 spclient.wg.spotify.com
 echo 204.12.192.222 api-partner.spotify.com
 echo 204.12.192.222 aet.spotify.com
 echo 204.12.192.222 www.spotify.com
 echo 204.12.192.222 accounts.spotify.com
-echo 204.12.192.222 spotifycdn.com
-echo 204.12.192.222 open-exp.spotifycdn.com
-echo 204.12.192.222 www-growth.scdn.co
-echo 204.12.192.222 o22381.ingest.sentry.io
-echo 50.7.87.84 login.app.spotify.com
-echo 138.201.204.218 encore.scdn.co
-echo 204.12.192.222 accounts.scdn.co
-echo 138.201.204.218 ap-gew1.spotify.com
-echo 94.131.119.85 www.notion.so
-echo 50.7.85.222 www.canva.com
-echo 204.12.192.222 www.intel.com
-echo 204.12.192.219 www.dell.com
-echo 204.12.192.220 developer.nvidia.com
-echo 50.7.87.85 codeium.com
-echo 50.7.85.219 inference.codeium.com
-echo 50.7.85.219 www.tiktok.com
+echo 204.12.192.221 open.spotify.com
+
+echo # GitHub Copilot:
 echo 50.7.87.84 api.github.com
+echo 204.12.192.222 api.individual.githubcopilot.com
+echo 204.12.192.222 proxy.individual.githubcopilot.com
+
+echo # JetBrains:
 echo 50.7.85.221 datalore.jetbrains.com
 echo 107.150.34.100 plugins.jetbrains.com
+echo 204.12.192.222 download.jetbrains.com
+
+echo # ElevenLabs:
 echo 204.12.192.222 elevenlabs.io
 echo 204.12.192.222 api.us.elevenlabs.io
 echo 204.12.192.222 elevenreader.io
+echo 204.12.192.222 api.elevenlabs.io
+echo 204.12.192.222 help.elevenlabs.io
+
+echo # Truth Social
 echo 204.12.192.221 truthsocial.com
 echo 204.12.192.221 static-assets-1.truthsocial.com
-echo 185.250.151.49 grok.com
-echo 185.250.151.49 accounts.x.ai
-echo 94.131.119.85 autodesk.com
-echo 94.131.119.85 accounts.autodesk.com
+
+echo # Grok
+echo 204.12.192.222 grok.com
+echo 204.12.192.222 accounts.x.ai
+echo 204.12.192.222 assets.grok.com
+
+echo # Tidal
+echo 204.12.192.222 api.tidal.com
+echo 204.12.192.222 listen.tidal.com
+echo 204.12.192.222 login.tidal.com
+echo 204.12.192.222 auth.tidal.com
+echo 204.12.192.222 link.tidal.com
+echo 204.12.192.222 dd.tidal.com
+echo 204.12.192.222 resources.tidal.com
+echo 204.12.192.221 images.tidal.com
+echo 204.12.192.222 fsu.fa.tidal.com
+echo 204.12.192.222 geolocation.onetrust.com
+echo 204.12.192.222 api.squareup.com
+echo 204.12.192.222 api-global.squareup.com
+
+echo # DeepL
+echo 204.12.192.222 deepl.com
+echo 204.12.192.222 www.deepl.com
+echo 204.12.192.222 www2.deepl.com
+echo 204.12.192.222 login-wall.deepl.com
+echo 204.12.192.219 w.deepl.com
+echo 204.12.192.222 s.deepl.com
+echo 204.12.192.222 dict.deepl.com
+echo 204.12.192.222 ita-free.www.deepl.com
+echo 204.12.192.222 write-free.www.deepl.com
+echo 204.12.192.222 experimentation.deepl.com
+
+echo # Deezer
+echo 204.12.192.220 deezer.com
+echo 204.12.192.220 www.deezer.com
+echo 204.12.192.220 dzcdn.net
+echo 204.12.192.220 payment.deezer.com
+
+echo # Weather.com
+echo 204.12.192.220 weather.com
+echo 204.12.192.220 upsx.weather.com
+
+echo # Guilded
+echo 204.12.192.219 guilded.gg
+echo 204.12.192.219 www.guilded.gg
+
+echo # Fitbit
+echo 204.12.192.219 api.fitbit.com
+echo 204.12.192.219 fitbit-pa.googleapis.com
+echo 204.12.192.219 fitbitvestibuleshim-pa.googleapis.com
+echo 204.12.192.219 fitbit.google.com
+
+echo # Другое:
 echo 204.12.192.222 claude.ai
+echo 204.12.192.220 console.anthropic.com
+echo 204.12.192.222 www.notion.so
+echo 50.7.85.222 www.canva.com
+echo 204.12.192.222 www.intel.com
+echo 204.12.192.219 www.dell.com
+echo 50.7.85.219 www.tiktok.com # Только на сайте. Приложение определяет регион по оператору, а не по IP. Поэтому есть моды.
+echo 142.54.189.106 web.archive.org # Блокирует от российских IP некоторые сайты
+echo 204.12.192.220 developer.nvidia.com
+echo 107.150.34.99 builds.parsec.app
+echo 204.12.192.220 tria.ge
+echo 204.12.192.220 api.imgur.com
+echo 45.95.233.23 www.dyson.com
+echo 45.95.233.23 www.dyson.fr
+echo 45.95.233.23 usher.ttvnw.net
+echo 64.188.98.242 api.manus.im
+echo 185.246.223.127 4pda.to
+echo 185.246.223.127 app.4pda.to
+echo 185.246.223.127 s.4pda.to
+echo 185.246.223.127 appbk.4pda.to
+
+echo # Блокировка реально плохих сайтов
+echo # Скримеры:
 echo 0.0.0.0 only-fans.uk
 echo 0.0.0.0 only-fans.me
-echo 0.0.0.0 only-fans.wtf
+echo 0.0.0.0 onlyfans.wtf
+echo # IP Logger'ы:
+echo 0.0.0.0 iplogger.org
+echo 0.0.0.0 wl.gl
+echo 0.0.0.0 ed.tc
+echo 0.0.0.0 bc.ax
+echo 0.0.0.0 maper.info
+echo 0.0.0.0 2no.co
+echo 0.0.0.0 yip.su
+echo 0.0.0.0 iplis.ru
+echo 0.0.0.0 ezstat.ru
+echo 0.0.0.0 iplog.co
+echo 0.0.0.0 grabify.org
+echo # Мусор/реклама:
+echo 0.0.0.0 log16-platform-ycru.tiktokv.com
+echo 0.0.0.0 adfox.yandex.ru
+echo 0.0.0.0 adfstat.yandex.ru
+echo 0.0.0.0 ads-api.tiktok.com
+echo 0.0.0.0 ads-api.twitter.com
+echo 0.0.0.0 ads-dev.pinterest.com
+echo 0.0.0.0 ads-sg.tiktok.com
+echo 0.0.0.0 an.yandex.ru
+echo 0.0.0.0 appmetrica.yandex.ru
+echo 0.0.0.0 mc.yandex.ru
+echo 0.0.0.0 amc.yandex.ru
+echo ### dns.malw.link: end hosts file
 ) >> "%hostspath%"
 powershell -Command "Write-Host 'Entries added successfully.' -ForegroundColor Green"
 timeout /t 3
