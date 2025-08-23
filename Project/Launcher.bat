@@ -29,7 +29,7 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.3.1.02"
+set "Current_GoodbyeZapret_version=2.3.1.03"
 set "Current_GoodbyeZapret_version_code=18AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -114,7 +114,7 @@ if errorlevel 1 (
 )
 
 REM === Проверка и установка LowRiskFileTypes ===
-set "ExpectedLowRisk=.exe;.bat;.cmd;.reg;.vbs;.msi;.msp;.com;.ps1;.ps2;.cpl"
+set "ExpectedLowRisk=.exe;.reg.;.bat.;.vbs;.cmd;.ps1;.zip;.rar;.msi;.msu;.lnk;.7z;.tar.gz;.doc;.docx;.pdf;"
 set "CurrentLowRisk="
 
 for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v "LowRiskFileTypes" ^| findstr /i "LowRiskFileTypes"') do set "CurrentLowRisk=%%i"
@@ -496,11 +496,16 @@ if not "%CheckStatus%"=="FileCheckError" (
 cls
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
-if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+    REM Завершаем процесс GoodbyeZapretTray.exe, если он уже запущен
     tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-    if errorlevel 1 (
-        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+    if !errorlevel! equ 1 (
+        REM GoodbyeZapretTray.exe не запущен, ничего делать не нужно
+    ) else (
+        taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+        timeout /t 1 >nul
     )
+    start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
 )
 
 title GoodbyeZapret - Launcher

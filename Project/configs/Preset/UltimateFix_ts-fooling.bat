@@ -75,14 +75,6 @@ if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
     )
 )
 
-REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
-if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
-    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
-    if errorlevel 1 (
-        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
-    )
-)
-
 goto :EOF
 
 :Preparing

@@ -1,11 +1,13 @@
 #Удалить, если браузер не поддерживает ECH
 nnmclub.to
 nnmstatic.win
+nvidia.com
 rutracker.org
 #Конец блока для удаления
 aus5.mozilla.org
 dns.cloudflare.com
 chat.openai.com
+chat.qwen.ai
 copilot.microsoft.com
 githubusercontent.com
 github.com
