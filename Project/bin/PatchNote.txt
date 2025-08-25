@@ -1,6 +1,0 @@
-  - Новый визуал запущенных конфигов
-  - helpers/blockcheck и bin/winws обновлены до v71.3
-  - обновлен russia-blacklist
-  - новые конфиги UltimateFix_AllPort, UltimateFix_ts-fooling
-  - исправлены баги, недочеты
-  - внесены прочие изменения

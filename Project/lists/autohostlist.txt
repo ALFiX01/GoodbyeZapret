@@ -1,1 +1,6 @@
 edge.microsoft.com
+www.msftconnecttest.com
+img4.zonapic.com
+img1.zonapic.com
+itorrents.org
+img3.zonapic.com
