@@ -200,7 +200,8 @@ class GoodbyeZapretTray:
                 running = status[1] == win32service.SERVICE_RUNNING
 
             except win32service.error as e:
-                if e.winerror == win32service.ERROR_SERVICE_DOES_NOT_EXIST:
+                # ERROR_SERVICE_DOES_NOT_EXIST = 1060 (0x424)
+                if e.winerror == 1060:
                     exists = False
                     running = False
                 else:

@@ -36,7 +36,7 @@ REM --dpi-desync=fake --dpi-desync-fooling=datanoack --dpi-desync-fake-http=0x00
 REM --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=3 --dpi-desync-split-pos=1
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 

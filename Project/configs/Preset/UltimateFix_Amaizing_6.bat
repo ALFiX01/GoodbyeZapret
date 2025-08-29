@@ -36,7 +36,7 @@ REM --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=3 --dpi-desy
 REM powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%parentDir%tools\before_launch_config.bat\" admin\"' -Verb RunAs"
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 

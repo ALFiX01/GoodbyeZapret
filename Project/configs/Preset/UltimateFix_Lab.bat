@@ -47,7 +47,7 @@ set YTCHP=--dpi-desync=fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync
 REM --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0xFEA82025 --dpi-desync-fake-quic="%FAKE%QUIC_Initial_fonts_google_com.bin" --dpi-desync-cutoff=n4 --dpi-desync-repeats=2 --new ^
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 

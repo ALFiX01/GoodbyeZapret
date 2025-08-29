@@ -33,7 +33,7 @@ set "LISTS=%ProjectDir%lists\"
 cd /d "%BIN%"
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
@@ -46,7 +46,7 @@ set YTDB_WARP_PORT=443
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
 --wf-tcp=80,443 --wf-udp=%YTDB_WARP_PORT% ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-tcp=80 --hostlist-domains=cloudflareportal.com,cloudflareok.com,cloudflareclient.com,cloudflarecp.com --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist-domains=cloudflareportal.com,cloudflareok.com,cloudflareclient.com,cloudflarecp.com,cloudflareportal.com --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist-domains=cloudflare-ech.com,cloudflare-dns.com,cloudflareok.com,cloudflareclient.com,cloudflareportal.com,cloudflarecp.com --dpi-desync=multisplit --dpi-desync-split-seqovl=211 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_5.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-udp=%YTDB_WARP_PORT% --ipset-ip=%YTDB_WARP_IP% --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%quic_7.bin" --dpi-desync-repeats=2 --dpi-desync-autottl --dpi-desync-cutoff=n5 --dup=2 --dup-autottl --dup-cutoff=n5 --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%netrogat.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http=0x0E0E0F0E --dpi-desync-fooling=md5sig --new ^

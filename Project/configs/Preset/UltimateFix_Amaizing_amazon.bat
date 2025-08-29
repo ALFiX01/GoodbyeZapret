@@ -35,7 +35,7 @@ set Cutoff_Limit=3
 set TTL_Limit=7
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 

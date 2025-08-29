@@ -19,7 +19,7 @@ IF DEFINED PROCESSOR_ARCHITEW6432 (set "os_arch=64")
 
 if %os_arch%==32 (
 color f2
-echo Windows x86 detected! Nothing to do.
+echo Windows x86 detected. Nothing to do.
 echo Press any key for exit
 pause > nul
 exit /b
@@ -29,7 +29,7 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.3.1"
+set "Current_GoodbyeZapret_version=2.4.0.01"
 set "Current_GoodbyeZapret_version_code=26AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -203,10 +203,12 @@ if %errorlevel%==0 (
 )
 
 set "WiFi=Off"
-set "CheckURL=https://ya.ru"
+set "CheckURL=https://raw.githubusercontent.com"
 set "CheckURL_BACKUP=https://mail.ru"
 
-echo   Checking connectivity to update server ^(%CheckURL%^)...
+chcp 65001 >nul 2>&1
+call :ui_header
+call :ui_info "Проверка соединения с сервером обновлений (%CheckURL%)..."
 :: Используем curl для проверки доступности основного хоста обновлений
 :: -s: Silent mode (без прогресс-бара)
 :: -L: Следовать редиректам
@@ -219,23 +221,23 @@ echo   Checking connectivity to update server ^(%CheckURL%^)...
 REM --- Attempt connectivity check with primary URL ---
 curl -4 -sS -L -I --fail --retry 3 --retry-delay 1 --connect-timeout 3 --max-time 5 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
-    echo   Connection successful.
+    call :ui_ok "Соединение установлено"
     set "WiFi=On"
 ) ELSE (
-    REM Primary URL failed, try backup URL
-    echo   Primary host unreachable, trying backup URL ^(%CheckURL_BACKUP%^)...
+    REM Primary URL failed, try backup URL (internet connectivity probe)
+    call :ui_warn "Сервер обновлений недоступен. Проверка общего подключения к интернету (%CheckURL_BACKUP%)..."
     curl -4 -s -L --head -I --connect-timeout 3 --max-time 2 --max-redirs 2 -o nul "%CheckURL_BACKUP%"
     IF %ERRORLEVEL% EQU 0 (
-        echo   Connection successful via backup URL.
+        call :ui_ok "Интернет доступен"
+        call :ui_warn "Но сервер обновлений недоступен (%CheckURL%)"
         set "WiFi=On"
     ) ELSE (
         echo.
-        echo   Error 02: Cannot reach the update servers.
-        echo   Connection checks to %CheckURL% and %CheckURL_BACKUP% failed ^(curl errorlevel: %ERRORLEVEL%^).
-        echo   Please check your internet connection, firewall settings,
-        echo   or if those hosts are accessible from your network.
+        call :ui_err "Ошибка 02: нет доступа к интернету и серверу обновлений"
+        echo   Проверка %CheckURL% и %CheckURL_BACKUP% завершилась ошибкой ^(curl: %ERRORLEVEL%^)..
+        echo   Проверьте подключение к интернету и настройки фаервола.
         set "WiFi=Off"
-        timeout /t 3 >nul
+        timeout /t 5 >nul
     )
 )
 
@@ -257,13 +259,86 @@ REM ------------------------------------------------------------
 
 REM Re-calculate amount of *.bat configs and resize console every time we enter the menu (prevents list from «исчезать» after returning)
 set "TotalCheck=Ok"
-call :ResizeMenuWindow
+
 
 REM Initialize color codes
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
 REM Set UTF-8 encoding
 chcp 65001 >nul 2>&1
+
+REM === UI helpers: colors, symbols, header ===
+goto :UI_HELPERS_END
+
+:ui_init
+    if defined ESC exit /b
+    if defined COL (set "ESC=%COL%") else (
+        for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "ESC=%%b")
+    )
+    set "C_RESET=%ESC%[0m"
+    set "C_DIM=%ESC%[90m"
+    set "C_INFO=%ESC%[36m"
+    set "C_OK=%ESC%[32m"
+    set "C_WARN=%ESC%[33m"
+    set "C_ERR=%ESC%[31m"
+    set "C_TITLE=%ESC%[95m"
+    set "C_PRIMARY=%ESC%[94m"
+    set "S_OK=✔"
+    set "S_WARN=▲"
+    set "S_ERR=✖"
+    set "S_INFO=●"
+    exit /b
+
+:ui_info
+    call :ui_init
+    setlocal EnableDelayedExpansion
+    set "msg=%~1"
+    echo  %C_INFO%[%S_INFO%]%C_RESET% !msg!
+    endlocal & exit /b
+
+:ui_ok
+    call :ui_init
+    setlocal EnableDelayedExpansion
+    set "msg=%~1"
+    echo  %C_OK%[%S_OK% ]%C_RESET% !msg!
+    endlocal & exit /b
+
+:ui_warn
+    call :ui_init
+    setlocal EnableDelayedExpansion
+    set "msg=%~1"
+    echo  %C_WARN%[%S_WARN%]%C_RESET% !msg!
+    endlocal & exit /b
+
+:ui_err
+    call :ui_init
+    setlocal EnableDelayedExpansion
+    set "msg=%~1"
+    echo  %C_ERR%[%S_ERR% ]%C_RESET% !msg!
+    endlocal & exit /b
+
+:ui_hr
+    call :ui_init
+    setlocal EnableDelayedExpansion
+    chcp 850 >nul 2>&1
+    for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "$Host.UI.RawUI.WindowSize.Width"`) do set "W=%%L"
+    chcp 65001 >nul 2>&1
+    set "line="
+    for /l %%i in (1,1,!W!) do set "line=!line!─"
+    echo %C_DIM%!line!%C_RESET%
+    endlocal & exit /b
+
+:ui_header
+    call :ui_init
+    setlocal EnableDelayedExpansion
+    cls
+    call :ui_hr
+    echo  %C_TITLE%GoodbyeZapret%C_RESET%
+    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%
+    call :ui_hr
+    endlocal & exit /b
+
+:UI_HELPERS_END
 
 :GoodbyeZapret_Menu
 REM Initialize status variables
@@ -419,6 +494,7 @@ if errorlevel 1 (
 )
 
 :OnFileCheckError
+
 if "%CheckStatus%"=="FileCheckError" (
     set "Actual_GoodbyeZapret_version=0.0.0"
     set "StatusProject=1"
@@ -599,6 +675,11 @@ if "%UpdateNeedShowScreen%"=="1" (
 )
 
 :MainMenu
+REM ------ New: run quick problem check silently ------
+set "SilentMode=1"
+call :CurrentStatus
+set "SilentMode="
+REM ----------------------------------------------------
 call :ResizeMenuWindow
 REM Check for last working config in registry
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastWorkConfig" >nul 2>&1
@@ -650,11 +731,6 @@ if "%GoodbyeZapretStart%"=="Yes" set /a YesCount+=1
 if "%WinwsStart%"=="Yes" set /a YesCount+=1
 if "%WinDivertStart%"=="Yes" set /a YesCount+=1
 
-REM ------ New: run quick problem check silently ------
-set "SilentMode=1"
-call :CurrentStatus
-set "SilentMode="
-REM ----------------------------------------------------
 
 REM Display status based on running count
 if %YesCount% equ 3 (
@@ -943,6 +1019,10 @@ call :install_GZ_service
 
 :install_GZ_service
 cls
+call :ui_init
+call :ui_hr
+echo   %C_TITLE%Установка службы GoodbyeZapret%C_RESET%
+call :ui_hr
 if "!batfile!"=="UltimateFix_ts-fooling.bat" (
     REM Проверка, включались ли уже TCP timestamps
     reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v TCP_Timestamps_Enabled >nul 2>&1
@@ -971,7 +1051,7 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
 )
 
-echo   -%COL%[37m !batFile! устанавливается в службу GoodbyeZapret...
+call :ui_info "Устанавливаю !batFile! в службу GoodbyeZapret..."
 
 sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
 sc config "GoodbyeZapret" start= auto >nul 2>&1
@@ -989,7 +1069,7 @@ sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
 cls
 echo.
-echo   -%COL%[92m !batFile! установлен в службу GoodbyeZapret %COL%[37m
+call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
 set installing_service=0
 timeout /t 1 >nul 2>&1
 if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
@@ -998,11 +1078,14 @@ if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
 )
-call :ResizeMenuWindow
 goto :end
 
 :remove_service
     cls
+    call :ui_init
+    call :ui_hr
+    echo   %C_TITLE%Удаление службы GoodbyeZapret%C_RESET%
+    call :ui_hr
     REM Цветной текст
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     echo.
@@ -1011,7 +1094,7 @@ goto :end
         net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
         if !errorlevel! equ 0 (
-            echo %COL%[92m Служба GoodbyeZapret успешно удалена %COL%[37m
+            call :ui_ok "Служба GoodbyeZapret успешно удалена"
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "!errorlevel!"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
@@ -1021,37 +1104,37 @@ goto :end
                 sc delete "WinDivert14" >nul 2>&1
                 net stop "monkey" >nul 2>&1
                 sc delete "monkey" >nul 2>&1
-                echo  Файл winws.exe остановлен
+                call :ui_ok "Файл winws.exe остановлен"
                 ipconfig /flushdns > nul
             )
-            echo %COL%[92m Удаление успешно завершено %COL%[37m
+            call :ui_ok "Удаление успешно завершено"
         ) else (
-            echo  Ошибка при удалении службы
+            call :ui_err "Ошибка при удалении службы"
         )
     ) else (
-        echo  Служба GoodbyeZapret не найдена
+        call :ui_warn "Служба GoodbyeZapret не найдена"
     )
 
     taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
-    call :ResizeMenuWindow
 goto :end
 
 :remove_service_before_installing
     cls
-    echo.
-    echo   -%COL%[37m подготовка к установке !batRel! в GoodbyeZapret...
-    REM Цветной текст
-    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+    call :ui_init
+    call :ui_hr
+    echo   %C_TITLE%Подготовка к установке конфигурации%C_RESET%
+    call :ui_hr
+    call :ui_info "подготовка к установке !batRel! в GoodbyeZapret..."
     echo.
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% equ 0 (
         net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
         if %errorlevel% equ 0 (
-            echo %COL%[92m Служба GoodbyeZapret успешно удалена %COL%[37m
+            call :ui_ok "Служба GoodbyeZapret успешно удалена"
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "%ERRORLEVEL%"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
@@ -1062,9 +1145,9 @@ goto :end
                 echo  Файл winws.exe остановлен
                 ipconfig /flushdns > nul
             )
-            echo %COL%[92m Удаление успешно завершено %COL%[37m
+            call :ui_ok "Удаление успешно завершено"
         ) else (
-            echo  Ошибка при удалении службы
+            call :ui_err "Ошибка при удалении службы"
         )
     )
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
@@ -1683,19 +1766,19 @@ start "" "%ParentDirPath%\tools\Config_Check\auto_find_working_config.exe"
 goto MainMenu
 
 :ResizeMenuWindow
-REM Пересчитайте количество конфигурационных файлов и динамически настройте размер консоли.
+REM === Пересчет размеров консоли для меню ===
 
 REM Базовый путь должен совпадать с логикой вывода в меню
 set "BasePath=%ParentDirPath%"
 
-REM Подсчёт числа конфигов надёжным способом
+REM === Подсчет количества конфигов ===
 set "PresetCount=0"
 set "CustomCount=0"
 for /f %%A in ('dir /b /a:-d "%BasePath%\configs\Preset\*.bat" 2^>nul ^| find /v /c ""') do set "PresetCount=%%A"
 for /f %%A in ('dir /b /a:-d "%BasePath%\configs\Custom\*.bat" 2^>nul ^| find /v /c ""') do set "CustomCount=%%A"
 set /a BatCount=PresetCount+CustomCount
 
-REM Пагинация: гарантируем значения по умолчанию и корректные границы
+REM === Пагинация ===
 if not defined Page set "Page=1"
 if not defined PageSize set "PageSize=20"
 set /a TotalPages=(BatCount+PageSize-1)/PageSize
@@ -1706,20 +1789,20 @@ if %Page% gtr %TotalPages% set /a Page=%TotalPages%
 set /a StartIndex=(Page-1)*PageSize+1
 set /a EndIndex=StartIndex+PageSize-1
 
-REM Сколько элементов реально видно на текущей странице
+REM === Сколько элементов реально видно на текущей странице ===
 set /a Remaining=BatCount-StartIndex+1
 if %Remaining% lss 0 set /a Remaining=0
 if %Remaining% gtr %PageSize% set /a Remaining=%PageSize%
 set /a VisibleOnPage=Remaining
 
-REM Базовое количество строк интерфейса (шапка, разделители, подсказки и блок действий)
+REM === Базовое количество строк интерфейса ===
 set /a BaseLines=22
 set /a ListBatCount=BaseLines+VisibleOnPage
 
-REM Подсказки по пагинации, если страниц больше одной
+REM === Пагинация: если страниц больше одной, добавляем 2 строки ===
 if %TotalPages% gtr 1 set /a ListBatCount+=2
 
-REM Доп. корректировка высоты консоли в зависимости от статусов системы
+REM === Проверка сервисов для YesCount ===
 set "YesCount=0"
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 set /a YesCount+=1
@@ -1736,33 +1819,43 @@ for %%S in ("WinDivert" "WinDivert14" "monkey") do (
 )
 
 :DoneStartCheck_YesCount
-if /I "%TotalCheck%"=="Problem" (
-    if %YesCount% lss 2 set /a ListBatCount+=1
-) else (
-    if %YesCount% geq 2 (
-        set /a ListBatCount-=1
-    ) else (
-        set /a ListBatCount+=2
-    )
-)
 
-REM Учитываем дополнительный пункт RS в главном меню
-if %YesCount% equ 2 (
-    sc query "GoodbyeZapret" >nul 2>&1
-    if %errorlevel% equ 0 set /a ListBatCount+=1
-)
-
-REM Предупреждения о сети/проверке файлов
+REM === Предупреждения о сети и проверке файлов ===
 if /i "%WiFi%"=="Off" set /a ListBatCount+=1
-if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
+REM if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
 if not defined CheckStatus set "CheckStatus=WithoutChecked"
 if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" set /a ListBatCount+=1
 
-REM Ограничения по высоте и минимальный размер
+REM === Корректировка по YesCount ===
+if /I "%TotalCheck%"=="Problem" (
+    REM Ветка для Problem (оставляю как у тебя)
+    if %YesCount% equ 1 (set /a ListBatCount+=1)
+    if %YesCount% equ 0 (set /a ListBatCount+=2)
+) else (
+    if %YesCount% equ 0 (
+        set /a ListBatCount+=2
+    ) else if %YesCount% equ 1 (
+        set /a ListBatCount+=2
+    ) else if %YesCount% equ 2 (
+        REM ничего не добавляем
+    ) else (
+        set /a ListBatCount-=1
+    )
+)
+
+REM === Ограничения по высоте ===
 set /a MaxWinLines=52
 set /a MinWinLines=27
 if %ListBatCount% gtr %MaxWinLines% set /a ListBatCount=%MaxWinLines%
 if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
+
+REM === DEBUG ===
+REM echo WiFi - %WiFi%
+REM echo CheckStatus - %CheckStatus%
+REM echo YesCount - %YesCount%
+REM echo TotalCheck - %TotalCheck%
+REM echo ListBatCount - %ListBatCount%
+REM pause
 
 mode con: cols=92 lines=%ListBatCount%
 goto :eof

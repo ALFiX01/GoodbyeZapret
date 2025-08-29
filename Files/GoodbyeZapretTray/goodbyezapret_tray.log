@@ -654,3 +654,11 @@ Traceback (most recent call last):
   File "C:\Users\Daniil\DriverFinder\.venv\lib\site-packages\pystray\_win32.py", line 147, in _mainloop
     r = win32.GetMessage(lpmsg, None, 0, 0)
 KeyboardInterrupt
+2025-08-24 10:31:10,183 - INFO - Приложение уже запущено. Завершаю работу дубликата.
+2025-08-24 10:31:10,183 - INFO - Приложение завершило работу.
+2025-08-24 10:31:12,492 - INFO - Иконки успешно загружены
+2025-08-24 10:31:12,493 - INFO - Приложение запущено и свернуто в трей.
+2025-08-24 10:31:15,855 - ERROR - Неожиданная ошибка при проверке сервиса WinDivert: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
+2025-08-24 10:32:51,354 - INFO - Иконки успешно загружены
+2025-08-24 10:32:51,354 - INFO - Приложение запущено и свернуто в трей.
+2025-08-24 10:33:10,041 - ERROR - Неожиданная ошибка при проверке сервиса WinDivert: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'

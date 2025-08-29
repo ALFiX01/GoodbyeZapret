@@ -28,7 +28,7 @@ set "LISTS=%ProjectDir%lists\"
 cd /d "%BIN%"
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 

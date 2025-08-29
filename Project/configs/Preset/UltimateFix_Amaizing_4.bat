@@ -32,7 +32,7 @@ REM МОЖНО ИЗМЕНИТЬ ЭТО ЧИСЛО
 set "Dup=2"
 
 echo Config: %CONFIG_NAME%
-title GoodbyeZapret:   %CONFIG_NAME%
+title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
