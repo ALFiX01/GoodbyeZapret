@@ -29,7 +29,7 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.4.0.01"
+set "Current_GoodbyeZapret_version=2.4.0.02"
 set "Current_GoodbyeZapret_version_code=26AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -202,44 +202,54 @@ if %errorlevel%==0 (
     if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
 )
 
+chcp 65001 >nul 2>&1
+REM Попробуйте прочитать значение из реестра
+set "GoodbyeZapret_Config="
+for /f "tokens=3" %%i in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" ^| findstr /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%i"
+if not defined GoodbyeZapret_Config (
+    REM Если ключ не найден, установите значение по умолчанию
+    set "GoodbyeZapret_Config=Не выбран"
+)
+
 set "WiFi=Off"
 set "CheckURL=https://raw.githubusercontent.com"
 set "CheckURL_BACKUP=https://mail.ru"
+set "DNS_TEST=google.com"
 
-chcp 65001 >nul 2>&1
 call :ui_header
-call :ui_info "Проверка соединения с сервером обновлений (%CheckURL%)..."
-:: Используем curl для проверки доступности основного хоста обновлений
-:: -s: Silent mode (без прогресс-бара)
-:: -L: Следовать редиректам
-:: --head: Получить только заголовки (быстрее, меньше данных)
-:: -m 8: Таймаут 8 секунд
-:: -o NUL: Отправить тело ответа в никуда (нам нужен только код возврата)
-:: --connect-timeout 5: Таймаут на подключение 5 секунд
-:: --max-time 8: Общий таймаут 8 секунд
 
-REM --- Attempt connectivity check with primary URL ---
-curl -4 -sS -L -I --fail --retry 3 --retry-delay 1 --connect-timeout 3 --max-time 5 -o nul "%CheckURL%"
+REM --- Primary check via nslookup ---
+call :ui_info "Проверка DNS через nslookup (%DNS_TEST%)..."
+nslookup %DNS_TEST% >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo.
+    call :ui_err "Ошибка 02: DNS не отвечает или отсутствует доступ к интернету"
+    echo   Проверьте подключение и настройки сети.
+    set "WiFi=Off"
+    goto :eof
+)
+
+REM --- If DNS works, check main server ---
+call :ui_info "DNS работает. Проверка сервера обновлений (%CheckURL%)..."
+curl -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
-    call :ui_ok "Соединение установлено"
+    call :ui_ok "Соединение установлено. Перехожу в меню"
     set "WiFi=On"
 ) ELSE (
-    REM Primary URL failed, try backup URL (internet connectivity probe)
-    call :ui_warn "Сервер обновлений недоступен. Проверка общего подключения к интернету (%CheckURL_BACKUP%)..."
-    curl -4 -s -L --head -I --connect-timeout 3 --max-time 2 --max-redirs 2 -o nul "%CheckURL_BACKUP%"
+    call :ui_warn "Сервер обновлений недоступен. Проверка общего подключения (%CheckURL_BACKUP%)..."
+    curl -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL_BACKUP%"
     IF %ERRORLEVEL% EQU 0 (
         call :ui_ok "Интернет доступен"
         call :ui_warn "Но сервер обновлений недоступен (%CheckURL%)"
         set "WiFi=On"
     ) ELSE (
         echo.
-        call :ui_err "Ошибка 02: нет доступа к интернету и серверу обновлений"
-        echo   Проверка %CheckURL% и %CheckURL_BACKUP% завершилась ошибкой ^(curl: %ERRORLEVEL%^)..
-        echo   Проверьте подключение к интернету и настройки фаервола.
+        call :ui_err "Ошибка 03: нет доступа к интернету"
+        echo   Проверьте подключение и настройки сети.
         set "WiFi=Off"
-        timeout /t 5 >nul
     )
 )
+
 
 if not exist "%ParentDirPath%" (
     goto install_screen
@@ -281,7 +291,7 @@ goto :UI_HELPERS_END
     set "C_OK=%ESC%[32m"
     set "C_WARN=%ESC%[33m"
     set "C_ERR=%ESC%[31m"
-    set "C_TITLE=%ESC%[95m"
+    set "C_TITLE=%ESC%[96m"
     set "C_PRIMARY=%ESC%[94m"
     set "S_OK=✔"
     set "S_WARN=▲"
@@ -333,8 +343,14 @@ goto :UI_HELPERS_END
     setlocal EnableDelayedExpansion
     cls
     call :ui_hr
-    echo  %C_TITLE%GoodbyeZapret%C_RESET%
-    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%
+    echo                          %C_RESET%______                ____            _____                         __ 
+    echo                         / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+    echo                        / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+    echo                       / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+    echo                       \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+    echo                                                    /____/               /_/
+    echo.
+    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%   
     call :ui_hr
     endlocal & exit /b
 
@@ -426,7 +442,7 @@ if exist "%TEMP%\GZ_Updater.bat" (
     )
 )
 
-curl -4 -s -L -I --connect-timeout 3 --max-time 1 --max-redirs 1 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+curl -4 -s -I --fail --connect-timeout 2 --max-time 2 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
     set "CheckStatus=FileCheckError"
@@ -750,6 +766,7 @@ if %YesCount% equ 3 (
     echo           %COL%[90m  ______                ____            _____                         __ 
 )
 
+
 REM Set window title
 if not defined GoodbyeZapretVersion (
     if /i "%branch%"=="beta" (
@@ -1021,7 +1038,7 @@ call :install_GZ_service
 cls
 call :ui_init
 call :ui_hr
-echo   %C_TITLE%Установка службы GoodbyeZapret%C_RESET%
+echo   %C_TITLE%Установка службы GoodbyeZapret !batRel! %C_RESET%
 call :ui_hr
 if "!batfile!"=="UltimateFix_ts-fooling.bat" (
     REM Проверка, включались ли уже TCP timestamps
@@ -1125,7 +1142,7 @@ goto :end
     cls
     call :ui_init
     call :ui_hr
-    echo   %C_TITLE%Подготовка к установке конфигурации%C_RESET%
+    echo   %C_TITLE%Установка службы GoodbyeZapret %C_RESET%
     call :ui_hr
     call :ui_info "подготовка к установке !batRel! в GoodbyeZapret..."
     echo.

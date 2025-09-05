@@ -9,6 +9,7 @@ copilot.microsoft.com
 datadoghq.com
 dns.cloudflare.com
 dom.ru
+dyndns.org
 escapefromtarkov.com
 github.com
 githubusercontent.com
@@ -20,6 +21,11 @@ nexusmods.com
 nnmclub.to
 nnmstatic.win
 nvidia.com
+geforce.com
+nvidiagrid.net
+xbox-dns.ru
+aus5.mozilla.org
+forum.ru-board.com
 okcdn.ru
 pinterest.com
 prod-www-cdn.dxo.com
@@ -36,6 +42,7 @@ steamstatic.com
 steamusercontent.com
 stream.voidboost.cc
 tarkov.com
+tor4me.info
 ttvnw.net
 twitch.tv
 vk.com
@@ -43,4 +50,5 @@ vkvideo.ru
 ya.ru
 yandex.net
 yandex.ru
+zonapic.com
 #Конец блока для удаления

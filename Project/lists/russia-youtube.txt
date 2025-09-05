@@ -9,6 +9,7 @@ ytimg.l.google.com
 jnn-pa.googleapis.com
 manifest.googlevideo.com
 googleadservices.com
+googleusercontent.com
 youtube-nocookie.com
 youtube-ui.l.google.com
 youtubeembeddedplayer.googleapis.com
