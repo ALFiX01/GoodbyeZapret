@@ -39,4 +39,4 @@ sc start "GoodbyeZapret" >nul
 powershell -Command "Write-Host '[SUCCESS] GoodbyeZapret service started successfully.' -ForegroundColor Green"
 echo.
 powershell -Command "Write-Host '[INFO] Script execution completed.' -ForegroundColor Green"
-timeout /t 2 >nul
+timeout /t 1 >nul

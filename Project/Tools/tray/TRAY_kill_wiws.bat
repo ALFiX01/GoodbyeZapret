@@ -34,4 +34,4 @@ if "!ERRORLEVEL!"=="0" (
 )
 echo.
 powershell -Command "Write-Host '[INFO] Script execution completed.' -ForegroundColor Green"
-timeout /t 2 >nul
+timeout /t 1 >nul

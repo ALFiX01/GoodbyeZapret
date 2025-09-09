@@ -20,7 +20,7 @@ set "BIN=%ProjectDir%bin\"
 set "CONFIG_NAME=UltimateFix 7"
 set "LISTS=%ProjectDir%lists\"
 
-start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-59000 ^
 --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake --dpi-desync-repeats=2 --dpi-desync-cutoff=n2 --dpi-desync-fake-quic="%FAKE%quic_6.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube_GoogleVideo.txt" --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-cutoff=d2 --dpi-desync-ttl=4 --new ^

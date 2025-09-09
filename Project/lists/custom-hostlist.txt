@@ -20,7 +20,7 @@ google.com
 googleapis.com
 gstatic.com
 hetzner.com
-cdn.battleye.com
+#cdn.battleye.com
 codenames.game
 cdn77.com
 phpmyadmin.net
@@ -38,3 +38,4 @@ rgpub.io
 dradis-prod.rdatasrv.net
 riotcdn.com
 riotgames.es
+doh.dns.sb

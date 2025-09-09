@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.4"
+set "UpdaterVersion=2.5"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -126,7 +126,13 @@ if exist "%ZipPath%" del /q "%ZipPath%" >nul 2>&1
 call :log INFO "Downloading archive from %DLURL% to %ZipPath%"
 
 REM Скачивание через curl (с последующим fallback на PowerShell)
-curl -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+     set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+
+%CURL% -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%ZipPath%") do set "FileSize=%%~zI"
 if not exist "%ZipPath%" set "FileSize=0"
@@ -196,6 +202,12 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         mkdir "%ParentDirPath%\tools\tray" >nul 2>&1
         robocopy "!ExtractRoot!\tools\tray" "%ParentDirPath%\tools\tray" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
         call :log INFO "Copied tray"
+    )
+
+    if exist "!ExtractRoot!\tools\curl" (
+        mkdir "%ParentDirPath%\tools\curl" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\curl" "%ParentDirPath%\tools\curl" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied curl"
     )
 
     echo         ^[*^] Копирование пресетов конфигурации

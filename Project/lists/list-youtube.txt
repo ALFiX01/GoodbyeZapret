@@ -50,8 +50,7 @@ jnn-pa.googleapis.com
 youtubekids.com
 yt-video-upload.l.google.com
 yt.be
-yt3.ggpht.com
-yt4.ggpht.com
+ggpht.com
 ytimg.com
 10tv.app
 7tv.app

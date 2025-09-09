@@ -20,7 +20,7 @@ set "BIN=%ProjectDir%bin\"
 set "CONFIG_NAME=UltimateFix split-sniext"
 set "LISTS=%ProjectDir%lists\"
 
-start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-59000 ^
 --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,split --dpi-desync-repeats=2 --dpi-desync-fake-quic="%FAKE%quic_6.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube.txt" --dpi-desync=fake,split2 --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=3 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-ttl=2 --new ^

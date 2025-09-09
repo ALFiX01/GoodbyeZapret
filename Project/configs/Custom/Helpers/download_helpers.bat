@@ -1,4 +1,5 @@
 @ECHO OFF
+setlocal EnableDelayedExpansion
 set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
@@ -23,7 +24,12 @@ if exist "%currentDir%\zapret-blockcheck" (
     del /Q "%currentDir%\zapret-blockcheck"
 )
 
-curl -g -L -# -o "%currentDir%\Helpers.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Helpers/Helpers.zip" >nul 2>&1
+if exist "%parentDir%tools\curl\curl.exe" (
+     set CURL="%parentDir%tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -g -L -# -o "%currentDir%\Helpers.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Helpers/Helpers.zip" >nul 2>&1
 
 for %%I in ("%currentDir%\Helpers.zip") do set "FileSize=%%~zI"
 if %FileSize% LSS 100 (

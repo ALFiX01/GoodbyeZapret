@@ -1,4 +1,5 @@
 @ECHO OFF
+setlocal EnableDelayedExpansion
 set currentDir=%~dp0
 set currentDir=%currentDir:~0,-1%
 for %%i in ("%currentDir%") do set parentDir=%%~dpi
@@ -25,7 +26,12 @@ for %%f in (winws.exe WinDivert.dll WinDivert64.sys cygwin1.dll) do (
     del "%FAKE%%%f" >nul 2>&1
     echo.
     echo  Downloading %%f...
-    curl -g -L -# -o "%FAKE%%%f" "https://github.com/bol-van/zapret-win-bundle/raw/refs/heads/master/zapret-winws/%%f" >nul 2>&1
+    if exist "%parentDir%tools\curl\curl.exe" (
+        set CURL="%parentDir%tools\curl\curl.exe"
+    ) else (
+        set CURL=curl
+    )
+    !CURL! -g -L -# -o "%FAKE%%%f" "https://github.com/bol-van/zapret-win-bundle/raw/refs/heads/master/zapret-winws/%%f" >nul 2>&1
     if exist "%FAKE%\%%f" (
         echo  %%f downloaded successfully.
     ) else (

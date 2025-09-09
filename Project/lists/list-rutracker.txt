@@ -8,3 +8,6 @@ rutracker.cloud
 rutracker.in
 rutracker.me
 rutracker.is
+rutracker.wiki
+rutrk.org
+t-ru.org

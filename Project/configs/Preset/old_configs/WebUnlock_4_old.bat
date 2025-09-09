@@ -20,7 +20,7 @@ set "BIN=%ProjectDir%bin\"
 set "CONFIG_NAME=WebUnlock 4"
 set "LISTS=%ProjectDir%lists\"
 
-start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %YTDB_prog_log%^
+start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
 --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,split2 --dpi-desync-repeats=10 --dpi-desync-fake-quic="%FAKE%quic_5.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube_GoogleVideo.txt" --dpi-desync=fake,split2 --dpi-desync-repeats=10 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^

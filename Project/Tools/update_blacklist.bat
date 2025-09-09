@@ -22,7 +22,14 @@ REM )
 
 echo.
 echo  Updating russia-blacklist.txt...
-curl -g -L -# -o "%LISTS%\russia-blacklist.txt" "https://p.thenewone.lol/domains-export.txt" >nul 2>&1
+
+if exist "%parentDir%tools\curl\curl.exe" (
+    set CURL="%parentDir%tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+
+%CURL% -g -L -# -o "%LISTS%\russia-blacklist.txt" "https://p.thenewone.lol/domains-export.txt" >nul 2>&1
 if exist "%LISTS%\russia-blacklist.txt" (
     echo  russia-blacklist.txt Updated successfully.
 ) else (

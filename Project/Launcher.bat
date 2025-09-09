@@ -29,7 +29,7 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.4.0.02"
+set "Current_GoodbyeZapret_version=2.4.0.03"
 set "Current_GoodbyeZapret_version_code=26AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -43,6 +43,19 @@ set "L_EnableSecureUIAPaths=1"
 set "L_FilterAdministratorToken=0"
 set "L_PromptOnSecureDesktop=0"
 set "L_ValidateAdminCodeSignatures=0"
+
+chcp 65001 >nul 2>&1
+
+REM Читаем значение текущего конфига из реестра
+set "GoodbyeZapret_Config="
+for /f "tokens=3" %%i in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| findstr /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%i"
+if not defined GoodbyeZapret_Config (
+    REM Если ключ не найден, установите значение по умолчанию
+    set "GoodbyeZapret_Config=Не выбран"
+)
+
+
+call :ui_header
 
 REM UAC registry path
 set "UAC_HKLM=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
@@ -150,9 +163,11 @@ for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "Loca
 if /I "%WinLang%" NEQ "ru-RU" (
     cls
     echo.
-    echo   Error 01: Invalid interface language. Requires ru-RU. Current: %WinLang%
+    echo   Error 01: Invalid Windows interface language. GoodbyeZapret may encounter problems.
+    echo.
+    echo   Required: ru-RU
+    echo   Current:  %WinLang%
     timeout /t 4 >nul
-    exit /b
 )
 
 REM /// GoodbyeZapret Version ///
@@ -202,21 +217,10 @@ if %errorlevel%==0 (
     if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
 )
 
-chcp 65001 >nul 2>&1
-REM Попробуйте прочитать значение из реестра
-set "GoodbyeZapret_Config="
-for /f "tokens=3" %%i in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" ^| findstr /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%i"
-if not defined GoodbyeZapret_Config (
-    REM Если ключ не найден, установите значение по умолчанию
-    set "GoodbyeZapret_Config=Не выбран"
-)
-
 set "WiFi=Off"
 set "CheckURL=https://raw.githubusercontent.com"
 set "CheckURL_BACKUP=https://mail.ru"
 set "DNS_TEST=google.com"
-
-call :ui_header
 
 REM --- Primary check via nslookup ---
 call :ui_info "Проверка DNS через nslookup (%DNS_TEST%)..."
@@ -230,14 +234,21 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 REM --- If DNS works, check main server ---
+
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+    set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set "CURL=curl"
+)
+
 call :ui_info "DNS работает. Проверка сервера обновлений (%CheckURL%)..."
-curl -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL%"
+%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
-    call :ui_ok "Соединение установлено. Перехожу в меню"
+    call :ui_ok "Соединение установлено. Перехожу далее"
     set "WiFi=On"
 ) ELSE (
     call :ui_warn "Сервер обновлений недоступен. Проверка общего подключения (%CheckURL_BACKUP%)..."
-    curl -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL_BACKUP%"
+    %CURL% -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL_BACKUP%"
     IF %ERRORLEVEL% EQU 0 (
         call :ui_ok "Интернет доступен"
         call :ui_warn "Но сервер обновлений недоступен (%CheckURL%)"
@@ -250,6 +261,7 @@ IF %ERRORLEVEL% EQU 0 (
     )
 )
 
+call :ui_info "Выполняю необходимые проверки..."
 
 if not exist "%ParentDirPath%" (
     goto install_screen
@@ -303,28 +315,28 @@ goto :UI_HELPERS_END
     call :ui_init
     setlocal EnableDelayedExpansion
     set "msg=%~1"
-    echo  %C_INFO%[%S_INFO%]%C_RESET% !msg!
+    echo  %C_INFO%[ %S_INFO% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_ok
     call :ui_init
     setlocal EnableDelayedExpansion
     set "msg=%~1"
-    echo  %C_OK%[%S_OK% ]%C_RESET% !msg!
+    echo  %C_OK%[ %S_OK% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_warn
     call :ui_init
     setlocal EnableDelayedExpansion
     set "msg=%~1"
-    echo  %C_WARN%[%S_WARN%]%C_RESET% !msg!
+    echo  %C_WARN%[ %S_WARN% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_err
     call :ui_init
     setlocal EnableDelayedExpansion
     set "msg=%~1"
-    echo  %C_ERR%[%S_ERR% ]%C_RESET% !msg!
+    echo  %C_ERR%[ %S_ERR% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_hr
@@ -393,9 +405,15 @@ if /i "!WiFi!"=="On" (
             md "%ParentDirPath%\tools" >nul 2>&1
         )
 
+        if not exist "%ParentDirPath%\tools\curl\curl.exe" (
+            echo Error: сurl.exe not found
+            echo try downloading it from the project repository on github.
+            timeout /t 4 >nul
+        )
+
         REM Download Updater.exe if not present
         if not exist "%ParentDirPath%\tools\Updater.exe" (
-            curl -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+            %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
             if not exist "%ParentDirPath%\tools\Updater.exe" (
                 echo Error: Failed to download Updater.exe
                 echo Please check your internet connection and try again.
@@ -442,7 +460,11 @@ if exist "%TEMP%\GZ_Updater.bat" (
     )
 )
 
-curl -4 -s -I --fail --connect-timeout 2 --max-time 2 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+if not defined CURL (
+    set "CURL=curl"
+)
+
+%CURL% -4 -s -I --fail --connect-timeout 2 --max-time 2 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
     set "CheckStatus=FileCheckError"
@@ -450,7 +472,7 @@ IF !ERRORLEVEL! NEQ 0 (
 )
 
 REM Скачать файл обновления версии
-curl -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+%CURL% -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 if errorlevel 1 (
     echo Error 04: Server error. Failed to connect to GoodbyeZapret update check server
     set "CheckStatus=NoChecked"
@@ -471,7 +493,12 @@ if not exist "%ParentDirPath%\tools\Updater.exe" (
         md "%ParentDirPath%\tools" >nul 2>&1
     )
     
-    curl -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+    if exist "%ParentDirPath%\tools\curl\curl.exe" (
+        set CURL="%ParentDirPath%\tools\curl\curl.exe"
+    ) else (
+        set CURL=curl
+    )
+    %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
     if not exist "%ParentDirPath%\tools\Updater.exe" (
         echo Error: Failed to download Updater.exe
         set "CheckStatus=NoChecked"
@@ -585,7 +612,6 @@ if not "%CheckStatus%"=="FileCheckError" (
 )
 
 :skip_for_wifi
-cls
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
 if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
@@ -691,6 +717,7 @@ if "%UpdateNeedShowScreen%"=="1" (
 )
 
 :MainMenu
+call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
 set "SilentMode=1"
 call :CurrentStatus
@@ -1620,7 +1647,12 @@ if exist "%UpdaterPath%" (
 )
 
 echo [INFO ] %TIME% - Downloading Updater.exe...
-curl -g -L -s -o "%UpdaterPath%" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+    set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -g -L -s -o "%UpdaterPath%" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
 
 if exist "%UpdaterPath%" (
     echo [INFO ] %TIME% - Updater.exe downloaded successfully
@@ -1692,13 +1724,14 @@ if not exist "%ParentDirPath%" (
     md "%ParentDirPath%"
 )
 echo        ^[*^] Скачивание файлов GoodbyeZapret...
-curl -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
+
+%CURL% -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
 if errorlevel 1 (
     echo %COL%[91m ^[*^] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
 )
 
 echo        ^[*^] Скачивание Updater.exe...
-curl -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+%CURL% -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
  if errorlevel 1 (
     echo         %COL%[91m ^[*^] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
     echo         %COL%[93m ^[*^] Установка продолжится, но обновление может не работать.%COL%[90m
@@ -1736,7 +1769,12 @@ goto RR
 
 :Update_Need_screen
 set "PatchNoteLines=0"
-curl -g -L -o "%ParentDirPath%\bin\PatchNote.txt" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/Files/PatchNote.txt"
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+    set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -g -L -o "%ParentDirPath%\bin\PatchNote.txt" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/Files/PatchNote.txt"
 for /f %%A in ('type "%ParentDirPath%\bin\PatchNote.txt" ^| find /c /v ""') do set "PatchNoteLines=%%A"
 set /a PatchNoteLines=PatchNoteLines+21
 mode con: cols=80 lines=%PatchNoteLines% >nul 2>&1

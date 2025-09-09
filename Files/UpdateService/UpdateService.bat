@@ -112,7 +112,12 @@ rem ---------------------------
 rem Download and execute version descriptor (GZ_Updater.bat)
 rem ---------------------------
 if exist "%TEMP%\GZ_Updater.bat" del /q /f "%TEMP%\GZ_Updater.bat" >nul 2>&1
-curl -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+     set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 if errorlevel 1 (
     echo  %COL%[91mОшибка: не удалось скачать файл версии%COL%[37m
     call :log ERROR "Failed to download GoodbyeZapret_Version"
@@ -131,7 +136,11 @@ del /q "%TEMP%\GZ_Updater.bat" >nul 2>&1
 rem Ensure Updater.exe exists (used later by Launcher)
 if not exist "%ParentDirPath%\tools" md "%ParentDirPath%\tools" >nul 2>&1
 if not exist "%ParentDirPath%\tools\Updater.exe" (
-  curl -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+  if exist "%ParentDirPath%\tools\curl\curl.exe" (
+     "%ParentDirPath%\tools\curl\curl.exe" -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+  ) else (
+    curl -4 -sS -L --fail --retry 3 --retry-delay 1 -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+  )
 )
 
 rem ---------------------------
@@ -211,7 +220,12 @@ if exist "%ZipPath%" del /q "%ZipPath%" >nul 2>&1
 call :log INFO "Downloading archive from %DLURL% to %ZipPath%"
 
 REM Скачивание через curl (с последующим fallback на PowerShell)
-curl -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+     set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%ZipPath%") do set "FileSize=%%~zI"
 if not exist "%ZipPath%" set "FileSize=0"
@@ -365,13 +379,23 @@ set "attempt=0"
 echo   Checking connectivity to update server ^(%CheckURL%^)...
 :_try
 set /a attempt+=1
-curl -4 -sS -L -I --fail --connect-timeout 3 --max-time 4 -o nul "%CheckURL%"
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+     set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -4 -sS -L -I --fail --connect-timeout 3 --max-time 4 -o nul "%CheckURL%"
 if !errorlevel! equ 0 (
     echo   Connection successful.
     endlocal & exit /b 0
 )
 echo   Primary unreachable, trying backup ^(%CheckURL_BACKUP%^)...
-curl -4 -sS -L -I --fail --connect-timeout 3 --max-time 4 -o nul "%CheckURL_BACKUP%"
+if exist "%ParentDirPath%\tools\curl\curl.exe" (
+     set CURL="%ParentDirPath%\tools\curl\curl.exe"
+) else (
+    set CURL=curl
+)
+%CURL% -4 -sS -L -I --fail --connect-timeout 3 --max-time 4 -o nul "%CheckURL_BACKUP%"
 if !errorlevel! equ 0 (
     echo   Connection successful via backup URL.
     endlocal & exit /b 0
