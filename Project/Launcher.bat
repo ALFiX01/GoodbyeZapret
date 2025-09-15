@@ -29,7 +29,7 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.4.0.03"
+set "Current_GoodbyeZapret_version=2.4.0.04"
 set "Current_GoodbyeZapret_version_code=26AV01"
 set "branch=Stable"
 set "beta_code=0"
@@ -313,35 +313,31 @@ goto :UI_HELPERS_END
 
 :ui_info
     call :ui_init
-    setlocal EnableDelayedExpansion
     set "msg=%~1"
     echo  %C_INFO%[ %S_INFO% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_ok
     call :ui_init
-    setlocal EnableDelayedExpansion
     set "msg=%~1"
     echo  %C_OK%[ %S_OK% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_warn
     call :ui_init
-    setlocal EnableDelayedExpansion
     set "msg=%~1"
     echo  %C_WARN%[ %S_WARN% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_err
     call :ui_init
-    setlocal EnableDelayedExpansion
     set "msg=%~1"
     echo  %C_ERR%[ %S_ERR% ]%C_RESET% !msg!
     endlocal & exit /b
 
 :ui_hr
     call :ui_init
-    setlocal EnableDelayedExpansion
+
     chcp 850 >nul 2>&1
     for /f "usebackq tokens=*" %%L in (`powershell -NoProfile -Command "$Host.UI.RawUI.WindowSize.Width"`) do set "W=%%L"
     chcp 65001 >nul 2>&1
@@ -361,6 +357,21 @@ goto :UI_HELPERS_END
     echo                       / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
     echo                       \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
     echo                                                    /____/               /_/
+    echo.
+    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%   
+    call :ui_hr
+    endlocal & exit /b
+
+:ui_header_for_END
+    call :ui_init
+    cls
+    call :ui_hr
+    echo             %C_RESET%______                ____            _____                         __ 
+    echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+    echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+    echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_ 
+    echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
+    echo                                       /____/               /_/
     echo.
     echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%   
     call :ui_hr
@@ -621,6 +632,9 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
         REM GoodbyeZapretTray.exe не запущен, ничего делать не нужно
     ) else (
         taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+        if exist "%ParentDirPath%\tools\tray\goodbyezapret_tray.log" (
+            del /F /Q "%ParentDirPath%\tools\tray\goodbyezapret_tray.log"
+        )
         timeout /t 1 >nul
     )
     start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
@@ -860,13 +874,19 @@ REM ---------- Pagination indices ----------
 set /a StartIndex=(Page-1)*PageSize+1
 set /a EndIndex=StartIndex+PageSize-1
 
+set "hasActiveOrStarted=0"
+for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
+    set "ConfigName=%%~nF"
+    if /i "!ConfigName!"=="%GoodbyeZapret_Current%" set "hasActiveOrStarted=1"
+    if /i "!ConfigName!"=="%TrimmedLastStart%" set "hasActiveOrStarted=1"
+)
+
 REM Modernized config enumeration ----------------------------------------------------
 for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
     set /a "counter+=1"
     set "ConfigName=%%~nF"
     set "ConfigFull=%%~nxF"
 
-    REM Determine status tag and color once
     set "StatusText="
     set "StatusColor=%COL%[37m"
 
@@ -877,19 +897,17 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
         set "StatusText=[Запущен]"
         set "StatusColor=%COL%[96m"
     ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" (
-        set "StatusText=[Раньше работал]"
-        set "StatusColor=%COL%[93m"
+        if "!hasActiveOrStarted!"=="0" (
+            set "StatusText=[Раньше работал]"
+            set "StatusColor=%COL%[93m"
+        )
     ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
         set "StatusText=[Использовался]"
         set "StatusColor=%COL%[93m"
     )
 
     REM Simple alignment for single-digit numbers
-    if !counter! lss 10 (
-        set "Pad= "
-    ) else (
-        set "Pad="
-    )
+    if !counter! lss 10 (set "Pad= ") else (set "Pad=")
 
     if !counter! geq !StartIndex! if !counter! leq !EndIndex! (
         if defined StatusText (
@@ -1067,21 +1085,19 @@ call :ui_init
 call :ui_hr
 echo   %C_TITLE%Установка службы GoodbyeZapret !batRel! %C_RESET%
 call :ui_hr
-if "!batfile!"=="UltimateFix_ts-fooling.bat" (
+if "!batfile!"=="MultiFix_ts.bat" (
     REM Проверка, включались ли уже TCP timestamps
-    reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v TCP_Timestamps_Enabled >nul 2>&1
-    if errorlevel 1 (
-        echo.
-        echo   Для этого конфига необходимо включить TCP timestamps
-        netsh int tcp set global timestamps=enabled >nul 2>&1
-        REM Запоминаем, что включали
-        reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v TCP_Timestamps_Enabled /t REG_DWORD /d 1 /f >nul
-        timeout /t 1 >nul
-        echo.
-        echo   Выполнено автоматическое включение TCP timestamps
+    netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
+    if !errorlevel!==0 (
+        echo TCP timestamps уже были включены ранее, пропуск...
     ) else (
-        echo.
-        echo   TCP timestamps уже были включены ранее, пропуск...
+        echo   Выполняется автоматическое включение TCP timestamps...
+        netsh interface tcp set global timestamps=enabled > nul 2>&1
+        if !errorlevel!==0 (
+            echo TCP timestamps успешно включены
+        ) else (
+            echo Ошибка включения TCP timestamps
+        )
     )
     echo   Перехожу к установке конфига в службу
     timeout /t 2 >nul
@@ -1200,6 +1216,7 @@ goto :install_GZ_service
 
 :end
 if !ErrorCount! equ 0 (
+    call :ui_header_for_END
     goto GoodbyeZapret_Menu
 ) else (
     echo  Нажмите любую клавишу чтобы продолжить...

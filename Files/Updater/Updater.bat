@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.5"
+set "UpdaterVersion=2.6"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -210,7 +210,16 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         call :log INFO "Copied curl"
     )
 
-    echo         ^[*^] Копирование пресетов конфигурации
+    echo         ^[*^] Резервное копирование старых конфигов
+    if exist "%ParentDirPath%\configs\Preset" (
+        del /Q "%ParentDirPath%\configs\OLD_configs\*" >nul 2>&1
+        mkdir "%ParentDirPath%\configs\OLD_configs" >nul 2>&1
+        move /Y "%ParentDirPath%\configs\Preset\*" "%ParentDirPath%\configs\OLD_configs\" >nul 2>&1
+        del /Q "%ParentDirPath%\configs\Preset\*" >nul 2>&1
+        call :log INFO "Backup old configs"
+    )
+
+    echo         ^[*^] Копирование пресетов конфигов
     if exist "!ExtractRoot!\configs\Preset" (
         robocopy "!ExtractRoot!\configs\Preset" "%ParentDirPath%\configs\Preset" /E >nul
         call :log INFO "Copied preset configurations"
@@ -258,7 +267,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         exit
     ) else (
         call :log ERROR "Config file not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat"
-        echo  ^[*^] Файл конфигурации %GoodbyeZapret_Config%.bat не найден
+        echo  ^[*^] Файл конфига %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
         start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul

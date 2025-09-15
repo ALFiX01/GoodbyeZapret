@@ -60,3 +60,7 @@ tanksblitz.ru
 lencr.org
 tanki.su
 playbattlegrounds.com.cn
+# World of Tanks Voice Chat
+voice.worldoftanks.net
+vivox.com
+wgvivox.com

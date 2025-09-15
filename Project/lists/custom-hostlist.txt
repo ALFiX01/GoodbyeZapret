@@ -19,7 +19,6 @@ t-ru.org
 google.com
 googleapis.com
 gstatic.com
-hetzner.com
 #cdn.battleye.com
 codenames.game
 cdn77.com

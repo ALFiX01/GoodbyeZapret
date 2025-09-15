@@ -23,7 +23,6 @@ set "GoodbyeZapret_LastStartConfig=%~nx0"
 
 if not defined GoodbyeZapret_LastStartConfig (
   echo ERROR: GoodbyeZapret_LastStartConfig is not set
-  pause
 )
 
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
@@ -69,11 +68,11 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443-65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-tcp=443 --hostlist="%LISTS%youtube.txt" --dpi-desync-any-protocol --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld  --dpi-desync-cutoff=n4 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --hostlist-domains=updates.discord.com, stable.dl2.discordapp.net, cdn77.com --dpi-desync=fake,multisplit --dpi-desync-fooling=badsum --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld  --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --hostlist-domains=stable.dl2.discordapp.net,cdn77.com --dpi-desync=multisplit --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare4.txt" --ipset-exclude-ip=1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,104.18.42.105,104.18.43.105,18.244.96.0/19,18.244.128.0/19 --dpi-desync-any-protocol --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync-any-protocol --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5
 
