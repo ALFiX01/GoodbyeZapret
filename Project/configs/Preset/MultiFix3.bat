@@ -68,13 +68,13 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-ttl=1 --dpi-desync-autottl=-2 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --dpi-desync-cutoff=n2 --new ^
---filter-tcp=80 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --dpi-desync-cutoff=n2 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --hostlist-domains=cdn77.com --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync-any-protocol --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=80 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-ttl=8 --dpi-desync-split-pos=midsld --dpi-desync-fake-http=0x00000000 --dpi-desync-fake-tls=! --new ^
+--filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync-any-protocol --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --new ^
---filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync-any-protocol=1 --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --dpi-desync-cutoff=n4
+--filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync-any-protocol=1 --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --dpi-desync-cutoff=n3
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
 if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
