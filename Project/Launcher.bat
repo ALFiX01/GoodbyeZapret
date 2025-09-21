@@ -194,7 +194,8 @@ if %errorlevel% neq 0 (
     for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" 2^>nul ^| findstr /i "GoodbyeZapret_Version_code"') do set "Registry_Version_code=%%i"
     
     if not "!Registry_Version_code!"=="%Current_GoodbyeZapret_version_code%" (
-        echo [INFO ] %TIME% - Component service update in progress. Please wait...
+        call :ui_info "Выполняется обновление компонентов. Пожалуйста, подождите..."
+        REM echo [INFO ] %TIME% - Component service update in progress. Please wait...
         
         REM Update registry value
         reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
@@ -205,7 +206,8 @@ if %errorlevel% neq 0 (
         REM Create tools folder if it doesn't exist
         if not exist "%ParentDirPath%\tools" mkdir "%ParentDirPath%\tools" >nul 2>&1
 
-        echo [INFO ] %TIME% - Component update completed
+        REM echo [INFO ] %TIME% - Component update completed
+        call :ui_ok "Обновление компонента завершено."
     )
 )
 
