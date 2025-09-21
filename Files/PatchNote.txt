@@ -1,6 +1,6 @@
-  - GoodbyeZapretTray
-  - обновлен Updater и UpdaterService
-  - обновлен instructions.html
-  - обновлены некоторые конфиги
-  - исправлены баги, недочеты
-  - внесены прочие изменения
+  - Новый дизайн и улучшения в Launcher
+  - Оптимизация алгоритмов ResizeMenuWindow, TCP timestamps, проверка интернета
+  - Новые и обновлённые конфиги UltimateFix_Amaizing_7, MultiFix2, MultiFix3
+  - Обновлённые списки и скрипты, добавлен curl.exe
+  - Исправления проблем с Мир Танков, War Thunder и Zona
+  - Общие багфиксы и улучшения
