@@ -43,6 +43,9 @@ set YTDB_WARP_IP=104.28.198.245
 :: Здесь нужно указать порт вашей конечной точки [endpoint] WARP для маскировки трафика ::
 set YTDB_WARP_PORT=443
 
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
+REM set log=--debug=@"%~dp0log_debug.txt" 
+
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=%YTDB_WARP_PORT% ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^

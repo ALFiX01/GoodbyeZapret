@@ -51,12 +51,8 @@ title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
-
-:: Здесь можно включить дебаг-лог убрав rem и выключить, добавив rem ::
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
 REM set log=--debug=@"%~dp0log_debug.txt" 
-REM --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
-
-REM --filter-l3=ipv4 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,444-65535 --wf-udp=443,444-65535 ^

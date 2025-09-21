@@ -32,6 +32,8 @@ title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
+REM set log=--debug=@"%~dp0log_debug.txt" 
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^

@@ -27,19 +27,14 @@ set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
 cd /d "%BIN%"
-REM BEST
-REM preview      --dpi-desync=fake,fakedsplit --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-2 --dpi-desync-split-pos=method+2
-REM --dpi-desync=fake,fakedsplit --orig-autottl=+2 --dpi-desync-ttl=1 --dpi-desync-autottl=-2 --dpi-desync-split-pos=method+2
-
-REM --dpi-desync=fake --dpi-desync-fooling=datanoack --dpi-desync-fake-http=0x00000000 
-REM --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=3 --dpi-desync-split-pos=1
-REM powershell -Command "Start-Process 'cmd.exe' -ArgumentList '/c \"\"%parentDir%tools\before_launch_config.bat\" admin\"' -Verb RunAs"
 
 echo Config: %CONFIG_NAME%
 title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
+REM set log=--debug=@%~dp0log_debug.txt
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^

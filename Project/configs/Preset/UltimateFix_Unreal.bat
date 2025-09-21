@@ -34,7 +34,6 @@ title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
-
 set YTDB_Games_TCP=443,444-65535
 set YTDB_Games_UDP=443,444-65535
 set YTDB_UDP_Repeats=2
@@ -59,8 +58,7 @@ REM set "YTDB_QUIC_MAIN=--dpi-desync=ipfrag2 --dpi-desync-repeats=3 --dpi-desync
 set "YTDB_QUIC_MAIN=--dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2"
 
 
-:: Здесь можно включить дебаг-лог убрав rem и выключить, добавив rem ::
-:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! ::
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
 rem set log=--debug=@%~dp0log_debug.txt
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^

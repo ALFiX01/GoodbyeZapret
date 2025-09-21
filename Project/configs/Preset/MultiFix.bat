@@ -29,7 +29,7 @@ reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Las
 
 set "CONFIG_NAME=MultiFix"
 
-REM Основана на Bolvan
+
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
 set "LISTS=%ProjectDir%lists\"
@@ -41,29 +41,12 @@ title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws: %ESC%[90m
 
-REM --wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
-REM --filter-l3=ipv4 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fooling=ts --dup-cutoff=n3 --new ^
-
-REM --dpi-desync=fake --dpi-desync-fooling=ts \\\\ --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
-REM --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1
-
-REM --filter-tcp=443 --dpi-desync-any-protocol --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --dpi-desync-cutoff=n4 --dpi-desync-repeats=6 --new ^
-
-REM --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-fooling=badseq --dpi-desync-split-pos=1 --new ^
-
-:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! ::
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
 REM set log=--debug=@%~dp0log_debug.txt
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" ^
 --wf-raw=@"%BIN%windivert.filter\windivert.discord_media+stun.txt" --filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
 
-REM --filter-tcp=443 --ipset-exclude="%LISTS%russia-youtube.txt" --ipset-exclude="%LISTS%ipset-cloudflare4.txt" --hostlist-exclude="%LISTS%russia-blacklist.txt" --hostlist-exclude="%LISTS%custom-hostlist.txt" --hostlist-exclude="%LISTS%mycdnlist.txt" --dpi-desync=fakedsplit --dpi-desync-ttl=1 --dpi-desync-autottl=-1 --dpi-desync-split-pos=1  --dpi-desync-cutoff=n5 --dpi-desync-repeats=4 --new ^
-REM --filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n4 --new ^
-REM --filter-tcp=80 --hostlist-exclude="%LISTS%russia-discord.txt" --hostlist-exclude="%LISTS%russia-blacklist.txt" --hostlist-exclude="%LISTS%custom-hostlist.txt" --hostlist-exclude="%LISTS%mycdnlist.txt" --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --new ^
-REM --filter-tcp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --hostlist-exclude="%LISTS%russia-blacklist.txt" --hostlist-exclude="%LISTS%custom-hostlist.txt" --hostlist-exclude="%LISTS%mycdnlist.txt" --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --new ^
-
-REM 1.1.1.1,1.0.0.1,212.109.195.93,83.220.169.155,141.105.71.21,104.18.42.105,104.18.43.105
-REM --ipset-exclude="%LISTS%exclude-cloudflare_ip.txt"
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443-65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^

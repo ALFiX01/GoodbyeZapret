@@ -29,8 +29,8 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.4.0.04"
-set "Current_GoodbyeZapret_version_code=26AV01"
+set "Current_GoodbyeZapret_version=2.4.0"
+set "Current_GoodbyeZapret_version_code=21ST01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -363,6 +363,13 @@ goto :UI_HELPERS_END
     endlocal & exit /b
 
 :ui_header_for_END
+    REM Читаем значение текущего конфига из реестра
+    set "GoodbyeZapret_Config="
+    for /f "tokens=3" %%i in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| findstr /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%i"
+    if not defined GoodbyeZapret_Config (
+        REM Если ключ не найден, установите значение по умолчанию
+        set "GoodbyeZapret_Config=Не выбран"
+    )
     call :ui_init
     cls
     call :ui_hr

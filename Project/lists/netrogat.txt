@@ -64,3 +64,8 @@ playbattlegrounds.com.cn
 voice.worldoftanks.net
 vivox.com
 wgvivox.com
+voice.wargaming.net
+voip.worldoftanks.ru
+worldoftanks.net
+wargaming.net
+lesta.ru

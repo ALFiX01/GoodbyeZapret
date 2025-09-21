@@ -34,11 +34,9 @@ title GoodbyeZapret:  %CONFIG_NAME%
 echo.
 echo Winws:
 
-
-:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! ::
+:: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
 rem set log=--debug=@%~dp0log_debug.txt
-REM --dpi-desync=fake --dpi-desync-fooling=ts \\\\\\\\\\\ --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
-REM --dpi-desync=fakedsplit --dpi-desync-fooling=ts --dpi-desync-split-pos=1
+
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-l3=ipv4,ipv6 --wf-tcp=80,443,4950-4955,6695-6705,1024-65535 --wf-udp=443,50000-50099 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
