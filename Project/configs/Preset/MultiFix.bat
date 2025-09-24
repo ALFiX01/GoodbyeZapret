@@ -51,6 +51,8 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443-65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
+--filter-tcp=80,443 --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld  --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=multisplit --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^

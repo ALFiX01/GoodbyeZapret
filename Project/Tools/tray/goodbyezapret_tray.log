@@ -1,11 +1,2 @@
-2025-09-14 11:51:39,873 - INFO - Иконки успешно загружены
-2025-09-14 11:51:39,874 - INFO - Приложение запущено и свернуто в трей.
-2025-09-14 11:51:39,874 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
-2025-09-14 11:51:45,499 - INFO - Иконки успешно загружены
-2025-09-14 11:51:45,500 - INFO - Приложение запущено и свернуто в трей.
-2025-09-14 11:51:45,500 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
-2025-09-14 11:51:50,504 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
-2025-09-14 11:51:55,533 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
-2025-09-14 11:52:00,561 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
-2025-09-14 11:52:05,579 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
-2025-09-14 11:52:10,606 - ERROR - Неожиданная ошибка при проверке сервиса GoodbyeZapret: module 'win32service' has no attribute 'ERROR_SERVICE_DOES_NOT_EXIST'
+2025-09-22 23:21:00,805 - INFO - Иконки успешно загружены
+2025-09-22 23:21:00,806 - INFO - Приложение запущено и свернуто в трей.

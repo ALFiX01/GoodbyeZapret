@@ -29,20 +29,10 @@ exit /b
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.4.0"
-set "Current_GoodbyeZapret_version_code=21ST01"
+set "Current_GoodbyeZapret_version=2.5.0"
+set "Current_GoodbyeZapret_version_code=24ST01"
 set "branch=Stable"
 set "beta_code=0"
-
-REM /// UAC Settings ///
-set "L_ConsentPromptBehaviorAdmin=0"
-set "L_ConsentPromptBehaviorUser=3"
-set "L_EnableInstallerDetection=1"
-set "L_EnableLUA=1"
-set "L_EnableSecureUIAPaths=1"
-set "L_FilterAdministratorToken=0"
-set "L_PromptOnSecureDesktop=0"
-set "L_ValidateAdminCodeSignatures=0"
 
 chcp 65001 >nul 2>&1
 
@@ -57,6 +47,42 @@ if not defined GoodbyeZapret_Config (
 
 call :ui_header
 
+REM Проверка и изменение шрифта консоли
+for /f "tokens=2*" %%A in ('reg query "HKEY_CURRENT_USER\Console" /v "FaceName" 2^>nul ^| findstr /i "FaceName"') do (
+    set "CurrentFont=%%B"
+)
+
+if /i not "%CurrentFont%"=="__DefaultTTFont__" (
+    reg add "HKEY_CURRENT_USER\Console" /v "FaceName" /t REG_SZ /d "__DefaultTTFont__" /f >nul 2>&1
+    if errorlevel 1 (
+        call :ui_err "Ошибка при изменении шрифта консоли"
+    ) else (
+        call :ui_info "Шрифт консоли изменен с %CurrentFont% на __DefaultTTFont__"
+        timeout /t 2 /nobreak >nul
+        start "" "%ParentDirPath%\launcher.bat"
+        exit /b
+    )
+)
+
+REM Проверка, выполнялась ли настройка ранее
+reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" >nul 2>&1
+if %errorlevel%==0 (
+    goto :skip_checks
+)
+
+call :ui_info "Первый запуск, выполняю проверку и настройку..."
+
+REM /// UAC Settings ///
+set "L_ConsentPromptBehaviorAdmin=0"
+set "L_ConsentPromptBehaviorUser=3"
+set "L_EnableInstallerDetection=1"
+set "L_EnableLUA=1"
+set "L_EnableSecureUIAPaths=1"
+set "L_FilterAdministratorToken=0"
+set "L_PromptOnSecureDesktop=0"
+set "L_ValidateAdminCodeSignatures=0"
+
+REM === Код проверки и исправления UAC параметров ===
 REM UAC registry path
 set "UAC_HKLM=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
 
@@ -85,13 +111,13 @@ for %%i in (
 
             REM Compare values
             if not "!current_value!" == "!expected_value!" (
-                echo [WARN ] %TIME% - UAC parameter '%%i' has unexpected value. Current: 0x!current_value!, Expected: 0x!expected_value!.
+                call :ui_warn "UAC parameter '%%i' has unexpected value. Current: 0x!current_value!, Expected: 0x!expected_value!."
                 reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
                 if !errorlevel! equ 1 (
-                    echo [ERROR] %TIME% - Failed to change UAC parameter '%%i'. Possibly insufficient privileges.
+                    call :ui_err "Failed to change UAC parameter '%%i'. Possibly insufficient privileges."
                     set "UAC_check=Error"
                 ) else (
-                    echo [INFO ] %TIME% - UAC parameter '%%i' successfully changed to 0x!expected_value!.
+                    call :ui_info "UAC parameter '%%i' successfully changed to 0x!expected_value!."
                 )
             )
         )
@@ -100,10 +126,10 @@ for %%i in (
         call set "expected_value=%%L_%%i%%"
         reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
         if !errorlevel! equ 1 (
-            echo [ERROR] %TIME% - Failed to create UAC parameter '%%i'. Possibly insufficient privileges.
+            call :ui_err "Failed to create UAC parameter '%%i'. Possibly insufficient privileges."
             set "UAC_check=Error"
         ) else (
-            echo [INFO ] %TIME% - UAC parameter '%%i' successfully created with value 0x!expected_value!.
+            call :ui_info "UAC parameter '%%i' successfully created with value 0x!expected_value!."
         )
     )
 )
@@ -112,7 +138,7 @@ rem Отключение "Предупреждение системы безоп
 reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation 2>nul | find "0x1" >nul || (
     reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d 1 /f >nul 2>&1
     if not %ERRORLEVEL% equ 0 (
-        echo Error installing SaveZoneInformation
+        call :ui_err "Error installing SaveZoneInformation"
         timeout /t 2 >nul
     )
 )
@@ -122,7 +148,6 @@ REM /// Предупреждения при запуске любых exe ///
 REM === Проверка и установка DisableSecuritySettingsCheck ===
 reg query "HKLM\SOFTWARE\Microsoft\Internet Explorer\Security" /v "DisableSecuritySettingsCheck" 2>nul | find "0x1" >nul
 if errorlevel 1 (
-    echo [INFO ] %TIME% - Setting DisableSecuritySettingsCheck=1
     reg add "HKLM\SOFTWARE\Microsoft\Internet Explorer\Security" /f /v "DisableSecuritySettingsCheck" /t REG_DWORD /d 1 >nul 2>&1
 )
 
@@ -151,16 +176,51 @@ if errorlevel 1 (
 )
 REM ///
 
-
 REM Check execution result
 if "!UAC_check!" == "Error" (
-    echo [WARN ] %TIME% - Some UAC parameters could not be configured correctly.
+    call :ui_warn "Некоторые параметры UAC не удалось настроить правильно."
 )
+
+REM TESTING
+reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "WinVer" >nul 2>&1
+if errorlevel 1 (
+    REM Переключаемся на кодовую страницу, поддерживающую символы Unicode
+    chcp 850 >nul 2>&1
+    for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"`) do (
+        chcp 65001 >nul 2>&1    
+        set "WinVersion=%%a"
+
+        REM Проверяем, является ли система Windows 11
+        echo !WinVersion! | find /i "Windows 11" >nul
+        if not errorlevel 1 (
+            set "WinVer=Windows 11"
+            reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "Windows 11" /f >nul 2>&1
+        ) else (
+            REM Проверяем, является ли система Windows 10
+            echo !WinVersion! | find /i "Windows 10" >nul
+            if not errorlevel 1 (
+                set "WinVer=Windows 10"
+                reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "Windows 10" /f >nul 2>&1
+            )
+        )
+    )
+) else (
+    REM Получаем сохраненную версию Windows из реестра
+    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "WinVer" 2^>nul ^| find /i "WinVer"') do (
+        set "WinVer=%%b"
+    )
+)
+
+REM По завершению создаём метку в реестре
+reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" /t REG_SZ /d "0" /f >nul 2>&1
+
+:skip_checks
+
 
 REM /// Language ///
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
 for /f "tokens=3" %%i in ('reg query "HKCU\Control Panel\International" /v "LocaleName" ^| findstr /i "LocaleName"') do set "WinLang=%%i"
-if /I "%WinLang%" NEQ "ru-RU" (
+if /I "%WinLang%" NEQ "ru-Ru" (
     cls
     echo.
     echo   Error 01: Invalid Windows interface language. GoodbyeZapret may encounter problems.
@@ -168,6 +228,7 @@ if /I "%WinLang%" NEQ "ru-RU" (
     echo   Required: ru-RU
     echo   Current:  %WinLang%
     timeout /t 4 >nul
+    call :ui_header
 )
 
 REM /// GoodbyeZapret Version ///
@@ -187,7 +248,7 @@ if %errorlevel% neq 0 (
     REM Key doesn't exist, create with current version value
     reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
     if errorlevel 1 (
-        echo [ERROR] %TIME% - Failed to create GoodbyeZapret_Version_code key in registry
+        call :ui_err "Failed to create GoodbyeZapret_Version_code key in registry"
     )
 ) else (
     REM Key exists, check value
@@ -200,7 +261,7 @@ if %errorlevel% neq 0 (
         REM Update registry value
         reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
         if errorlevel 1 (
-            echo [ERROR] %TIME% - Failed to update GoodbyeZapret_Version_code in registry
+            call :ui_err "Failed to update GoodbyeZapret_Version_code in registry"
         )
 
         REM Create tools folder if it doesn't exist
@@ -211,13 +272,14 @@ if %errorlevel% neq 0 (
     )
 )
 
+
 REM Проверяем, есть ли ключ Auto-update и равен ли он 1
-reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2>nul | find "1" >nul
-if %errorlevel%==0 (
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
-    if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-    if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
-)
+REM reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2>nul | find "1" >nul
+REM if %errorlevel%==0 (
+REM     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
+REM     if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
+REM     if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
+REM )
 
 set "WiFi=Off"
 set "CheckURL=https://raw.githubusercontent.com"
@@ -247,6 +309,7 @@ call :ui_info "DNS работает. Проверка сервера обнов�
 %CURL% -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
     call :ui_ok "Соединение установлено. Перехожу далее"
+    set "UpdaterServerConnect=Yes"
     set "WiFi=On"
 ) ELSE (
     call :ui_warn "Сервер обновлений недоступен. Проверка общего подключения (%CheckURL_BACKUP%)..."
@@ -299,6 +362,10 @@ goto :UI_HELPERS_END
     if defined COL (set "ESC=%COL%") else (
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "ESC=%%b")
     )
+    REM Получаем сохраненную версию Windows из реестра
+    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "WinVer" 2^>nul ^| find /i "WinVer"') do (
+        set "WinVer=%%b"
+    )
     set "C_RESET=%ESC%[0m"
     set "C_DIM=%ESC%[90m"
     set "C_INFO=%ESC%[36m"
@@ -307,7 +374,11 @@ goto :UI_HELPERS_END
     set "C_ERR=%ESC%[31m"
     set "C_TITLE=%ESC%[96m"
     set "C_PRIMARY=%ESC%[94m"
-    set "S_OK=✔"
+    if "!WinVer!"=="Windows 11" (
+        set "S_OK=✔"
+    ) else (
+        set "S_OK=√"  
+    )
     set "S_WARN=▲"
     set "S_ERR=✖"
     set "S_INFO=●"
@@ -416,8 +487,10 @@ set "RepairNeed=No"
 REM Handle repair process if needed and WiFi is available
 if /i "!WiFi!"=="On" (
     if /i "!RepairNeed!"=="Yes" (
-        echo Error 03: Critical error. GoodbyeZapret needs to be reinstalled.
-        echo Starting the reinstallation...
+        cls
+        echo.
+        echo  Error 03: Critical error. GoodbyeZapret needs to be reinstalled.
+        echo  Starting the reinstallation...
         timeout /t 2 >nul
 
         REM Create tools directory if it doesn't exist
@@ -426,8 +499,8 @@ if /i "!WiFi!"=="On" (
         )
 
         if not exist "%ParentDirPath%\tools\curl\curl.exe" (
-            echo Error: сurl.exe not found
-            echo try downloading it from the project repository on github.
+            echo  Error: сurl.exe not found
+            echo  try downloading it from the project repository on github.
             timeout /t 4 >nul
         )
 
@@ -435,8 +508,8 @@ if /i "!WiFi!"=="On" (
         if not exist "%ParentDirPath%\tools\Updater.exe" (
             %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
             if not exist "%ParentDirPath%\tools\Updater.exe" (
-                echo Error: Failed to download Updater.exe
-                echo Please check your internet connection and try again.
+                echo  Error: Failed to download Updater.exe
+                echo  Please check your internet connection and try again.
                 timeout /t 3 >nul
                 goto GoodbyeZapret_Menu
             )
@@ -447,8 +520,9 @@ if /i "!WiFi!"=="On" (
         exit /b 0
     )
 ) else if /i "!RepairNeed!"=="Yes" (
-    echo Error 04: Critical error. GoodbyeZapret needs to be reinstalled.
-    echo Internet connection required for repair. Please check your connection.
+    echo.
+    echo  Error 04: Critical error. GoodbyeZapret needs to be reinstalled.
+    echo  Internet connection required for repair. Please check your connection.
     timeout /t 3 >nul
 )
 
@@ -465,7 +539,6 @@ if !errorlevel! equ 0 (
     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul 2>&1
     set "GoodbyeZapret_LastStartConfig=None"
 )
-
 
 :: Загрузка нового файла GZ_Updater.bat
 REM Проверить состояние WiFi перед тем, как продолжить операции обновления
@@ -1235,13 +1308,13 @@ if !ErrorCount! equ 0 (
 )
 
 :CurrentStatus
-REM Check Auto-update setting from registry
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" >nul 2>&1
-if %errorlevel% equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2^>nul ^| find /i "Auto-update"') do set "Auto-update=%%b"
-) else (
-    set "Auto-update=1"
-)
+REM REM Check Auto-update setting from registry
+REM reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" >nul 2>&1
+REM if %errorlevel% equ 0 (
+REM     for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2^>nul ^| find /i "Auto-update"') do set "Auto-update=%%b"
+REM ) else (
+REM     set "Auto-update=1"
+REM ) 
 
 REM Check BFE service state
 sc query BFE | findstr "STATE" >nul 2>&1
@@ -1510,15 +1583,15 @@ if %errorlevel% equ 0 (
     )
 )
 
-if "%Auto-update%"=="1" (
-    echo    ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                                        %COL%[36m^│
-    set "AutoUpdateTextParam=Выключить"
-    set "AutoUpdateStatus=On"
-) else (
-    echo    ^│ %COL%[91mX %COL%[37mАвтообновление: Выключено                                                       %COL%[36m^│
-    set "AutoUpdateTextParam=Включить"
-    set "AutoUpdateStatus=Off"
-)
+REM if "%Auto-update%"=="1" (
+REM     echo    ^│ %COL%[92m√ %COL%[37mАвтообновление: %COL%[92mВключено                                                        %COL%[36m^│
+REM     set "AutoUpdateTextParam=Выключить"
+REM     set "AutoUpdateStatus=On"
+REM ) else (
+REM     echo    ^│ %COL%[91mX %COL%[37mАвтообновление: Выключено                                                       %COL%[36m^│
+REM     set "AutoUpdateTextParam=Включить"
+REM     set "AutoUpdateStatus=Off"
+REM )
 echo    ^│                                                                                   ^│
 echo    ^│ %COL%[37mВерсии:                                                                           %COL%[36m^│
 echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
@@ -1910,8 +1983,8 @@ if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" set /
 REM === Корректировка по YesCount ===
 if /I "%TotalCheck%"=="Problem" (
     REM Ветка для Problem (оставляю как у тебя)
-    if %YesCount% equ 1 (set /a ListBatCount+=1)
-    if %YesCount% equ 0 (set /a ListBatCount+=2)
+    if %YesCount% equ 1 ( set /a ListBatCount+=1 )
+    if %YesCount% equ 0 ( set /a ListBatCount+=2 )
 ) else (
     if %YesCount% equ 0 (
         set /a ListBatCount+=2
@@ -1935,6 +2008,7 @@ REM echo WiFi - %WiFi%
 REM echo CheckStatus - %CheckStatus%
 REM echo YesCount - %YesCount%
 REM echo TotalCheck - %TotalCheck%
+REM echo BatCount - %BatCount%
 REM echo ListBatCount - %ListBatCount%
 REM pause
 

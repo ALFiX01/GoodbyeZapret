@@ -69,3 +69,5 @@ voip.worldoftanks.ru
 worldoftanks.net
 wargaming.net
 lesta.ru
+# The Finals
+thefinals.com
