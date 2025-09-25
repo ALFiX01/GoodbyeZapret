@@ -55,7 +55,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat_custom.txt" --new ^
---filter-tcp=443 --hostlist-domains=googlevideo.com --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --dpi-desync-cutoff=n2 --new ^
+--filter-tcp=80,443 --hostlist-domains=googlevideo.com --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --new ^
 --filter-tcp=80 --hostlist="%LISTS%list-youtubeWithoutGV.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake,fakedsplit --dpi-desync-ttl=1 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-repeats=3 --dpi-desync-ttl=1 --dpi-desync-autottl=-1 --dpi-desync-split-pos=1 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
