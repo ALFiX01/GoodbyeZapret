@@ -10,7 +10,4 @@ okcdn.ru
 api.mycdn.me
 rutube.ru
 datadoghq.com
-googleads.g.doubleclick.net
-ad.doubleclick.net
 adservice.google.com
-www.googleadservices.com

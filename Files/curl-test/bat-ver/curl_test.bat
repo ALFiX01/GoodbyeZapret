@@ -11,7 +11,7 @@ for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 
 
 REM --- Список доменов---
-set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com i.ytimg.com discord.com cloudflare.com raw.githubusercontent.com"
+set "domains=rr4---sn-jvhnu5g-n8ve7.googlevideo.com i.ytimg.com discord.com cloudflare.com raw.githubusercontent.com"
 
 REM --- Расширенный Список доменов---
 REM set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com rr7---sn-jvhnu5g-n8vy.googlevideo.com rr16---sn-n8v7znlk.googlevideo.com i.ytimg.com discord.com cloudflare.com raw.githubusercontent.com"
@@ -24,6 +24,12 @@ set "CountOK=0"
 set "total=0"
 echo.
 
+if exist "%ParentDir%curl\curl.exe" (
+    set CURL="%ParentDir%curl\curl.exe"
+) else (
+    set "CURL=curl"
+)
+
 REM Проверка доменов
 for %%u in (%domains%) do (
     set "url=%%u"
@@ -32,13 +38,12 @@ for %%u in (%domains%) do (
         set "url=%%u!github_path!"
     )
     set /a total+=1
-    echo   Проверка %%u ...
-    curl -4 -s -L -I --connect-timeout 1 --max-time 2 --max-redirs 1 -o nul "!url!"
+    %CURL% -4 -s -I --fail --connect-timeout 1 --max-time 2 --max-redirs 1 -o nul "!url!"
     if !ERRORLEVEL! EQU 0 (
-        echo     Доступен.
+        echo     %%u Доступен.
         set /a CountOK+=1
     ) else (
-        echo     /// НЕДОСТУПЕН ^(код curl: !ERRORLEVEL!^).
+        echo     %%u /// НЕДОСТУПЕН ^(код curl: !ERRORLEVEL!^).
     )
     echo.
 )

@@ -37,10 +37,8 @@ REM set log=--debug=@"%~dp0log_debug.txt"
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
---filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
---filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-tcp=80,443 --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
---filter-tcp=80,443 --hostlist="%LISTS%netrogat_custom.txt" --new ^
+--filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_4.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube_GoogleVideo.txt" --dpi-desync=fake,split2 --dpi-desync-repeats=6 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%youtube.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=3 --dpi-desync-fake-tls="%FAKE%tls_clienthello_2.bin" --dpi-desync-ttl=3 --new ^

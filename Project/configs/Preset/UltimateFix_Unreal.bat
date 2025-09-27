@@ -63,10 +63,8 @@ rem set log=--debug=@%~dp0log_debug.txt
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
---filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --new ^
---filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --new ^
---filter-tcp=80,443 --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
---filter-tcp=80,443 --hostlist="%LISTS%netrogat_custom.txt" --new ^
+--filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-udp=443 --ipset-ip=162.159.198.1,162.159.198.2,162.159.36.1,162.159.46.1,2606:4700:103::1,2606:4700:103::2 %YTDB_QUIC_MAIN% --dpi-desync-cutoff=n3 --new ^
 --filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" %YTDB_QUIC_MAIN% --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --dpi-desync-any-protocol --hostlist="%LISTS%russia-discord.txt" %YTDB_TLS_MAIN2% --dpi-desync-cutoff=n5 --new ^

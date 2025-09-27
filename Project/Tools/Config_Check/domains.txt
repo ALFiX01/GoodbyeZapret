@@ -1,5 +1,6 @@
 # List of domains to test (one per line). Lines starting with
 rr4---sn-jvhnu5g-n8vr.googlevideo.com
+rr1---sn-jvhnu5g-n8vk.googlevideo.com
 i.ytimg.com
 discord.com
 cloudflare.com

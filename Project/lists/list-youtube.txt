@@ -78,3 +78,5 @@ youtubego.id
 youtubego.in
 ggpht.cn
 returnyoutubedislikeapi.com
+googleadservices.com
+doubleclick.net

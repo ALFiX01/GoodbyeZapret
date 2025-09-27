@@ -72,12 +72,12 @@ func NewFinder() (*Finder, error) {
 	}
 
 	return &Finder{
-		toolsDir:   toolsDir,
-		projectDir: projectDir,
-		configsDir: configsDir,
-		domains:    domains,
-		fastClient: buildHTTPClient(fastDialTimeout, fastTLSHandshake, fastResponseHeader, fastClientTimeout),
-		retryClient:buildHTTPClient(slowDialTimeout, slowTLSHandshake, slowResponseHeader, slowClientTimeout),
+		toolsDir:    toolsDir,
+		projectDir:  projectDir,
+		configsDir:  configsDir,
+		domains:     domains,
+		fastClient:  buildHTTPClient(fastDialTimeout, fastTLSHandshake, fastResponseHeader, fastClientTimeout),
+		retryClient: buildHTTPClient(slowDialTimeout, slowTLSHandshake, slowResponseHeader, slowClientTimeout),
 	}, nil
 }
 
@@ -267,20 +267,30 @@ func setRegistry(cfgName string) {
 // Они в основном остаются без изменений, кроме classifyError и shouldRetry.
 
 func classifyError(err error) string {
-	if err == nil { return "" }
+	if err == nil {
+		return ""
+	}
 	var netErr net.Error
 	if errors.As(err, &netErr) {
-		if netErr.Timeout() { return "TIMEOUT" }
+		if netErr.Timeout() {
+			return "TIMEOUT"
+		}
 	}
 	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) { return "DNS" }
+	if errors.As(err, &dnsErr) {
+		return "DNS"
+	}
 	var opErr *net.OpError
-	if errors.As(err, &opErr) { return strings.ToUpper(opErr.Op) }
+	if errors.As(err, &opErr) {
+		return strings.ToUpper(opErr.Op)
+	}
 	return "HTTP"
 }
 
 func shouldRetry(err error) bool {
-	if err == nil { return false }
+	if err == nil {
+		return false
+	}
 	var netErr net.Error
 	return errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary())
 }
@@ -309,9 +319,13 @@ func resolveDirs() (toolsDir, projectDir string) {
 		}
 		return "", "", false
 	}
-	if t, p, ok := try(exeDir); ok { return t, p }
+	if t, p, ok := try(exeDir); ok {
+		return t, p
+	}
 	if wd, err := os.Getwd(); err == nil {
-		if t, p, ok := try(wd); ok { return t, p }
+		if t, p, ok := try(wd); ok {
+			return t, p
+		}
 	}
 	return exeDir, exeDir
 }
@@ -332,7 +346,9 @@ func findConfigsDir(startDir string) (string, error) {
 			}
 		}
 		parent := filepath.Dir(dir)
-		if parent == dir { break }
+		if parent == dir {
+			break
+		}
 		dir = parent
 	}
 	return "", fmt.Errorf("папка configs не найдена при поиске от %s", startDir)
@@ -364,7 +380,9 @@ func serviceExists(name string) bool {
 func processExists(proc string) bool {
 	cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("IMAGENAME eq %s", proc))
 	out, err := cmd.Output()
-	if err != nil { return false }
+	if err != nil {
+		return false
+	}
 	return strings.Contains(strings.ToLower(string(out)), strings.ToLower(proc))
 }
 
@@ -393,13 +411,17 @@ func loadDomains() ([]string, error) {
 			break
 		}
 	}
-	if f == nil { return nil, fmt.Errorf("domains.txt не найден") }
+	if f == nil {
+		return nil, fmt.Errorf("domains.txt не найден")
+	}
 	defer f.Close()
 	var list []string
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		line := strings.TrimSpace(s.Text())
-		if line != "" && !strings.HasPrefix(line, "#") { list = append(list, line) }
+		if line != "" && !strings.HasPrefix(line, "#") {
+			list = append(list, line)
+		}
 	}
 	return list, s.Err()
 }

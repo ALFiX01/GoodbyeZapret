@@ -2,6 +2,19 @@
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
+:: Получаем путь к родительской папке
+for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent \"%~f0\""') do set "ParentDirPathForCheck=%%A"
+
+:: Извлекаем имя папки
+for %%A in ("%ParentDirPathForCheck%") do set "FolderName=%%~nxA"
+
+:: Проверка на пробелы
+set "tempvar=%FolderName%"
+echo."%tempvar%"| findstr /c:" " >nul && (
+    echo WARN: The folder name contains spaces.
+    pause
+)
+
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  Requesting administrator privileges...
@@ -28,9 +41,10 @@ exit /b
 :: Get the parent directory path more reliably
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
+
 :: Version information
 set "Current_GoodbyeZapret_version=2.5.0"
-set "Current_GoodbyeZapret_version_code=24ST01"
+set "Current_GoodbyeZapret_version_code=27ST01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -255,7 +269,7 @@ if %errorlevel% neq 0 (
     for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" 2^>nul ^| findstr /i "GoodbyeZapret_Version_code"') do set "Registry_Version_code=%%i"
     
     if not "!Registry_Version_code!"=="%Current_GoodbyeZapret_version_code%" (
-        call :ui_info "Выполняется обновление компонентов. Пожалуйста, подождите..."
+        REM call :ui_info "Выполняется обновление компонентов. Пожалуйста, подождите..."
         REM echo [INFO ] %TIME% - Component service update in progress. Please wait...
         
         REM Update registry value
@@ -268,7 +282,7 @@ if %errorlevel% neq 0 (
         if not exist "%ParentDirPath%\tools" mkdir "%ParentDirPath%\tools" >nul 2>&1
 
         REM echo [INFO ] %TIME% - Component update completed
-        call :ui_ok "Обновление компонента завершено."
+        REM call :ui_ok "Обновление компонентов завершено."
     )
 )
 
@@ -956,6 +970,24 @@ REM ---------- Pagination indices ----------
 set /a StartIndex=(Page-1)*PageSize+1
 set /a EndIndex=StartIndex+PageSize-1
 
+if not defined ParentDirPath (
+:: Get the parent directory path more reliably
+for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"  
+)
+
+if not exist "%ParentDirPath%\configs\Preset" (
+    Echo  ОШИБКА - "%ParentDirPath%\configs\Preset"
+    pause >nul
+)
+
+dir /b "%ParentDirPath%\configs\Preset" | findstr . >nul
+if errorlevel 1 (
+    echo.
+    echo  ОШИБКА - конфиги не найдены.
+    echo  Папка конфигов = %ParentDirPath%\configs\Preset
+    pause >nul
+)
+
 set "hasActiveOrStarted=0"
 for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
     set "ConfigName=%%~nF"
@@ -1027,12 +1059,10 @@ if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
     echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
-    echo.
     ) else (
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    echo.
     )
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
