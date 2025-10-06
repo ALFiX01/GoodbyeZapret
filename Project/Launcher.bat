@@ -44,7 +44,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 :: Version information
 set "Current_GoodbyeZapret_version=2.5.0"
-set "Current_GoodbyeZapret_version_code=06ST01"
+set "Current_GoodbyeZapret_version_code=06OK01"
 set "branch=Stable"
 set "beta_code=0"
 
