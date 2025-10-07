@@ -71,3 +71,5 @@ wargaming.net
 lesta.ru
 # The Finals
 thefinals.com
+# MSI afterburner и rivatuner
+msi.com
