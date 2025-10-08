@@ -72,7 +72,7 @@ if /i not "%CurrentFont%"=="__DefaultTTFont__" (
         call :ui_err "Ошибка при изменении шрифта консоли"
     ) else (
         call :ui_info "Шрифт консоли изменен с %CurrentFont% на __DefaultTTFont__"
-        timeout /t 2 /nobreak >nul
+        timeout /t 2 >nul
         start "" "%ParentDirPath%\launcher.bat"
         exit /b
     )
@@ -1627,7 +1627,7 @@ echo    ^│ %COL%[37mВерсии:                                             
 echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
 
 if "%UpdateNeed%"=="Yes" (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                     %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                                    %COL%[36m^│
 ) else (
     echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                              %COL%[36m^│
 )
