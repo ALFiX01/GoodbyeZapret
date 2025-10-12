@@ -99,7 +99,7 @@
 
 ---
 
-### Метод 2. installer.bat (автоматическая установка)
+### Метод 2. installer (автоматическая установка)
 
 1. Скачайте файл [`installer.bat`](https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/installer.bat) и переместите его в любую удобную папку (например, `C:\Users\PC\Desktop`).
 2. Запустите `installer.bat` **от имени администратора** и следуйте подсказкам в открывшемся окне.
