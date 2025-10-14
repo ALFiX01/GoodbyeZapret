@@ -73,3 +73,5 @@ lesta.ru
 thefinals.com
 # MSI afterburner и rivatuner
 msi.com
+# rockstar
+rockstargames.com
