@@ -20,7 +20,6 @@ if not defined GoodbyeZapret_LastStartConfig (
   echo ERROR: GoodbyeZapret_LastStartConfig is not set
   pause
 )
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
 
 set "CONFIG_NAME=UltimateFix Amaizing 7 ip-v6"
 set "FAKE=%ProjectDir%bin\fake\"

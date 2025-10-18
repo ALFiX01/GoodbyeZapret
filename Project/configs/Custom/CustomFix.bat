@@ -19,7 +19,6 @@ if not defined GoodbyeZapret_LastStartConfig (
   echo ERROR: GoodbyeZapret_LastStartConfig is not set
   pause
 )
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
 
 set "CONFIG_NAME=UltimateFix 2"
 set "FAKE=%ProjectDir%bin\fake\"
@@ -35,7 +34,7 @@ echo Winws:
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,1024-65535 --wf-udp=443,50000-50099,1024-65535 ^
---filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-106_google.com.bin" --dpi-desync-fake-tls-mod=rnd
+--filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%tls_ClientHello_Edge-106_google.com.bin" --dpi-desync-fake-tls-mod=rnd
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
 if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
     tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL

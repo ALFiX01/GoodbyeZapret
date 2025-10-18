@@ -43,9 +43,9 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.5.0"
+set "Current_GoodbyeZapret_version=2.6.0"
 set "Current_GoodbyeZapret_version_code=06OK01"
-set "branch=Stable"
+set "branch=Beta"
 set "beta_code=0"
 
 chcp 65001 >nul 2>&1
@@ -540,20 +540,6 @@ if /i "!WiFi!"=="On" (
     timeout /t 3 >nul
 )
 
-REM Check if Winws process is running and handle last start configuration
-tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
-if !errorlevel! equ 0 (
-    REM Winws is running, get last start config
-    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
-    if not defined GoodbyeZapret_LastStartConfig (
-        set "GoodbyeZapret_LastStartConfig=None"
-    )
-) else (
-    REM Winws is not running, set default value
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul 2>&1
-    set "GoodbyeZapret_LastStartConfig=None"
-)
-
 :: Загрузка нового файла GZ_Updater.bat
 REM Проверить состояние WiFi перед тем, как продолжить операции обновления
 if /i "!WiFi!"=="Off" goto skip_for_wifi
@@ -817,6 +803,10 @@ if defined GoodbyeZapretVersion (
 )
 
 :GZ_loading_process
+set "SilentMode=1"
+call :CurrentStatus
+set "SilentMode="
+
 if "%UpdateNeedShowScreen%"=="1" (
     goto MainMenu
 ) else (
@@ -829,9 +819,6 @@ if "%UpdateNeedShowScreen%"=="1" (
 :MainMenu
 call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
-set "SilentMode=1"
-call :CurrentStatus
-set "SilentMode="
 REM ----------------------------------------------------
 call :ResizeMenuWindow
 REM Check for last working config in registry
@@ -857,13 +844,8 @@ REM Check Winws process status
 tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
     set "WinwsStart=Yes"
-    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do (
-        set "GoodbyeZapret_LastStartConfig=%%b"
-        set "TrimmedLastStart=!GoodbyeZapret_LastStartConfig:~0,-4!"
-    )
 ) else (
     set "WinwsStart=No"
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul 2>&1
 )
 
 REM Проверка запущенных служб WinDivert
@@ -952,10 +934,6 @@ REM ---------------------------------------------------------
 REM Display separator line
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 
-REM Get last started config from registry
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
-set "TrimmedLastStart=%GoodbyeZapret_LastStartConfig:~0,-4%"
-
 echo                 %COL%[36mКонфиги:
 echo.
 set "choice="
@@ -992,7 +970,6 @@ set "hasActiveOrStarted=0"
 for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
     set "ConfigName=%%~nF"
     if /i "!ConfigName!"=="%GoodbyeZapret_Current%" set "hasActiveOrStarted=1"
-    if /i "!ConfigName!"=="%TrimmedLastStart%" set "hasActiveOrStarted=1"
 )
 
 REM Modernized config enumeration ----------------------------------------------------
@@ -1007,9 +984,6 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
     if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
         set "StatusText=[Активен]"
         set "StatusColor=%COL%[92m"
-    ) else if /i "!ConfigName!"=="%TrimmedLastStart%" (
-        set "StatusText=[Запущен]"
-        set "StatusColor=%COL%[96m"
     ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" (
         if "!hasActiveOrStarted!"=="0" (
             set "StatusText=[Раньше работал]"
@@ -1092,16 +1066,6 @@ if /i "%choice%"=="ые" goto CurrentStatus
 
 if /i "%choice%"=="AC" goto ConfigAutoFinder
 if /i "%choice%"=="фс" goto ConfigAutoFinder
-
-REM Quick restart available in main menu when two components are running
-if /i "%choice%"=="RS" if %YesCount% equ 2 (
-    set "QuickRestartFromMainMenu=1"
-    goto QuickRestart
-)
-if /i "%choice%"=="кы" if %YesCount% equ 2 (
-    set "QuickRestartFromMainMenu=1"
-    goto QuickRestart
-)
 
 if /i "%choice%"=="R" goto RR
 
@@ -1242,8 +1206,18 @@ sc start "GoodbyeZapret" >nul
 cls
 echo.
 call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
+
 set installing_service=0
 timeout /t 1 >nul 2>&1
+
+tasklist | find /i "Winws" >nul
+if errorlevel 1 (
+    echo.
+    echo ОШИБКА: Процесс обхода ^(Winws.exe^) не запущен.
+    echo.
+    timeout /t 2 >nul 2>&1
+)
+
 if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
     echo.
     REM Цветной текст
@@ -1657,12 +1631,14 @@ echo.
 echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
 echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
-echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
-echo    %COL%[36m^[ %COL%[96mIN %COL%[36m^] %COL%[93mОткрыть инструкцию
-echo    %COL%[36m^[ %COL%[96mRS %COL%[36m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
+echo    %COL%[36m^[ %COL%[96mI %COL%[36m^] %COL%[93mОткрыть инструкцию
+echo    %COL%[36m^[ %COL%[96mT %COL%[36m^] %COL%[93mОткрыть telegram канал
+echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
+echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
 if "%UpdateNeed%"=="Yes" (
     echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
 )
+echo.
 echo.
 set /p "choice=%DEL%   %COL%[90m:> "
 
@@ -1676,14 +1652,17 @@ if /i "%choice%"=="и" (
     goto MainMenu
 )
 
-if /i "%choice%"=="IN" goto OpenInstructions
-if /i "%choice%"=="шт" goto OpenInstructions
+if /i "%choice%"=="I" goto OpenInstructions
+if /i "%choice%"=="ш" goto OpenInstructions
 
-if /i "%choice%"=="R" goto FullUpdate
-if /i "%choice%"=="к" goto FullUpdate
+if /i "%choice%"=="U" goto FullUpdate
+if /i "%choice%"=="г" goto FullUpdate
 
-if /i "%choice%"=="RS" goto QuickRestart
-if /i "%choice%"=="кы" goto QuickRestart
+if /i "%choice%"=="T" goto OpenTelegram
+if /i "%choice%"=="е" goto OpenTelegram
+
+if /i "%choice%"=="R" goto QuickRestart
+if /i "%choice%"=="к" goto QuickRestart
 
 REM Handle update option only if update is needed
 if "%UpdateNeed%"=="Yes" (
@@ -1706,6 +1685,10 @@ if "%UpdateNeed%"=="Yes" (
 )
 
 
+goto CurrentStatus
+
+:OpenTelegram
+start https://t.me/+QUADX-YqFUJhM2Fi
 goto CurrentStatus
 
 :QuickRestart
@@ -2013,8 +1996,9 @@ if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" set /
 REM === Корректировка по YesCount ===
 if /I "%TotalCheck%"=="Problem" (
     REM Ветка для Problem (оставляю как у тебя)
+    if %YesCount% equ 2 ( set /a ListBatCount+=1 )
     if %YesCount% equ 1 ( set /a ListBatCount+=1 )
-    if %YesCount% equ 0 ( set /a ListBatCount+=2 )
+    if %YesCount% equ 0 ( set /a ListBatCount+=1 )
 ) else (
     if %YesCount% equ 0 (
         set /a ListBatCount+=2
@@ -2033,14 +2017,18 @@ set /a MinWinLines=27
 if %ListBatCount% gtr %MaxWinLines% set /a ListBatCount=%MaxWinLines%
 if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
 
+
 REM === DEBUG ===
-REM echo WiFi - %WiFi%
-REM echo CheckStatus - %CheckStatus%
-REM echo YesCount - %YesCount%
-REM echo TotalCheck - %TotalCheck%
-REM echo BatCount - %BatCount%
-REM echo ListBatCount - %ListBatCount%
-REM pause
+set DEBUG_mode=0
+if "%DEBUG_mode%"=="1" (
+ echo WiFi - %WiFi%
+ echo CheckStatus - %CheckStatus%
+ echo YesCount - %YesCount%
+ echo TotalCheck - %TotalCheck%
+ echo BatCount - %BatCount%
+ echo ListBatCount - %ListBatCount%
+ pause
+) 
 
 mode con: cols=92 lines=%ListBatCount%
 goto :eof

@@ -22,7 +22,6 @@ if not defined GoodbyeZapret_LastStartConfig (
   pause
 )
 
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
 
 set "CONFIG_NAME=WARP"
 

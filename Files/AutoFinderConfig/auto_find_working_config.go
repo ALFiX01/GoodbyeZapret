@@ -367,7 +367,10 @@ func smartCleanup(toolsDir string) {
 		return
 	}
 	color.Cyan("  Очистка окружения ...")
-	script := filepath.Join(toolsDir, "delete_services_for_finder.bat")
+
+	// теперь ищем скрипт в подпапке config_check
+	script := filepath.Join(toolsDir, "config_check", "delete_services_for_finder.bat")
+
 	runBatch(script)
 }
 

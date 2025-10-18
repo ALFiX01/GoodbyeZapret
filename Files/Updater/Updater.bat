@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.6.2"
+set "UpdaterVersion=2.7.0"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -188,7 +188,7 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
     set "ExtractRoot=!TempExtract!"
 
     echo         ^[*^] Копирование основных файлов и папок (кроме tools и configs)
-    robocopy "!ExtractRoot!" "%ParentDirPath%" /E /XD "tools" "configs" >nul
+    robocopy "!ExtractRoot!" "%ParentDirPath%" /E /XD "tools" "configs" "lists"  >nul
     call :log INFO "Copied core files"
 
     echo         ^[*^] Копирование файлов из папки tools
@@ -209,6 +209,29 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         robocopy "!ExtractRoot!\tools\curl" "%ParentDirPath%\tools\curl" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
         call :log INFO "Copied curl"
     )
+
+if exist "!ExtractRoot!\lists" (
+    mkdir "%ParentDirPath%\lists" >nul 2>&1
+
+    :: Копируем всё, кроме двух специальных файлов
+    robocopy "!ExtractRoot!\lists" "%ParentDirPath%\lists" *.* /XF "netrogat_ip_custom.txt" "netrogat_custom.txt" /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+
+    :: Копируем netrogat_ip_custom.txt, только если его нет в целевой папке
+    if not exist "%ParentDirPath%\lists\netrogat_ip_custom.txt" (
+        if exist "!ExtractRoot!\lists\netrogat_ip_custom.txt" (
+            copy "!ExtractRoot!\lists\netrogat_ip_custom.txt" "%ParentDirPath%\lists\" >nul
+        )
+    )
+
+    :: Копируем netrogat_custom.txt, только если его нет в целевой папке
+    if not exist "%ParentDirPath%\lists\netrogat_custom.txt" (
+        if exist "!ExtractRoot!\lists\netrogat_custom.txt" (
+            copy "!ExtractRoot!\lists\netrogat_custom.txt" "%ParentDirPath%\lists\" >nul
+        )
+    )
+
+    call :log INFO "Copied lists (preserving custom files if present)"
+)
 
     echo         ^[*^] Резервное копирование старых конфигов
     if exist "%ParentDirPath%\configs\Preset" (
@@ -236,11 +259,6 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
 )
 
 tasklist | find /i "Winws" >nul
-if %errorlevel% equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "GoodbyeZapret_LastStartConfig=%%b"
-) else (
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" /t REG_SZ /d "None" /f >nul
-)
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
     set "batPath="
@@ -274,18 +292,7 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         exit
     )
 ) else (
-    call :log INFO "Starting last used configuration: %GoodbyeZapret_LastStartConfig%"
-    if defined GoodbyeZapret_LastStartConfig (
-        rem Определяем путь к последней запусканной конфигурации среди Preset/Custom/корня
-        set "cfgPath="
-        if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_LastStartConfig%" set "cfgPath=%ParentDirPath%\configs\Preset\%GoodbyeZapret_LastStartConfig%"
-        if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_LastStartConfig%" set "cfgPath=%ParentDirPath%\configs\Custom\%GoodbyeZapret_LastStartConfig%"
-        if exist "%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%" set "cfgPath=%ParentDirPath%\configs\%GoodbyeZapret_LastStartConfig%"
-        if defined cfgPath (
-            start "" "!cfgPath!"
-            call :log INFO "Launched last used configuration"
-        )
-    )
+    call :log INFO "Starting Launcher"
     start "" "%ParentDirPath%\Launcher.bat"
     exit
 )

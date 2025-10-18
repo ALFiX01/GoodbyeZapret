@@ -1,0 +1,9 @@
+cloudflare-quic.com
+cloudflare.com
+cloudflare-ech.com
+# encryptedsni.com
+^updates.discord.com
+discord.com
+cdn.discordapp.com
+discordapp.net
+discord-attachments-uploads-prd.storage.googleapis.com

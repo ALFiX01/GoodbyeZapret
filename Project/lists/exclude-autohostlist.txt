@@ -11,3 +11,4 @@ api.mycdn.me
 rutube.ru
 datadoghq.com
 adservice.google.com
+googlesyndication.com

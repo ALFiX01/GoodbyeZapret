@@ -19,7 +19,6 @@ if not defined GoodbyeZapret_LastStartConfig (
   echo ERROR: GoodbyeZapret_LastStartConfig is not set
   pause
 )
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_LastStartConfig" /d "%GoodbyeZapret_LastStartConfig%" /f >nul
 
 set "CONFIG_NAME=UltimateFix Lab"
 set "FAKE=%ProjectDir%bin\fake\"
@@ -30,7 +29,7 @@ cd /d "%BIN%"
 :: YT (Вы можете выбрать один из вариантов просто закомментировав остальные) (REM в начале строки - значит стратегия не используется) 586.bin
 set YTGV=--dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_312.bin"
 REM set YTGV=--dpi-desync=multisplit --dpi-desync-split-pos=10,midsld --dpi-desync-split-seqovl=1
-REM set YTGV=--dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-85_google.com.bin" --dpi-desync-fake-tls-mod=rnd
+REM set YTGV=--dpi-desync=fake --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%tls_ClientHello_Edge-85_google.com.bin" --dpi-desync-fake-tls-mod=rnd
 REM set YTGV=--dpi-desync=fakedsplit --dpi-desync-ttl=2 --dpi-desync-split-pos=1
 REM set YTGV=--dpi-desync=multisplit --dpi-desync-split-pos=10 --dpi-desync-split-seqovl=1
 REM set YTGV=--dpi-desync=multisplit --dpi-desync-split-pos=10,sniext+1 --dpi-desync-split-seqovl=1
@@ -42,9 +41,9 @@ REM set YTGV=--dpi-desync=fake --dpi-desync-ttl=2 --dpi-desync-fake-tls=0x000000
 REM set YTGV=--ipcache-hostname --dpi-desync=syndata,fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync-fake-syndata="%FAKE%tls_clienthello_7.bin" --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_9.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3
 
 :: YTCHP (Вы можете выбрать один из вариантов просто закомментировав остальные) (REM в начале строки - значит стратегия не используется)
-set YTCHP=--dpi-desync=fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%TLS_ClientHello_Edge-106_google.com.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3
+set YTCHP=--dpi-desync=fake,multisplit --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_ClientHello_Edge-106_google.com.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3
 
-REM --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0xFEA82025 --dpi-desync-fake-quic="%FAKE%QUIC_Initial_fonts_google_com.bin" --dpi-desync-cutoff=n4 --dpi-desync-repeats=2 --new ^
+REM --filter-udp=443 --hostlist="%LISTS%youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0xFEA82025 --dpi-desync-fake-quic="%FAKE%quic_Initial_fonts_google_com.bin" --dpi-desync-cutoff=n4 --dpi-desync-repeats=2 --new ^
 
 echo Config: %CONFIG_NAME%
 title GoodbyeZapret:  %CONFIG_NAME%
