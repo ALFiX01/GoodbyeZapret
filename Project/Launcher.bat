@@ -820,6 +820,7 @@ if "%UpdateNeedShowScreen%"=="1" (
 call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
+:MainMenuWithoutUiInfo
 call :ResizeMenuWindow
 REM Check for last working config in registry
 reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastWorkConfig" >nul 2>&1
@@ -1178,6 +1179,10 @@ if "!batfile!"=="MultiFix_ts.bat" (
     echo   Перехожу к установке конфига в службу
     timeout /t 2 >nul
     cls
+    call :ui_init
+    call :ui_hr
+    echo   %C_TITLE%Установка службы GoodbyeZapret %C_RESET%
+    call :ui_hr
 )
 
 echo.
@@ -1208,21 +1213,21 @@ echo.
 call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
 
 set installing_service=0
-timeout /t 1 >nul 2>&1
-
-tasklist | find /i "Winws" >nul
-if errorlevel 1 (
-    echo.
-    echo ОШИБКА: Процесс обхода ^(Winws.exe^) не запущен.
-    echo.
-    timeout /t 2 >nul 2>&1
-)
 
 if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
     echo.
     REM Цветной текст
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
+)
+timeout /t 1 >nul 2>&1
+
+tasklist | find /i "Winws.exe" >nul
+if errorlevel 1 (
+    echo.
+    echo ОШИБКА: Процесс обхода ^(Winws.exe^) не запущен.
+    echo.
+    timeout /t 2 >nul 2>&1
 )
 goto :end
 
@@ -1265,13 +1270,14 @@ goto :end
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
     reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    timeout /t 1 >nul 2>&1
 goto :end
 
 :remove_service_before_installing
     cls
     call :ui_init
     call :ui_hr
-    echo   %C_TITLE%Установка службы GoodbyeZapret %C_RESET%
+    echo   %C_TITLE%Удаление старой службы GoodbyeZapret %C_RESET%
     call :ui_hr
     call :ui_info "подготовка к установке !batRel! в GoodbyeZapret..."
     echo.
@@ -1302,13 +1308,36 @@ goto :install_GZ_service
 
 :end
 if !ErrorCount! equ 0 (
-    call :ui_header_for_END
-    goto GoodbyeZapret_Menu
+    REM Set default values for GoodbyeZapret configuration
+    set "GoodbyeZapret_Current=Не выбран"
+    set "GoodbyeZapret_Config=Не выбран"
+    set "GoodbyeZapret_Old=Отсутствует"
+    REM Check if GoodbyeZapret service exists and get current configuration
+    reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
+    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
+
+    REM Check for old configuration in registry
+    reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
+    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b" )
+
+    goto MainMenuWithoutUiInfo
 ) else (
     echo  Нажмите любую клавишу чтобы продолжить...
     pause >nul 2>&1
     set "batFile="
-    goto GoodbyeZapret_Menu
+    REM Set default values for GoodbyeZapret configuration
+    set "GoodbyeZapret_Current=Не выбран"
+    set "GoodbyeZapret_Config=Не выбран"
+    set "GoodbyeZapret_Old=Отсутствует"
+    REM Check if GoodbyeZapret service exists and get current configuration
+    reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
+    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
+
+    REM Check for old configuration in registry
+    reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
+    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b" )
+
+    goto MainMenuWithoutUiInfo
 )
 
 :CurrentStatus
@@ -1645,24 +1674,24 @@ set /p "choice=%DEL%   %COL%[90m:> "
 REM Handle menu choices with proper error checking
 if /i "%choice%"=="B" (
     call :ResizeMenuWindow
-    goto MainMenu
+    set "choice=" && goto MainMenu
 )
 if /i "%choice%"=="и" (
     call :ResizeMenuWindow
-    goto MainMenu
+    set "choice=" && goto MainMenu
 )
 
-if /i "%choice%"=="I" goto OpenInstructions
-if /i "%choice%"=="ш" goto OpenInstructions
+if /i "%choice%"=="I" set "choice=" && goto OpenInstructions
+if /i "%choice%"=="ш" set "choice=" && goto OpenInstructions
 
-if /i "%choice%"=="U" goto FullUpdate
-if /i "%choice%"=="г" goto FullUpdate
+if /i "%choice%"=="U" set "choice=" && goto FullUpdate
+if /i "%choice%"=="г" set "choice=" && goto FullUpdate
 
-if /i "%choice%"=="T" goto OpenTelegram
-if /i "%choice%"=="е" goto OpenTelegram
+if /i "%choice%"=="T" set "choice=" && goto OpenTelegram
+if /i "%choice%"=="е" set "choice=" && goto OpenTelegram
 
-if /i "%choice%"=="R" goto QuickRestart
-if /i "%choice%"=="к" goto QuickRestart
+if /i "%choice%"=="R" set "choice=" && goto QuickRestart
+if /i "%choice%"=="к" set "choice=" && goto QuickRestart
 
 REM Handle update option only if update is needed
 if "%UpdateNeed%"=="Yes" (

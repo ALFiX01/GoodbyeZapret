@@ -1,5 +1,10 @@
 api.mycdn.me
 aus5.mozilla.org
+bhvrdbd.com
+amazontrust.com
+consultant.ru
+epicgames.com
+epicgames.dev
 browser-intake-datadoghq.com
 chat.openai.com
 chat.qwen.ai
@@ -72,6 +77,7 @@ tanksblitz.ru
 lencr.org
 tanki.su
 playbattlegrounds.com.cn
+playbattlegrounds.com
 # World of Tanks Voice Chat
 voice.worldoftanks.net
 vivox.com
