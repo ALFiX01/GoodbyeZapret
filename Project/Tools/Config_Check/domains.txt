@@ -3,4 +3,5 @@ rr5---sn-f5f7lnld.googlevideo.com
 i.ytimg.com
 discord.com
 cloudflare.com
+aws.amazon.com
 raw.githubusercontent.com 

@@ -39,6 +39,7 @@ rutracker.org
 rutube.ru
 rutubelist.ru
 static-cdn.jtvnw.net
+steam-chat.com
 steamcommunity-a.akamaihd.net
 steamcommunity.com
 steampipe.steamcontent.com

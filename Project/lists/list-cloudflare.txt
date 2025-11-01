@@ -48,6 +48,10 @@ one.one.one
 pacloudflare.com
 pages.dev
 trycloudflare.com
+cloudflareaccess.com
+cloudflareclient.com
+cloudflarepartners.com
+cloudflarestatus.com
 videodelivery.net
 warp.plus
 workers.dev

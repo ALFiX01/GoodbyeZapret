@@ -15,7 +15,8 @@ echo."%tempvar%"| findstr /c:" " >nul && (
     pause
 )
 
-net session >nul 2>&1
+:: Метод C: fsutil dirty query %SystemDrive% (часто доступен даже на урезанных системах)
+fsutil dirty query %SystemDrive% >nul 2>&1
 if %errorlevel% neq 0 (
     echo  Requesting administrator privileges...
     powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
@@ -286,14 +287,6 @@ if %errorlevel% neq 0 (
     )
 )
 
-
-REM Проверяем, есть ли ключ Auto-update и равен ли он 1
-REM reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2>nul | find "1" >nul
-REM if %errorlevel%==0 (
-REM     reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" /t REG_SZ /d "0" /f >nul 2>&1
-REM     if exist "%ParentDirPath%\tools\UpdateService.exe" del "%ParentDirPath%\tools\UpdateService.exe" >nul 2>&1
-REM     if exist "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\UpdateService.lnk" >nul 2>&1
-REM )
 
 set "WiFi=Off"
 set "CheckURL=https://raw.githubusercontent.com"
@@ -1038,6 +1031,7 @@ if "%GoodbyeZapret_Current%"=="Не выбран" (
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
+    echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     )
 ) else (
     echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
@@ -1050,6 +1044,7 @@ if %TotalPages% gtr 1 (
     echo.
     if %Page% lss %TotalPages% echo                 %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
     if %Page% gtr 1 echo                 %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
+
 )
 REM ----------------------------
 
@@ -1500,7 +1495,7 @@ for /f "tokens=2 delims=:" %%a in ('sc query 2^>NUL ^| findstr /I "SERVICE_NAME:
 
 if defined VPNServices (
     set "VPNCheckResult=Problem"
-    set "VPNCheckTips=Отключите VPN ^(!VPNServices!^) ."
+    set "VPNCheckTips=VPN должен быть выключен ^(!VPNServices!^) ."
 ) else (
     set "VPNCheckResult=Ok"
 )

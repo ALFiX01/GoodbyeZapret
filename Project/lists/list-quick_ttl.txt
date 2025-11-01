@@ -1,5 +1,9 @@
 cloudflare-quic.com
 cloudflare.com
+cloudflareaccess.com
+cloudflareclient.com
+cloudflarepartners.com
+cloudflarestatus.com
 cloudflare-ech.com
 # encryptedsni.com
 ^updates.discord.com
