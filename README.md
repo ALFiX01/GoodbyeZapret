@@ -101,10 +101,10 @@
 
 ### Метод 2. installer (автоматическая установка)
 
-1. Скачайте файл [`installer.bat`](https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/installer.exe) и переместите его в любую удобную папку (например, `C:\Users\PC\Desktop`).
-2. Запустите `installer.bat` **от имени администратора** и следуйте подсказкам в открывшемся окне.
-3. После завершения рядом с `installer.bat` появится папка `GoodbyeZapret` — в неё будет установлена программа.
-4. Для запуска перейдите в созданную папку и откройте `Launcher.bat` **от имени администратора**.
+1. Скачайте файл [`installer.exe`](https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/installer.exe) и переместите его в любую удобную папку (например, `C:\Users\PC\Desktop`).
+2. Запустите `installer.exe` **от имени администратора** и следуйте подсказкам в открывшемся окне.
+3. После завершения рядом с `installer.exe` появится папка `GoodbyeZapret` — в неё будет установлена программа.
+4. Для запуска перейдите в созданную папку и откройте `Launcher.exe` **от имени администратора**.
 
 ---
 
@@ -246,4 +246,5 @@ GoodbyeZapretTray.exe, а также закройте консоль, связа
 
 <div align="center">
   ⭐ Понравился проект? Поставь звездочку! ⭐
+  <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers"> <img src="https://img.shields.io/github/stars/ALFiX01/GoodbyeZapret?style=social" alt="GitHub Stars"> </a>
 </div>
