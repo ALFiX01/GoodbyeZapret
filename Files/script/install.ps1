@@ -1,4 +1,4 @@
-# Задание цветовой схемы
+# Set color theme
 $Theme = @{
     Primary   = 'Cyan'
     Success   = 'Green'
@@ -7,19 +7,24 @@ $Theme = @{
     Info      = 'White'
 }
 
-# Новый ASCII-логотип GoodbyeZapret
+# GoodbyeZapret ASCII Logo (English, fresh style)
 $Logo = @"
-   ██████  ██████   ██████  ██████  ██    ██ ███████     ████████  █████  ██████  ████████ 
-  ██      ██    ██ ██    ██ ██   ██ ██    ██ ██             ██    ██   ██ ██   ██    ██    
-  ██      ██    ██ ██    ██ ██   ██ ██    ██ █████          ██    ███████ ██████     ██    
-  ██      ██    ██ ██    ██ ██   ██  ██  ██  ██             ██    ██   ██ ██   ██    ██    
-   ██████  ██████   ██████  ██████    ████   ███████        ██    ██   ██ ██   ██    ██    
+  /$$$$$$                      /$$                           /$$$$$$$$                                           /$$    
+ /$$__  $$                    | $$                          |_____ $$                                           | $$    
+| $$  \__/  /$$$$$$   /$$$$$$ | $$$$$$$  /$$   /$$  /$$$$$$      /$$/   /$$$$$$   /$$$$$$   /$$$$$$   /$$$$$$  /$$$$$$  
+| $$ /$$$$ /$$__  $$ /$$__  $$| $$__  $$| $$  | $$ /$$__  $$    /$$/   |____  $$ /$$__  $$ /$$__  $$ /$$__  $$|_  $$_/  
+| $$|_  $$| $$  \ $$| $$  \ $$| $$  \ $$| $$  | $$| $$$$$$$$   /$$/     /$$$$$$$| $$  \ $$| $$  \__/| $$$$$$$$  | $$    
+| $$  \ $$| $$  | $$| $$  | $$| $$  | $$| $$  | $$| $$_____/  /$$/     /$$__  $$| $$  | $$| $$      | $$_____/  | $$ /$$
+|  $$$$$$/|  $$$$$$/|  $$$$$$/| $$$$$$$/|  $$$$$$$|  $$$$$$$ /$$$$$$$$|  $$$$$$$| $$$$$$$/| $$      |  $$$$$$$  |  $$$$/
+ \______/  \______/  \______/ |_______/  \____  $$ \_______/|________/ \_______/| $$____/ |__/       \_______/   \___/  
+                                         /$$  | $$                              | $$                                    
+                                        |  $$$$$$/                              | $$                                    
+                                         \______/                               |__/                                    
 
-        Инструмент для обхода DPI-блокировок в Windows
-        Репозиторий: github.com/ALFiX01/GoodbyeZapret
+        DPI bypass for Windows | github.com/ALFiX01/GoodbyeZapret
 "@
 
-# Функция красивого вывода
+# Fancy output function
 function Write-Styled {
     param (
         [string]$Message,
@@ -27,8 +32,8 @@ function Write-Styled {
         [string]$Prefix = ""
     )
     $symbol = switch ($Color) {
-        $Theme.Success { "[ОК]" }
-        $Theme.Error   { "[ОШИБКА]" }
+        $Theme.Success { "[OK]" }
+        $Theme.Error   { "[ERROR]" }
         $Theme.Warning { "[!]" }
         default        { "[*]" }
     }
@@ -36,7 +41,7 @@ function Write-Styled {
     Write-Host $output -ForegroundColor $Color
 }
 
-# Получение информации о последнем релизе
+# Get latest release function
 function Get-LatestRelease {
     try {
         $api = "https://api.github.com/repos/ALFiX01/GoodbyeZapret/releases/latest"
@@ -46,94 +51,94 @@ function Get-LatestRelease {
             Assets = $latestRelease.assets
         }
     } catch {
-        Write-Styled $_.Exception.Message -Color $Theme.Error -Prefix "Ошибка"
-        throw "Не удалось получить информацию о последнем релизе"
+        Write-Styled $_.Exception.Message -Color $Theme.Error -Prefix "Error"
+        throw "Could not fetch latest release info."
     }
 }
 
-# Основная функция установки
+# Main install function
 function Install-GoodbyeZapret {
-    Write-Styled "Начало установки GoodbyeZapret" -Color $Theme.Primary -Prefix "Установка"
+    Write-Styled "Starting GoodbyeZapret setup" -Color $Theme.Primary -Prefix "Install"
     $SystemDrive = $env:SystemDrive
     $TargetPath = "$SystemDrive\GoodbyeZapret"
     $ZipFileName = "GoodbyeZapret.zip"
     $LauncherPath = "$TargetPath\Launcher.bat"
 
-    # Получение информации о релизе
-    Write-Styled "Получение информации о последнем релизе..." -Color $Theme.Primary -Prefix "Обновление"
+    # Get release info
+    Write-Styled "Getting latest release info..." -Color $Theme.Primary -Prefix "Update"
     $releaseInfo = Get-LatestRelease
     $asset = $releaseInfo.Assets | Where-Object { $_.name -eq $ZipFileName }
     if (!$asset) {
-        Write-Styled "Файл $ZipFileName не найден в релизах" -Color $Theme.Error -Prefix "Ошибка"
-        Write-Styled "Доступные файлы:" -Color $Theme.Warning -Prefix "Список"
+        Write-Styled "$ZipFileName not found in releases!" -Color $Theme.Error -Prefix "Error"
+        Write-Styled "Available files:" -Color $Theme.Warning -Prefix "List"
         $releaseInfo.Assets | ForEach-Object { Write-Styled $_.name -Color $Theme.Info }
-        throw "Целевой архив не найден"
+        throw "Target archive not found."
     }
     $zipUrl = $asset.browser_download_url
-    Write-Styled "Ссылка для скачивания: $zipUrl" -Color $Theme.Info -Prefix "Скачивание"
+    Write-Styled "Download link: $zipUrl" -Color $Theme.Info -Prefix "Download"
 
-    # Очистка/удаление старой папки
+    # Cleanup previous folder
     if (Test-Path $TargetPath) {
-        Write-Styled "Удаление старой версии папки GoodbyeZapret..." -Color $Theme.Warning -Prefix "Очистка"
+        Write-Styled "Removing previous GoodbyeZapret folder..." -Color $Theme.Warning -Prefix "Cleanup"
         try {
             Remove-Item $TargetPath -Recurse -Force
-            Write-Styled "Папка успешно удалена" -Color $Theme.Success -Prefix "ОК"
+            Write-Styled "Folder removed successfully" -Color $Theme.Success -Prefix "OK"
         } catch {
-            Write-Styled "Не удалось удалить папку: $_" -Color $Theme.Error -Prefix "Ошибка"
+            Write-Styled "Failed to remove folder: $_" -Color $Theme.Error -Prefix "Error"
             throw
         }
     }
 
-    # Скачивание архива
-    $tmpZipPath = "$SystemDrive\$ZipFileName"
-    Write-Styled "Скачивание архива..." -Color $Theme.Primary -Prefix "Скачивание"
+    # Download archive
+    $tmpZipPath = "$env:TEMP\$ZipFileName"
+    Write-Styled "Downloading archive..." -Color $Theme.Primary -Prefix "Download"
     try {
         Invoke-WebRequest -Uri $zipUrl -OutFile $tmpZipPath
-        Write-Styled "Архив скачан: $tmpZipPath" -Color $Theme.Success -Prefix "Скачано"
+        Write-Styled "Archive downloaded: $tmpZipPath" -Color $Theme.Success -Prefix "Downloaded"
     } catch {
-        Write-Styled "Ошибка скачивания: $_" -Color $Theme.Error -Prefix "Ошибка"
+        Write-Styled "Download failed: $_" -Color $Theme.Error -Prefix "Error"
         throw
     }
 
-    # Распаковка архива
-    Write-Styled "Распаковка архива в $TargetPath..." -Color $Theme.Primary -Prefix "Распаковка"
+    # Extract archive
+    Write-Styled "Extracting archive to $TargetPath..." -Color $Theme.Primary -Prefix "Extract"
     try {
         if (-not (Test-Path $TargetPath)) { New-Item -ItemType Directory -Force -Path $TargetPath | Out-Null }
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         [System.IO.Compression.ZipFile]::ExtractToDirectory($tmpZipPath, $TargetPath)
-        Write-Styled "Архив успешно распакован" -Color $Theme.Success -Prefix "ОК"
+        Write-Styled "Archive extracted successfully" -Color $Theme.Success -Prefix "OK"
     } catch {
-        Write-Styled "Ошибка распаковки: $_" -Color $Theme.Error -Prefix "Ошибка"
+        Write-Styled "Extracting failed: $_" -Color $Theme.Error -Prefix "Error"
         throw
     }
     try { Remove-Item $tmpZipPath -Force } catch {}
 
-    # Запуск Launcher.bat с правами администратора
+    # Launch Launcher.bat as administrator
     if (Test-Path $LauncherPath) {
-        Write-Styled "Запуск Launcher.bat..." -Color $Theme.Primary -Prefix "Старт"
+        Write-Styled "Launching Launcher.bat..." -Color $Theme.Primary -Prefix "Start"
         $startInfo = New-Object System.Diagnostics.ProcessStartInfo
         $startInfo.FileName = $LauncherPath
         $startInfo.UseShellExecute = $true
         $startInfo.Verb = "runas"
         try {
             [System.Diagnostics.Process]::Start($startInfo) | Out-Null
-            Write-Styled "Launcher запущен" -Color $Theme.Success -Prefix "ОК"
+            Write-Styled "Launcher started" -Color $Theme.Success -Prefix "OK"
         } catch {
-            Write-Styled "Не удалось запустить Launcher с правами администратора! Запуск обычным способом..." -Color $Theme.Warning -Prefix "Внимание"
+            Write-Styled "Failed to launch with administrator! Starting normally..." -Color $Theme.Warning -Prefix "Warning"
             Start-Process $LauncherPath
         }
     } else {
-        Write-Styled "Файл Launcher.bat не найден!" -Color $Theme.Error -Prefix "Ошибка"
+        Write-Styled "Launcher.bat not found!" -Color $Theme.Error -Prefix "Error"
     }
 }
 
-# Вывод логотипа
+# Print logo
 Write-Host $Logo -ForegroundColor $Theme.Primary
 
-# Запуск установки
+# Run installation
 try {
     Install-GoodbyeZapret
 } catch {
-    Write-Styled "Установка не удалась" -Color $Theme.Error -Prefix "Ошибка"
+    Write-Styled "Setup failed" -Color $Theme.Error -Prefix "Error"
     Write-Styled $_.Exception.Message -Color $Theme.Error
 }
