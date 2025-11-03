@@ -18,6 +18,7 @@ $Logo = @"
  ╚═════╝  ╚═════╝  ╚═════╝ ╚═════╝    ╚═╝   ╚══════╝    ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝╚══════╝   ╚═╝   
                                                                                                                     
                     DPI bypass for Windows | github.com/ALFiX01/GoodbyeZapret
+                    
 "@
 
 # Fancy output function
