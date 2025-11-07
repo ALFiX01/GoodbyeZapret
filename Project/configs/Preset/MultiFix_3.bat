@@ -19,12 +19,7 @@ set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
-set "GoodbyeZapret_LastStartConfig=%~nx0"
-
-if not defined GoodbyeZapret_LastStartConfig (
-  echo ERROR: GoodbyeZapret_LastStartConfig is not set
-)
-
+REM set "GoodbyeZapret_LastStartConfig=%~nx0"
 
 set "CONFIG_NAME=MultiFix 3"
 
@@ -43,7 +38,7 @@ echo Winws: %ESC%[90m
 REM set log=--debug=@%~dp0log_debug.txt
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
---filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n3
+--filter-l7=discord,stun --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n3
 
 REM --wf-tcp=80,443-65535 --wf-udp=443,444-65535
 
@@ -51,12 +46,12 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,2053,2083,2087,2096,65530–65535 --wf-udp=443,444-65535 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
---filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync-any-protocol=1 --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%syn_packet.bin" --dup=2 --dup-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-ttl=1 --dpi-desync-autottl=-2 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --dpi-desync-cutoff=n2 --new ^
+--filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync-any-protocol --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%syn_packet.bin" --dup=2 --dup-cutoff=n3 --new ^
+--filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-ttl=1 --dpi-desync-autottl=-2 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --dpi-desync-cutoff=n2 --new ^
 --filter-tcp=80 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-ttl=8 --dpi-desync-split-pos=midsld --dpi-desync-fake-http=0x00000000 --dpi-desync-fake-tls=! --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync-any-protocol --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
 --filter-tcp=443 --hostlist="%LISTS%anomaly_site.txt" --dpi-desync=syndata,multisplit --dpi-desync-split-pos=1,midsld --dpi-desync-split-seqovl=1 --dpi-desync-fake-syndata="%FAKE%fake_syndata.bin" --dpi-desync-cutoff=n5 --new ^
 
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync-any-protocol --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-cutoff=n3 --new ^
@@ -66,7 +61,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=2053,2083,2087,2096 --dpi-desync=rst,multidisorder --dpi-desync-split-pos=3 --dpi-desync-fooling=md5sig,badseq --dpi-desync-cutoff=n5 --new ^
 --filter-udp=5056,27002 --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n15 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --new ^
---filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync-any-protocol=1 --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --dpi-desync-cutoff=n3
+--filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync-any-protocol --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%http_iana_org.bin" --dpi-desync-cutoff=n3
 
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
@@ -99,14 +94,6 @@ if "%ERRORLEVEL%"=="0" (
   REM Forcefully kill winws.exe process
   taskkill /F /IM winws.exe >nul 2>&1
 )
-
-REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-REM sc query "WinDivert" >nul 2>&1
-REM if %errorlevel% equ 0 (
-  REM sc stop WinDivert >nul 2>&1
-  REM REM give the driver a moment to unload
-  REM ping -n 3 127.0.0.1 > nul
-REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul

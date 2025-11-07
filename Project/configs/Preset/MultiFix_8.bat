@@ -19,12 +19,7 @@ set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
-set "GoodbyeZapret_LastStartConfig=%~nx0"
-
-if not defined GoodbyeZapret_LastStartConfig (
-  echo ERROR: GoodbyeZapret_LastStartConfig is not set
-)
-
+REM set "GoodbyeZapret_LastStartConfig=%~nx0"
 
 set "CONFIG_NAME=MultiFix 8"
 
@@ -47,7 +42,7 @@ REM --filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync=
 
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
---filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
+--filter-l7=discord,stun --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,2053,2083,2087,2096 --wf-udp=443,444-65535 ^
@@ -56,10 +51,10 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-l3=ipv6 --filter-tcp=80 --dpi-desync-cutoff=n4 --new ^
 --filter-udp=443 --hostlist="%LISTS%list-quick_ttl.txt" --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%fake_quic_2.bin" --dpi-desync-repeats=4 --dpi-desync-ttl=5 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --filter-l7=unknown --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-ttl=5 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fooling=md5sig --dup=1 --dup-cutoff=n2 --dup-fooling=md5sig --dpi-desync-hostfakesplit-mod=altorder=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_312.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync-any-protocol --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5 --new ^
 --filter-l3=ipv6 --filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-fake-tls=0x00F0000F --dpi-desync-fake-tls="%FAKE%fake_tls_7.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
 --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x0F0F0F0F --dpi-desync-split-pos=1,sld+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-fakedsplit-mod=altorder=0 --dpi-desync-fooling=ts --dpi-desync-cutoff=n4 --new ^
 --filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
@@ -79,7 +74,7 @@ REM Проверяем, существует ли GoodbyeZapretTray.exe пере
 if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
     tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
     if errorlevel 1 (
-        REM start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
+        start "" "%ProjectDir%tools\tray\GoodbyeZapretTray.exe"
     )
 )
 
@@ -105,14 +100,6 @@ if "%ERRORLEVEL%"=="0" (
   REM Forcefully kill winws.exe process
   taskkill /F /IM winws.exe >nul 2>&1
 )
-
-REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-REM sc query "WinDivert" >nul 2>&1
-REM if %errorlevel% equ 0 (
-  REM sc stop WinDivert >nul 2>&1
-  REM REM give the driver a moment to unload
-  REM ping -n 3 127.0.0.1 > nul
-REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul

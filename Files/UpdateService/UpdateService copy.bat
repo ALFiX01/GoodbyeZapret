@@ -345,7 +345,7 @@ if defined batPath if exist "%ParentDirPath%\configs\!batPath!\!cfg!.bat" (
 )
 
 :_try_last
-rem Fallback: try last started config
+rem Резервный вариант: попробуйте последнюю запущенную конфигурацию
 for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastStartConfig" 2^>nul ^| find /i "GoodbyeZapret_LastStartConfig"') do set "LastStart=%%b"
 if not defined LastStart endlocal & exit /b 0
 

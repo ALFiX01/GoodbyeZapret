@@ -18,12 +18,7 @@ set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
-set "GoodbyeZapret_LastStartConfig=%~nx0"
-
-if not defined GoodbyeZapret_LastStartConfig (
-  echo ERROR: GoodbyeZapret_LastStartConfig is not set
-)
-
+REM set "GoodbyeZapret_LastStartConfig=%~nx0"
 
 set "CONFIG_NAME=MultiFix ts-fooling"
 
@@ -90,14 +85,6 @@ if "%ERRORLEVEL%"=="0" (
   REM Forcefully kill winws.exe process
   taskkill /F /IM winws.exe >nul 2>&1
 )
-
-REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-REM sc query "WinDivert" >nul 2>&1
-REM if %errorlevel% equ 0 (
-  REM sc stop WinDivert >nul 2>&1
-  REM REM give the driver a moment to unload
-  REM ping -n 3 127.0.0.1 > nul
-REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul

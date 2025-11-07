@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.7.0"
+set "UpdaterVersion=2.7.1"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -104,17 +104,12 @@ call :log INFO "Stopped and removed services GoodbyeZapret/WinDivert/monkey"
 REM Чтение конфигурации из реестра (новый ключ) или миграция со старого
 set "GoodbyeZapret_Config=None"
 
-REM Попытка прочитать из нового расположения
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%b"
+if not exist "%CONFIG_FILE%" call :InitConfigFromRegistry
+REM Попытка прочитать из config
+call :ReadConfig GoodbyeZapret_Config
 
-REM Если не нашли, пробуем старый ключ и переносим
-if /i "!GoodbyeZapret_Config!"=="None" (
-  for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
-    set "GoodbyeZapret_Config=%%b"
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /t REG_SZ /d "%%b" /f >nul
-    reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Config" /f >nul
-  )
-)
+echo %GoodbyeZapret_Config%
+pause
 
 call :log INFO "Preferred config: !GoodbyeZapret_Config!"
 
@@ -128,7 +123,7 @@ call :log INFO "Downloading archive from %DLURL% to %ZipPath%"
 REM Скачивание через curl (с последующим fallback на PowerShell)
 if exist "%ParentDirPath%\tools\curl\curl.exe" (
      set CURL="%ParentDirPath%\tools\curl\curl.exe"
-) else (
+) else ( 
     set CURL=curl
 )
 
@@ -317,3 +312,52 @@ if /i "!_lvl!"=="START" (
 )
 >> "%LogFile%" echo [!_lvl!] %time:~0,8% - !_msg!
 exit /b 0
+
+
+
+
+:: Функция: чтение значения
+:ReadConfig
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+:: Вызов: call :ReadConfig VariableName
+
+setlocal EnableExtensions DisableDelayedExpansion
+set "RES="
+set "FOUND=0"
+
+for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
+    if /i "%%A"=="%~1" (
+        set "RES=%%B"
+        set "FOUND=1"
+    )
+)
+
+endlocal & set "RES=%RES%" & set "FOUND=%FOUND%"
+
+:: Если ключ не найден — задаём NotFound
+if "%FOUND%"=="0" set "RES=NotFound"
+
+:: Снять ТОЛЬКО внешние кавычки, если значение найдено и оно в кавычках
+if not "%RES%"=="NotFound" if defined RES if aa%RES:~0,1%%RES:~-1%aa==aa""aa set "RES=%RES:~1,-1%"
+
+set "%~1=%RES%"
+goto :eof
+
+
+:InitConfigFromRegistry
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_OldConfig GoodbyeZapret_Version_code"
+set "REG_KEY=HKCU\Software\ALFiX inc.\GoodbyeZapret"
+
+if exist "%CONFIG_FILE%" goto :eof
+
+echo Инициализация config.txt из реестра...
+if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" mkdir "%USERPROFILE%\AppData\Roaming\GoodbyeZapret"
+> "%CONFIG_FILE%" type nul
+
+for %%V in (%VARS%) do (
+    for /f "skip=2 tokens=2,*" %%A in ('reg query "%REG_KEY%" /v "%%V" 2^>nul') do (
+        if not "%%B"=="" >>"%CONFIG_FILE%" echo %%V="%%B"
+    )
+)
+goto :eof

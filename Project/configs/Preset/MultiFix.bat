@@ -19,12 +19,7 @@ set "currentDir=%~dp0"
 set "currentDir=%currentDir:~0,-1%"
 for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
-set "GoodbyeZapret_LastStartConfig=%~nx0"
-
-if not defined GoodbyeZapret_LastStartConfig (
-  echo ERROR: GoodbyeZapret_LastStartConfig is not set
-)
-
+REM set "GoodbyeZapret_LastStartConfig=%~nx0"
 
 set "CONFIG_NAME=MultiFix"
 
@@ -43,7 +38,7 @@ echo Winws: %ESC%[90m
 REM set log=--debug=@%~dp0log_debug.txt
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
---filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
+--filter-l7=discord,stun --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,2053,2083,2087,2096 --wf-udp=443,444-65535 ^
@@ -53,8 +48,8 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-udp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --hostlist="%LISTS%russia-blacklist.txt" --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld  --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=multisplit --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=fakeddisorder --dpi-desync-ttl=2 --dpi-desync-split-pos=midsld --dup-cutoff=n3 --dpi-desync-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync-any-protocol --dpi-desync=fakeddisorder --orig-autottl=+1 --dpi-desync-ttl=1 --dpi-desync-autottl=-3 --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n5 --new ^
 --filter-tcp=443 --hostlist="%LISTS%anomaly_site.txt" --dpi-desync=syndata,multisplit --dpi-desync-split-pos=1,midsld --dpi-desync-split-seqovl=1 --dpi-desync-fake-syndata="%FAKE%fake_syndata.bin" --dpi-desync-cutoff=n5 --new ^
 
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync-any-protocol --dpi-desync=syndata,multisplit --dpi-desync-split-pos=1,midsld --dpi-desync-split-seqovl=1 --dpi-desync-fake-syndata="%FAKE%fake_syndata.bin" --dpi-desync-cutoff=n5 --new ^
@@ -96,14 +91,6 @@ if "%ERRORLEVEL%"=="0" (
   REM Forcefully kill winws.exe process
   taskkill /F /IM winws.exe >nul 2>&1
 )
-
-REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-REM sc query "WinDivert" >nul 2>&1
-REM if %errorlevel% equ 0 (
-  REM sc stop WinDivert >nul 2>&1
-  REM REM give the driver a moment to unload
-  REM ping -n 3 127.0.0.1 > nul
-REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul

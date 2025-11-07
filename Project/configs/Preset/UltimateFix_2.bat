@@ -47,7 +47,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake,fakedsplit --dpi-desync-autottl=5 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=11 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2
+--filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=11 --dpi-desync-any-protocol --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
 if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
@@ -79,14 +79,6 @@ if "%ERRORLEVEL%"=="0" (
   REM Forcefully kill winws.exe process
   taskkill /F /IM winws.exe >nul 2>&1
 )
-
-REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-REM sc query "WinDivert" >nul 2>&1
-REM if %errorlevel% equ 0 (
-  REM sc stop WinDivert >nul 2>&1
-  REM REM give the driver a moment to unload
-  REM ping -n 3 127.0.0.1 > nul
-REM )
 
 REM Flush DNS cache
 ipconfig /flushdns > nul

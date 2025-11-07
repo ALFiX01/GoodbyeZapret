@@ -1,4 +1,5 @@
 api.mycdn.me
+^google.com
 aus5.mozilla.org
 bhvrdbd.com
 amazontrust.com

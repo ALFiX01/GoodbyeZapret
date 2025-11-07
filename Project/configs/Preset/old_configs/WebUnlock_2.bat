@@ -79,14 +79,6 @@ if "%ERRORLEVEL%"=="0" (
   taskkill /F /IM winws.exe >nul 2>&1
 )
 
-REM Stop WinDivert service if it exists and running (no delete because this is a shared driver)
-REM sc query "WinDivert" >nul 2>&1
-REM if %errorlevel% equ 0 (
-  REM sc stop WinDivert >nul 2>&1
-  REM REM give the driver a moment to unload
-  REM ping -n 3 127.0.0.1 > nul
-REM )
-
 REM Flush DNS cache
 ipconfig /flushdns > nul
 cls

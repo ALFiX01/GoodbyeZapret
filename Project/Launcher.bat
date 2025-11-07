@@ -2,10 +2,10 @@
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
-:: Получаем путь к родительской папке
+:: Получаем путь к родительской папке и проверяем на пробелы
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent \"%~f0\""') do set "ParentDirPathForCheck=%%A"
 
-:: Извлекаем имя папки
+:: Извлекаем имя папки и проверяем на пробелы
 for %%A in ("%ParentDirPathForCheck%") do set "FolderName=%%~nxA"
 
 :: Проверка на пробелы
@@ -13,6 +13,7 @@ set "tempvar=%FolderName%"
 echo."%tempvar%"| findstr /c:" " >nul && (
     echo WARN: The folder name contains spaces.
     pause
+    exit /b
 )
 
 :: Метод C: fsutil dirty query %SystemDrive% (часто доступен даже на урезанных системах)
@@ -23,10 +24,12 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: Enable delayed expansion for variable manipulation
+:: Включаем для манипуляции переменными
 setlocal EnableDelayedExpansion
+
 set "ErrorCount=0"
 
+:: Определяем архитектуру системы
 IF "%PROCESSOR_ARCHITECTURE%"=="AMD64" (set "os_arch=64")
 IF "%PROCESSOR_ARCHITECTURE%"=="x86" (set "os_arch=32")
 IF DEFINED PROCESSOR_ARCHITEW6432 (set "os_arch=64")
@@ -39,7 +42,7 @@ pause > nul
 exit /b
 )
 
-:: Get the parent directory path more reliably
+:: Получаем путь к родительской папке
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 
@@ -51,14 +54,19 @@ set "beta_code=0"
 
 chcp 65001 >nul 2>&1
 
-REM Читаем значение текущего конфига из реестра
+:: Инициализируем конфигурационный файл
+if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\AppData\Roaming\GoodbyeZapret"
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+
+if not exist "%CONFIG_FILE%" call :InitConfigFromRegistry
+
+REM Читаем значение текущего конфига из config.txt
 set "GoodbyeZapret_Config="
-for /f "tokens=3" %%i in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| findstr /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%i"
-if not defined GoodbyeZapret_Config (
-    REM Если ключ не найден, установите значение по умолчанию
+call :ReadConfig GoodbyeZapret_Config
+if "%GoodbyeZapret_Config%"=="NotFound" (
+    REM Если переменная не найдена, установите значение по умолчанию
     set "GoodbyeZapret_Config=Не выбран"
 )
-
 
 call :ui_header
 
@@ -80,12 +88,21 @@ if /i not "%CurrentFont%"=="__DefaultTTFont__" (
 )
 
 REM Проверка, выполнялась ли настройка ранее
-reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" >nul 2>&1
-if %errorlevel%==0 (
+
+call :ReadConfig FirstLaunch
+if "%FirstLaunch%"=="NotFound" (
+    REM Если переменная не найдена, установите значение по умолчанию
+    set "FirstLaunch=1"
+)
+
+if "%FirstLaunch%"=="0" (
     goto :skip_checks
 )
 
 call :ui_info "Первый запуск, выполняю проверку и настройку..."
+
+
+
 
 REM /// UAC Settings ///
 set "L_ConsentPromptBehaviorAdmin=0"
@@ -101,7 +118,7 @@ REM === Код проверки и исправления UAC параметро
 REM UAC registry path
 set "UAC_HKLM=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
 
-REM Main loop for checking and updating UAC values
+REM Главный цикл для проверки и обновления значений UAC
 set "UAC_check=Success"
 for %%i in (
     ConsentPromptBehaviorAdmin
@@ -117,14 +134,14 @@ for %%i in (
     reg query "%UAC_HKLM%" /v "%%i" >nul 2>&1
     if !errorlevel! equ 0 (
         for /f "tokens=3" %%a in ('reg query "%UAC_HKLM%" /v "%%i" 2^>nul ^| find /i "%%i"') do (
-            REM Remove "0x" prefix from current value
+            REM Удаляем префикс "0x" из текущего значения
             set "current_value=%%a"
             set "current_value=!current_value:0x=!"
 
-            REM Get expected value
+            REM Получаем ожидаемое значение
             call set "expected_value=%%L_%%i%%"
 
-            REM Compare values
+            REM Сравниваем значения
             if not "!current_value!" == "!expected_value!" (
                 call :ui_warn "UAC parameter '%%i' has unexpected value. Current: 0x!current_value!, Expected: 0x!expected_value!."
                 reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
@@ -137,7 +154,7 @@ for %%i in (
             )
         )
     ) else (
-        REM Key doesn't exist, create it
+        REM Ключ не существует, создаем его
         call set "expected_value=%%L_%%i%%"
         reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
         if !errorlevel! equ 1 (
@@ -167,10 +184,10 @@ if errorlevel 1 (
 )
 
 REM === Проверка и установка LowRiskFileTypes ===
-set "ExpectedLowRisk=.exe;.reg.;.bat.;.vbs;.cmd;.ps1;.zip;.rar;.msi;.msu;.lnk;.7z;.tar.gz;.doc;.docx;.pdf;"
-set "CurrentLowRisk="
+set "ExpectedLowRisk=.exe;.reg;.bat;.vbs;.cmd;.ps1;.zip;.rar;.msi;.msu;.lnk;.7z;.tar.gz;.doc;.docx;.pdf;"
 
-for /f "tokens=3" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v "LowRiskFileTypes" ^| findstr /i "LowRiskFileTypes"') do set "CurrentLowRisk=%%i"
+rem Правильное чтение значения реестра с tokens=2*
+for /f "skip=2 tokens=2*" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v "LowRiskFileTypes" 2^>nul') do set "CurrentLowRisk=%%j"
 
 if not defined CurrentLowRisk (
     echo [INFO ] %TIME% - Setting LowRiskFileTypes=%ExpectedLowRisk%
@@ -191,7 +208,7 @@ if errorlevel 1 (
 )
 REM ///
 
-REM Check execution result
+REM Проверяем результат выполнения
 if "!UAC_check!" == "Error" (
     call :ui_warn "Некоторые параметры UAC не удалось настроить правильно."
 )
@@ -227,9 +244,8 @@ if errorlevel 1 (
 )
 
 REM По завершению создаём метку в реестре
+call :WriteConfig FirstLaunch 0
 reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" /t REG_SZ /d "0" /f >nul 2>&1
-
-:skip_checks
 
 
 REM /// Language ///
@@ -242,50 +258,52 @@ if /I "%WinLang%" NEQ "ru-Ru" (
     echo.
     echo   Required: ru-RU
     echo   Current:  %WinLang%
-    timeout /t 4 >nul
+    timeout /t 5 >nul
     call :ui_header
 )
 
+:skip_checks
+
 REM /// GoodbyeZapret Version ///
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" >nul 2>&1
-if %errorlevel% neq 0 (
-    reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%Current_GoodbyeZapret_version%" /f >nul 2>&1
+rem 1) Прочитать текущую версию из config.txt
+call :ReadConfig GoodbyeZapret_Version
+
+rem 2) Если ключ отсутствует — записать текущую версию
+if "%GoodbyeZapret_Version%"=="NotFound" (
+    call :WriteConfig GoodbyeZapret_Version "%Current_GoodbyeZapret_version%"
 ) else (
-    for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" ^| findstr /i "GoodbyeZapret_Version"') do set "Registry_Version=%%i"
-    if not "!Registry_Version!"=="%Current_GoodbyeZapret_version%" (
-        reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%Current_GoodbyeZapret_version%" /f >nul 2>&1
+    rem 3) Если отличается — обновить версию в config.txt
+    if /i not "%GoodbyeZapret_Version%"=="%Current_GoodbyeZapret_version%" (
+        call :WriteConfig GoodbyeZapret_Version "%Current_GoodbyeZapret_version%"
     )
 )
 
-REM Check for GoodbyeZapret_Version_code value in registry
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" >nul 2>&1
-if %errorlevel% neq 0 (
-    REM Key doesn't exist, create with current version value
-    reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
-    if errorlevel 1 (
-        call :ui_err "Failed to create GoodbyeZapret_Version_code key in registry"
-    )
+
+rem /// GoodbyeZapret_Version_code — новый метод через config ///
+
+rem 1) Прочитать текущее значение из config.txt
+call :ReadConfig GoodbyeZapret_Version_code
+
+set "UPDATED="
+rem 2) Если ключ отсутствует — записать текущий код версии
+if "%GoodbyeZapret_Version_code%"=="NotFound" (
+    call :WriteConfig GoodbyeZapret_Version_code "%Current_GoodbyeZapret_version_code%"
+    set "UPDATED=1"
 ) else (
-    REM Key exists, check value
-    for /f "tokens=3" %%i in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" 2^>nul ^| findstr /i "GoodbyeZapret_Version_code"') do set "Registry_Version_code=%%i"
-    
-    if not "!Registry_Version_code!"=="%Current_GoodbyeZapret_version_code%" (
-        REM call :ui_info "Выполняется обновление компонентов. Пожалуйста, подождите..."
-        REM echo [INFO ] %TIME% - Component service update in progress. Please wait...
-        
-        REM Update registry value
-        reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version_code" /t REG_SZ /d "%Current_GoodbyeZapret_version_code%" /f >nul 2>&1
-        if errorlevel 1 (
-            call :ui_err "Failed to update GoodbyeZapret_Version_code in registry"
-        )
-
-        REM Create tools folder if it doesn't exist
-        if not exist "%ParentDirPath%\tools" mkdir "%ParentDirPath%\tools" >nul 2>&1
-
-        REM echo [INFO ] %TIME% - Component update completed
-        REM call :ui_ok "Обновление компонентов завершено."
+    rem 3) Если отличается — обновить значение в config.txt
+    if /i not "%GoodbyeZapret_Version_code%"=="%Current_GoodbyeZapret_version_code%" (
+        rem call :ui_info "Выполняется обновление компонентов. Пожалуйста, подождите..."
+        call :WriteConfig GoodbyeZapret_Version_code "%Current_GoodbyeZapret_version_code%"
+        if not defined UPDATED set "UPDATED=1"
+        rem call :ui_ok "Обновление компонентов завершено."
     )
 )
+
+rem 4) Действия после обновления (по аналогии с веткой реестра)
+if defined UPDATED (
+    if not exist "%ParentDirPath%\tools" mkdir "%ParentDirPath%\tools" >nul 2>&1
+)
+
 
 
 set "WiFi=Off"
@@ -293,10 +311,12 @@ set "CheckURL=https://raw.githubusercontent.com"
 set "CheckURL_BACKUP=https://mail.ru"
 set "DNS_TEST=google.com"
 
-REM --- Primary check via nslookup ---
-call :ui_info "Проверка DNS через nslookup (%DNS_TEST%)..."
+REM --- Combined DNS and internet connectivity check ---
+call :ui_info "Проверка DNS и подключения к интернету..."
+
+REM First check DNS resolution
 nslookup %DNS_TEST% >nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
+if not "!ERRORLEVEL!"=="0" (
     echo.
     call :ui_err "Ошибка 02: DNS не отвечает или отсутствует доступ к интернету"
     echo   Проверьте подключение и настройки сети.
@@ -304,16 +324,18 @@ IF %ERRORLEVEL% NEQ 0 (
     goto :eof
 )
 
-REM --- If DNS works, check main server ---
+REM --- Если DNS работает, проверяем основной сервер ---
 
+if not defined CURL (
 if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set CURL="%ParentDirPath%\tools\curl\curl.exe"
 ) else (
     set "CURL=curl"
+    )
 )
 
 call :ui_info "DNS работает. Проверка сервера обновлений (%CheckURL%)..."
-%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL%"
+%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 1 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
     call :ui_ok "Соединение установлено. Перехожу далее"
     set "UpdaterServerConnect=Yes"
@@ -341,27 +363,27 @@ if not exist "%ParentDirPath%" (
 
 :RR
 
-REM Initialize variables
+REM call :timer_start
+
+REM Инициализируем переменные
 set "BatCount=0"
 set "sourcePath=%~dp0"
 
-REM --- Run health check in silent mode before sizing window ---
-set "SilentMode=1"
-call :CurrentStatus
-set "SilentMode="
+REM --- Запускаем проверку статуса перед изменением размера окна ---
+REM set "SilentMode=1"
+REM call :CurrentStatus
+REM set "SilentMode="
 REM ------------------------------------------------------------
 
-REM Re-calculate amount of *.bat configs and resize console every time we enter the menu (prevents list from «исчезать» after returning)
 set "TotalCheck=Ok"
 
-
-REM Initialize color codes
+REM Инициализируем коды цветов
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 
-REM Set UTF-8 encoding
+REM Устанавливаем кодировку UTF-8
 chcp 65001 >nul 2>&1
 
-REM === UI helpers: colors, symbols, header ===
+REM === UI helpers: цвета, символы, заголовок ===
 goto :UI_HELPERS_END
 
 :ui_init
@@ -369,10 +391,8 @@ goto :UI_HELPERS_END
     if defined COL (set "ESC=%COL%") else (
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "ESC=%%b")
     )
-    REM Получаем сохраненную версию Windows из реестра
-    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "WinVer" 2^>nul ^| find /i "WinVer"') do (
-        set "WinVer=%%b"
-    )
+    REM Получаем сохраненную версию Windows из config
+    call :ReadConfig WinVer
     set "C_RESET=%ESC%[0m"
     set "C_DIM=%ESC%[90m"
     set "C_INFO=%ESC%[36m"
@@ -443,11 +463,10 @@ goto :UI_HELPERS_END
     endlocal & exit /b
 
 :ui_header_for_END
-    REM Читаем значение текущего конфига из реестра
     set "GoodbyeZapret_Config="
-    for /f "tokens=3" %%i in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| findstr /i "GoodbyeZapret_Config"') do set "GoodbyeZapret_Config=%%i"
-    if not defined GoodbyeZapret_Config (
-        REM Если ключ не найден, установите значение по умолчанию
+    call :ReadConfig GoodbyeZapret_Config
+    if "%GoodbyeZapret_Config%"=="NotFound" (
+        REM Если переменная не найдена, установите значение по умолчанию
         set "GoodbyeZapret_Config=Не выбран"
     )
     call :ui_init
@@ -460,38 +479,35 @@ goto :UI_HELPERS_END
     echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
     echo                                       /____/               /_/
     echo.
-    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%   
+    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%
     call :ui_hr
     endlocal & exit /b
 
 :UI_HELPERS_END
 
 :GoodbyeZapret_Menu
-REM Initialize status variables
+REM Инициализируем переменные статуса
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
 
-REM Set default values for GoodbyeZapret configuration
-set "GoodbyeZapret_Current=Не выбран"
+REM Устанавливаем значения по умолчанию для конфигурации GoodbyeZapret
+REM set "GoodbyeZapret_Current=Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
 set "GoodbyeZapret_Old=Отсутствует"
 
-REM Check if GoodbyeZapret service exists and get current configuration
-reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
-if !errorlevel! equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
-)
+REM Проверяем, существует ли служба GoodbyeZapret и получаем текущую конфигурацию
+REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
+REM if !errorlevel! equ 0 (
+REM     for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
+REM )
 
-REM Check for old configuration in registry
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
-if !errorlevel! equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b"
-)
+REM Проверяем старый конфиг в config-файле
+call :ReadConfig GoodbyeZapret_OldConfig
 
-REM Initialize repair flag
+REM Инициализируем флаг ремонта
 set "RepairNeed=No"
 
-REM Handle repair process if needed and WiFi is available
+REM Обработка процесса ремонта, если необходимо, и доступен WiFi
 if /i "!WiFi!"=="On" (
     if /i "!RepairNeed!"=="Yes" (
         cls
@@ -500,7 +516,7 @@ if /i "!WiFi!"=="On" (
         echo  Starting the reinstallation...
         timeout /t 2 >nul
 
-        REM Create tools directory if it doesn't exist
+        REM Создаем директорию tools, если она не существует
         if not exist "%ParentDirPath%\tools" (
             md "%ParentDirPath%\tools" >nul 2>&1
         )
@@ -550,7 +566,7 @@ if not defined CURL (
     set "CURL=curl"
 )
 
-%CURL% -4 -s -I --fail --connect-timeout 2 --max-time 2 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 1 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
     set "CheckStatus=FileCheckError"
@@ -579,10 +595,12 @@ if not exist "%ParentDirPath%\tools\Updater.exe" (
         md "%ParentDirPath%\tools" >nul 2>&1
     )
     
+    if not defined CURL (
     if exist "%ParentDirPath%\tools\curl\curl.exe" (
         set CURL="%ParentDirPath%\tools\curl\curl.exe"
     ) else (
         set CURL=curl
+        )
     )
     %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
     if not exist "%ParentDirPath%\tools\Updater.exe" (
@@ -628,9 +646,6 @@ if "%CheckStatus%"=="FileCheckError" (
     set "Actual_GoodbyeZapret_version=0.0.0"
     set "StatusProject=1"
 )
-REM GoodbyeZapret versions
-set "GoodbyeZapretVersion_New=%Actual_GoodbyeZapret_version%"
-set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
 
 set "UpdateNeed=No"
 
@@ -678,7 +693,7 @@ if "%StatusProject%"=="0" (
     exit /b
 )
 
-REM Check if version has changed
+REM Проверяем, изменилась ли версия
 if not "%CheckStatus%"=="FileCheckError" (
     if defined Actual_GoodbyeZapret_version_code (
         if defined Current_GoodbyeZapret_version_code (
@@ -717,61 +732,38 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
 
 title GoodbyeZapret - Launcher
 
-REM Попробуйте прочитать значение из реестра
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" 2^>nul ^| find /i "GoodbyeZapret_Config"') do (
-    set "GoodbyeZapret_Config=%%b"
-    goto :GoodbyeZapret_Config_Found
+REM Попробуйте прочитать значение из config.txt
+call :ReadConfig GoodbyeZapret_Config
+if not defined GoodbyeZapret_Config (
+    set "GoodbyeZapret_Config=Not found"
 )
 
-REM Если ключ не найден, установите значение по умолчанию
-set "GoodbyeZapret_Config=Not found"
+rem Попробовать считать значение из config
+call :ReadConfig GoodbyeZapret_Version
 
-:GoodbyeZapret_Config_Found
-
-REM Попробуйте считать значение из нового реестра
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do (
-    set "GoodbyeZapret_Version_OLD=%%b"
-    goto :end_GoodbyeZapret_Version_OLD
+if "%GoodbyeZapret_Version%"=="NotFound" (
+    set "GoodbyeZapret_Version_OLD=NotFound"
+) else (
+    set "GoodbyeZapret_Version_OLD=%GoodbyeZapret_Version%"
 )
 
-REM Попробуйте перенести значение из старого реестра в новый
-for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" 2^>nul ^| find /i "GoodbyeZapret_Version"') do (
-    set "GoodbyeZapret_Version_OLD=%%b"
-    reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%%b" /f >nul 2>&1
-    reg delete "HKCU\Software\ASX\Info" /v "GoodbyeZapret_Version" /f >nul 2>&1
-    goto :end_GoodbyeZapret_Version_OLD
-)
-
-REM Если ключ не найден нигде, создайте его с значением по умолчанию.
-if not defined GoodbyeZapretVersion (
-    set "GoodbyeZapretVersion=0.0.0"
-)
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
-set "GoodbyeZapret_Version_OLD=Not found"
+goto :end_GoodbyeZapret_Version_OLD
 
 :end_GoodbyeZapret_Version_OLD
 
-REM Проверяем, была ли ранее определена переменная GoodbyeZapretVersion
-if not defined GoodbyeZapretVersion (
-    REM Если переменная не определена, устанавливаем значения по умолчанию.
-    REM Это происходит независимо от состояния Wi-Fi.
-    set "GoodbyeZapretVersion=%Current_GoodbyeZapret_version%"
+REM Проверяем, была ли ранее определена переменная Current_GoodbyeZapret_version
+if not defined Current_GoodbyeZapret_version (
+    REM Если переменная не определена, устанавливаем значения по умолчанию. Независимо от состояния Wi-Fi.
+    set "Current_GoodbyeZapret_version=NotFound"
     set "Actual_GoodbyeZapret_version=0.0.0"
     set "UpdateNeed=No"
 
-    REM Теперь проверяем, почему переменная не была определена.
-    REM Если Wi-Fi НЕ выключен, значит, произошла ошибка чтения из сети.
+    REM Теперь проверяем, почему переменная не была определена. Если Wi-Fi НЕ выключен, значит, произошла ошибка чтения из сети.
     if /I not "%WiFi%"=="off" (
         echo.
         echo   Error 06: Read error. Failed to read value GoodbyeZapret_Version
         timeout /t 2 >nul
     )
-)
-
-REM Обработка ошибок для отсутствующей конфигурации
-if not defined GoodbyeZapret_Config (
-    echo   Error 07: Read error. Failed to read value GoodbyeZapret_Config
-    timeout /t 2 >nul
 )
 
 REM Проверьте сервис GoodbyeZapret и получите текущую конфигурацию
@@ -782,18 +774,17 @@ if %errorlevel% equ 0 (
     )
 )
 
-REM Проверьте старую конфигурацию в реестре
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
-if %errorlevel% equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do (
-        set "GoodbyeZapret_Old=%%b"
-    )
-)
+if /i "%GoodbyeZapret_Config%" neq "NotFound" if /i not "%GoodbyeZapret_Config%"=="%GoodbyeZapret_Current%" call :WriteConfig GoodbyeZapret_Config "%GoodbyeZapret_Current%"
+
+
+REM Проверьте старый конфиг в config-файле
+call :ReadConfig GoodbyeZapret_OldConfig
+set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
 
 REM Update version in registry if defined
-if defined GoodbyeZapretVersion (
-    reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Version" /t REG_SZ /d "%GoodbyeZapretVersion%" /f >nul 2>&1
-)
+ if defined Current_GoodbyeZapret_version (
+    call :WriteConfig GoodbyeZapret_Version "%Current_GoodbyeZapret_version%"
+ )
 
 :GZ_loading_process
 set "SilentMode=1"
@@ -816,14 +807,13 @@ REM ----------------------------------------------------
 :MainMenuWithoutUiInfo
 call :ResizeMenuWindow
 REM Check for last working config in registry
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastWorkConfig" >nul 2>&1
-if %errorlevel% equ 0 (
-    for /f "tokens=2*" %%a in ('reg query "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_LastWorkConfig" 2^>nul ^| find /i "GoodbyeZapret_LastWorkConfig"') do (
-        set "GoodbyeZapret_LastWorkConf=%%b"
-        set "GoodbyeZapret_LastWork=!GoodbyeZapret_LastWorkConf:~0,-4!"
-    )
-) else (   
+call :ReadConfig GoodbyeZapret_LastWorkConfig
+
+if "%GoodbyeZapret_LastWorkConfig%"=="NotFound" (
     set "GoodbyeZapret_LastWork=none"
+) else (
+    rem Обрезать последние 4 символа: %var:~0,-4%
+    set "GoodbyeZapret_LastWork=%GoodbyeZapret_LastWorkConfig:~0,-4%"
 )
 
 REM Check GoodbyeZapret service status
@@ -881,7 +871,7 @@ if %YesCount% equ 3 (
 
 
 REM Set window title
-if not defined GoodbyeZapretVersion (
+if not defined Current_GoodbyeZapret_version (
     if /i "%branch%"=="beta" (
         title GoodbyeZapret - Launcher - бета версия %beta_code%
     ) else (
@@ -907,6 +897,11 @@ if /i "%branch%"=="beta" (
     echo                                       /____/               /_/
     echo.
 )
+
+
+REM call :timer_end
+
+
 REM Check internet connection and file status
 if /i "%WiFi%"=="Off" (
     echo                            %COL%[90mОшибка: Нет подключения к интернету%COL%[37m
@@ -963,7 +958,7 @@ if errorlevel 1 (
 set "hasActiveOrStarted=0"
 for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
     set "ConfigName=%%~nF"
-    if /i "!ConfigName!"=="%GoodbyeZapret_Current%" set "hasActiveOrStarted=1"
+    if /i "!ConfigName!"=="%GoodbyeZapret_Config%" set "hasActiveOrStarted=1"
 )
 
 REM Modernized config enumeration ----------------------------------------------------
@@ -975,7 +970,7 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
     set "StatusText="
     set "StatusColor=%COL%[37m"
 
-    if /i "!ConfigName!"=="%GoodbyeZapret_Current%" (
+    if /i "!ConfigName!"=="%GoodbyeZapret_Config%" (
         set "StatusText=[Активен]"
         set "StatusColor=%COL%[92m"
     ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" (
@@ -988,8 +983,8 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
         set "StatusColor=%COL%[93m"
     )
 
-    REM Simple alignment for single-digit numbers
-    if !counter! lss 10 (set "Pad= ") else (set "Pad=")
+        REM Simple alignment for single-digit numbers
+        if !counter! lss 10 (set "Pad= ") else (set "Pad=")
 
     if !counter! geq !StartIndex! if !counter! leq !EndIndex! (
         if defined StatusText (
@@ -1009,7 +1004,7 @@ if %Page% gtr %TotalPages% set /a Page=%TotalPages%
 
 REM Display update notification if available
 if "%UpdateNeed%"=="Yes" (
-    if defined GoodbyeZapretVersion (
+    if defined Current_GoodbyeZapret_version (
         title GoodbyeZapret v%Current_GoodbyeZapret_version% - ДОСТУПНО ОБНОВЛЕНИЕ
     ) else (
         title GoodbyeZapret - ДОСТУПНО ОБНОВЛЕНИЕ
@@ -1021,7 +1016,7 @@ echo                 %COL%[36mДействия:
 echo.
 
 REM Display different menu options based on current service status
-if "%GoodbyeZapret_Current%"=="Не выбран" (
+if "%GoodbyeZapret_Config%"=="Не выбран" (
     if not "%TotalCheck%"=="Problem" (
     echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
@@ -1198,9 +1193,8 @@ for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
 REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!batPath!" /f >nul
 REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
 
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!BaseCfg!" /f >nul
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!batPath!" /f >nul
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_OldConfig" /d "!BaseCfg!" /f >nul
+call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
+call :WriteConfig GoodbyeZapret_OldConfig "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
 cls
@@ -1264,7 +1258,8 @@ goto :end
     taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
-    reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    call :WriteConfig GoodbyeZapret_Config "Не выбран"
+    REM reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     timeout /t 1 >nul 2>&1
 goto :end
 
@@ -1297,23 +1292,27 @@ goto :end
             call :ui_err "Ошибка при удалении службы"
         )
     )
-    reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    call :WriteConfig GoodbyeZapret_Config "Не выбран"
+    REM reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     timeout /t 1 >nul 2>&1
 goto :install_GZ_service
 
 :end
 if !ErrorCount! equ 0 (
     REM Set default values for GoodbyeZapret configuration
-    set "GoodbyeZapret_Current=Не выбран"
     set "GoodbyeZapret_Config=Не выбран"
     set "GoodbyeZapret_Old=Отсутствует"
     REM Check if GoodbyeZapret service exists and get current configuration
-    reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
-    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
+    REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
+        REM if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
 
-    REM Check for old configuration in registry
-    reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
-    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b" )
+    rem /// Check for old configuration via config ///
+    call :ReadConfig GoodbyeZapret_OldConfig
+    if "%GoodbyeZapret_OldConfig%"=="NotFound" (
+        set "GoodbyeZapret_Old=NotFound"
+    ) else (
+        set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
+    )
 
     goto MainMenuWithoutUiInfo
 ) else (
@@ -1321,17 +1320,19 @@ if !ErrorCount! equ 0 (
     pause >nul 2>&1
     set "batFile="
     REM Set default values for GoodbyeZapret configuration
-    set "GoodbyeZapret_Current=Не выбран"
     set "GoodbyeZapret_Config=Не выбран"
     set "GoodbyeZapret_Old=Отсутствует"
     REM Check if GoodbyeZapret service exists and get current configuration
-    reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
-    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
+    REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
+        REM if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
 
-    REM Check for old configuration in registry
-    reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" >nul 2>&1
-    if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_OldConfig" 2^>nul ^| find /i "GoodbyeZapret_OldConfig"') do set "GoodbyeZapret_Old=%%b" )
-
+    rem /// Check for old configuration via config ///
+    call :ReadConfig GoodbyeZapret_OldConfig
+    if "%GoodbyeZapret_OldConfig%"=="NotFound" (
+        set "GoodbyeZapret_Old=NotFound"
+    ) else (
+        set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
+    )
     goto MainMenuWithoutUiInfo
 )
 
@@ -1625,9 +1626,9 @@ echo    ^│ %COL%[37mВерсии:                                             
 echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
 
 if "%UpdateNeed%"=="Yes" (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%GoodbyeZapretVersion% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                                    %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%Current_GoodbyeZapret_version% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                                    %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%GoodbyeZapretVersion%                                                              %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%Current_GoodbyeZapret_version%                                                              %COL%[36m^│
 )
 
 REM     echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                                                 %COL%[36m^│
@@ -1654,13 +1655,14 @@ if "%TotalCheck%"=="Problem" (
 echo.
 echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
-echo    %COL%[36m^[ %COL%[96mB %COL%[36m^] %COL%[93mВернуться в меню
-echo    %COL%[36m^[ %COL%[96mI %COL%[36m^] %COL%[93mОткрыть инструкцию
-echo    %COL%[36m^[ %COL%[96mT %COL%[36m^] %COL%[93mОткрыть telegram канал
-echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mПереустановить GoodbyeZapret
-echo    %COL%[36m^[ %COL%[96mR %COL%[36m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
+echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[93mВернуться в меню
+echo    %COL%[90m^[ %COL%[36mI %COL%[90m^] %COL%[93mОткрыть инструкцию
+echo    %COL%[90m^[ %COL%[36mT %COL%[90m^] %COL%[93mОткрыть telegram канал
+echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mПереустановить GoodbyeZapret
+echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
+echo    %COL%[90m^[ %COL%[32mF %COL%[90m^] %COL%[32mПоддержать разработку проекта
 if "%UpdateNeed%"=="Yes" (
-    echo    %COL%[36m^[ %COL%[96mU %COL%[36m^] %COL%[93mОбновить до актуальной версии
+    echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mОбновить до актуальной версии
 )
 echo.
 echo.
@@ -1687,6 +1689,9 @@ if /i "%choice%"=="е" set "choice=" && goto OpenTelegram
 
 if /i "%choice%"=="R" set "choice=" && goto QuickRestart
 if /i "%choice%"=="к" set "choice=" && goto QuickRestart
+
+if /i "%choice%"=="F" set "choice=" && start https://pay.cloudtips.ru/p/b98d1870
+if /i "%choice%"=="а" set "choice=" && start https://pay.cloudtips.ru/p/b98d1870
 
 REM Handle update option only if update is needed
 if "%UpdateNeed%"=="Yes" (
@@ -1783,10 +1788,12 @@ if exist "%UpdaterPath%" (
 )
 
 echo [INFO ] %TIME% - Downloading Updater.exe...
+if not defined CURL (
 if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set CURL="%ParentDirPath%\tools\curl\curl.exe"
 ) else (
-    set CURL=curl
+    set "CURL=curl"
+    )
 )
 %CURL% -g -L -s -o "%UpdaterPath%" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
 
@@ -1905,10 +1912,12 @@ goto RR
 
 :Update_Need_screen
 set "PatchNoteLines=0"
+if not defined CURL (
 if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set CURL="%ParentDirPath%\tools\curl\curl.exe"
 ) else (
-    set CURL=curl
+    set "CURL=curl"
+    )
 )
 %CURL% -g -L -o "%ParentDirPath%\bin\PatchNote.txt" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/Files/PatchNote.txt"
 for /f %%A in ('type "%ParentDirPath%\bin\PatchNote.txt" ^| find /c /v ""') do set "PatchNoteLines=%%A"
@@ -2086,3 +2095,130 @@ if /i "%choice%"=="и" (
 
 REM Return to main menu if no input provided
 if "%choice%"=="" goto MainMenu
+
+
+:: Функция: чтение значения
+:ReadConfig
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+:: Вызов: call :ReadConfig VariableName
+
+setlocal EnableExtensions DisableDelayedExpansion
+set "RES="
+set "FOUND=0"
+
+for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
+    if /i "%%A"=="%~1" (
+        set "RES=%%B"
+        set "FOUND=1"
+    )
+)
+
+endlocal & set "RES=%RES%" & set "FOUND=%FOUND%"
+
+:: Если ключ не найден — задаём NotFound
+if "%FOUND%"=="0" set "RES=NotFound"
+
+:: Снять ТОЛЬКО внешние кавычки, если значение найдено и оно в кавычках
+if not "%RES%"=="NotFound" if defined RES if aa%RES:~0,1%%RES:~-1%aa==aa""aa set "RES=%RES:~1,-1%"
+
+set "%~1=%RES%"
+goto :eof
+
+
+:: Функция: запись значения с пробелами
+:WriteConfig
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+:: Вызов: call :WriteConfig VariableName "Значение с пробелами"
+
+set "TEMP_FILE=%~dp0config_temp.txt"
+if exist "%TEMP_FILE%" del "%TEMP_FILE%"
+
+set "found=0"
+
+:: 1) Сохраняем ключ ДО shift
+set "KEY=%~1"
+
+:: 2) Значение берём из %~2 (одно аргументированное значение в кавычках)
+set "VALUE=%~2"
+
+:: Переписываем файл, меняя только нужную строку
+for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
+    if /i "%%~A"=="!KEY!" (
+        >>"%TEMP_FILE%" echo %%A="!VALUE!"
+        set "found=1"
+    ) else (
+        >>"%TEMP_FILE%" echo %%A=%%B
+    )
+)
+
+:: 3) Если ключа не было — добавляем
+if "!found!"=="0" (
+    >>"%TEMP_FILE%" echo !KEY!="!VALUE!"
+)
+
+move /y "%TEMP_FILE%" "%CONFIG_FILE%" >nul 2>&1
+goto :eof
+
+:DelConfig
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+set "TEMP_FILE=%~dp0config_temp.txt"
+if exist "%TEMP_FILE%" del "%TEMP_FILE%"
+set "DELVAR=%~1"
+for /f "tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
+    if /i not "%%A"=="!DELVAR!" (
+        echo %%A=%%B>> "%TEMP_FILE%"
+    )
+)
+move /y "%TEMP_FILE%" "%CONFIG_FILE%" >nul 2>&1
+goto :eof
+
+
+:: Функция: инициализация конфига из реестра
+:InitConfigFromRegistry
+set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_OldConfig GoodbyeZapret_Version_code"
+set "REG_KEY=HKCU\Software\ALFiX inc.\GoodbyeZapret"
+
+if exist "%CONFIG_FILE%" goto :eof
+
+echo Инициализация config.txt из реестра...
+if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" mkdir "%USERPROFILE%\AppData\Roaming\GoodbyeZapret"
+> "%CONFIG_FILE%" type nul
+
+for %%V in (%VARS%) do (
+    for /f "skip=2 tokens=2,*" %%A in ('reg query "%REG_KEY%" /v "%%V" 2^>nul') do (
+        if not "%%B"=="" >>"%CONFIG_FILE%" echo %%V="%%B"
+    )
+)
+goto :eof
+
+
+
+:timer_start
+set start_time=%time%
+goto :eof
+
+:timer_end
+set end_time=%time%
+
+:: Парсинг начального времени
+for /f "tokens=1-4 delims=:., " %%a in ("%start_time%") do (
+    set /a start_h=%%a
+    set /a start_m=100%%b %% 100
+    set /a start_s=100%%c %% 100
+    set /a start_ms=100%%d %% 100
+)
+
+:: Парсинг конечного времени
+for /f "tokens=1-4 delims=:., " %%a in ("%end_time%") do (
+    set /a end_h=%%a
+    set /a end_m=100%%b %% 100
+    set /a end_s=100%%c %% 100
+    set /a end_ms=100%%d %% 100
+)
+
+:: Вычисление разницы
+set /a total_ms=(%end_h%-%start_h%)*3600000 + (%end_m%-%start_m%)*60000 + (%end_s%-%start_s%)*1000 + (%end_ms%-%start_ms%)
+
+echo Выполнение заняло: %total_ms% миллисекунд
+goto :eof
