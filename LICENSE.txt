@@ -33,12 +33,6 @@ This repository includes source code and binary components originating from thir
 - License: MIT License  
 - Note: Binary files from this project are included as-is, without modification. No source code from the original project is present in this repository.
 
-🔹 zapret-discord-youtube by Flowseal 
-- Repository: https://github.com/Flowseal/zapret-discord-youtube  
-- License: MIT License  
-- Note: Portions of this project (scripts, configs, or logic) are included with modifications.  
-  All changes are clearly marked or documented within the repository, and original credit is retained.
-
 🔹 WinDivert by basil00  
 - Repository: https://github.com/basil00/WinDivert  
 - License: Dual-licensed under:  
