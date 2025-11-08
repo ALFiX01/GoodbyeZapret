@@ -2,7 +2,7 @@
 
 <div align="center">
   <a href="https://github.com/ALFiX01/GoodbyeZapret">
-    <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/Design3.png?raw=true" alt="GoodbyeZapret Logo Banner" >
+    <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/Design4.png?raw=true" alt="GoodbyeZapret Logo Banner" >
   </a>
   <br />
   <p><strong>Инструмент для обхода DPI-блокировок в Windows.</strong></p>
