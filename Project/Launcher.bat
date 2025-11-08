@@ -50,7 +50,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 set "Current_GoodbyeZapret_version=2.6.0"
 set "Current_GoodbyeZapret_version_code=06OK01"
 set "branch=Beta"
-set "beta_code=0"
+set "beta_code=4"
 
 chcp 65001 >nul 2>&1
 
@@ -86,6 +86,7 @@ if /i not "%CurrentFont%"=="__DefaultTTFont__" (
         exit /b
     )
 )
+
 
 REM Проверка, выполнялась ли настройка ранее
 
@@ -223,16 +224,16 @@ if errorlevel 1 (
         set "WinVersion=%%a"
 
         REM Проверяем, является ли система Windows 11
-        echo !WinVersion! | find /i "Windows 11" >nul
+        echo !WinVersion! | find /i "11" >nul
         if not errorlevel 1 (
-            set "WinVer=Windows 11"
-            reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "Windows 11" /f >nul 2>&1
+            set "WinVer=11"
+            reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "11" /f >nul 2>&1
         ) else (
             REM Проверяем, является ли система Windows 10
-            echo !WinVersion! | find /i "Windows 10" >nul
+            echo !WinVersion! | find /i "10" >nul
             if not errorlevel 1 (
-                set "WinVer=Windows 10"
-                reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "Windows 10" /f >nul 2>&1
+                set "WinVer=10"
+                reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "10" /f >nul 2>&1
             )
         )
     )
@@ -392,7 +393,7 @@ goto :UI_HELPERS_END
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "ESC=%%b")
     )
     REM Получаем сохраненную версию Windows из config
-    call :ReadConfig WinVer
+    call :ReadConfig "WinVer"
     set "C_RESET=%ESC%[0m"
     set "C_DIM=%ESC%[90m"
     set "C_INFO=%ESC%[36m"
@@ -401,7 +402,7 @@ goto :UI_HELPERS_END
     set "C_ERR=%ESC%[31m"
     set "C_TITLE=%ESC%[96m"
     set "C_PRIMARY=%ESC%[94m"
-    if "!WinVer!"=="Windows 11" (
+    if "%WinVer%"=="11" (
         set "S_OK=✔"
     ) else (
         set "S_OK=√"  
@@ -409,31 +410,31 @@ goto :UI_HELPERS_END
     set "S_WARN=▲"
     set "S_ERR=✖"
     set "S_INFO=●"
-    exit /b
+    goto :eof
 
 :ui_info
     call :ui_init
     set "msg=%~1"
     echo  %C_INFO%[ %S_INFO% ]%C_RESET% !msg!
-    endlocal & exit /b
+    endlocal & goto :eof
 
 :ui_ok
     call :ui_init
     set "msg=%~1"
     echo  %C_OK%[ %S_OK% ]%C_RESET% !msg!
-    endlocal & exit /b
+    endlocal & goto :eof
 
 :ui_warn
     call :ui_init
     set "msg=%~1"
     echo  %C_WARN%[ %S_WARN% ]%C_RESET% !msg!
-    endlocal & exit /b
+    endlocal & goto :eof
 
 :ui_err
     call :ui_init
     set "msg=%~1"
     echo  %C_ERR%[ %S_ERR% ]%C_RESET% !msg!
-    endlocal & exit /b
+    endlocal & goto :eof
 
 :ui_hr
     call :ui_init
@@ -444,12 +445,16 @@ goto :UI_HELPERS_END
     set "line="
     for /l %%i in (1,1,!W!) do set "line=!line!─"
     echo %C_DIM%!line!%C_RESET%
-    endlocal & exit /b
+    endlocal & goto :eof
 
-:ui_header
+    :ui_header
     call :ui_init
     setlocal EnableDelayedExpansion
     cls
+    if not defined Current_GoodbyeZapret_version ( set "Current_GoodbyeZapret_version=ERROR" )
+    if not defined Current_GoodbyeZapret_version_code ( set "Current_GoodbyeZapret_version_code=ERROR" )
+    if not defined branch ( set "branch=ERROR" )
+    if not defined beta_code ( set "beta_code=ERROR" )
     call :ui_hr
     echo                          %C_RESET%______                ____            _____                         __ 
     echo                         / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
@@ -458,9 +463,9 @@ goto :UI_HELPERS_END
     echo                       \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
     echo                                                    /____/               /_/
     echo.
-    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%   
+    echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% !GoodbyeZapret_Config!  
     call :ui_hr
-    endlocal & exit /b
+    endlocal & goto :eof
 
 :ui_header_for_END
     set "GoodbyeZapret_Config="
@@ -481,7 +486,7 @@ goto :UI_HELPERS_END
     echo.
     echo  %C_PRIMARY%Версия:%C_RESET% %Current_GoodbyeZapret_version%   %C_PRIMARY%Код:%C_RESET% %Current_GoodbyeZapret_version_code%   %C_PRIMARY%Ветка:%C_RESET% %branch%   %C_PRIMARY%Конфиг:%C_RESET% %GoodbyeZapret_Config%
     call :ui_hr
-    endlocal & exit /b
+    endlocal & goto :eof
 
 :UI_HELPERS_END
 
@@ -2100,28 +2105,43 @@ if "%choice%"=="" goto MainMenu
 :: Функция: чтение значения
 :ReadConfig
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
-:: Вызов: call :ReadConfig VariableName
+REM echo [LOG] Старт функции :ReadConfig для %~1, файл: %CONFIG_FILE%
 
-setlocal EnableExtensions DisableDelayedExpansion
+
 set "RES="
 set "FOUND=0"
+REM echo [LOG] Переменные RES и FOUND инициализированы
+
+if not exist "%CONFIG_FILE%" (
+    echo [LOG][ОШИБКА] Файл конфигурации не найден!
+    goto :eof
+)
+
+REM echo [LOG] Начинаем цикл по файлу конфигурации...
 
 for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
+REM    echo [LOG] Анализ строки: %%A=%%B
     if /i "%%A"=="%~1" (
+REM        echo [LOG] Найден ключ: %%A, значение: %%B
         set "RES=%%B"
         set "FOUND=1"
     )
 )
 
+REM echo [LOG] После цикла: RES=%RES% FOUND=%FOUND%
 endlocal & set "RES=%RES%" & set "FOUND=%FOUND%"
 
-:: Если ключ не найден — задаём NotFound
-if "%FOUND%"=="0" set "RES=NotFound"
+if "%FOUND%"=="0" (
+    set "RES=NotFound"
+REM    echo [LOG] Ключ не найден, RES=NotFound
+)
 
-:: Снять ТОЛЬКО внешние кавычки, если значение найдено и оно в кавычках
-if not "%RES%"=="NotFound" if defined RES if aa%RES:~0,1%%RES:~-1%aa==aa""aa set "RES=%RES:~1,-1%"
+if not "%RES%"=="NotFound" if defined RES (
+  if not "%RES%"=="%RES:"=%" set "RES=%RES:~1,-1%"
+)
 
 set "%~1=%RES%"
+
 goto :eof
 
 
@@ -2175,6 +2195,29 @@ goto :eof
 
 :: Функция: инициализация конфига из реестра
 :InitConfigFromRegistry
+
+REM Переключаемся на кодовую страницу, поддерживающую символы Unicode
+chcp 850 >nul 2>&1
+for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"`) do (
+    chcp 65001 >nul 2>&1    
+    set "WinVersion=%%a"
+
+    REM Проверяем, является ли система Windows 11
+    echo !WinVersion! | find /i "Windows 11" >nul
+    if not errorlevel 1 (
+        set "WinVer=Windows 11"
+        reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "11" /f >nul 2>&1
+    ) else (
+        REM Проверяем, является ли система Windows 10
+        echo !WinVersion! | find /i "Windows 10" >nul
+        if not errorlevel 1 (
+            set "WinVer=Windows 10"
+            reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "10" /f >nul 2>&1
+        )
+    )
+)
+
+
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
 set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_OldConfig GoodbyeZapret_Version_code"
 set "REG_KEY=HKCU\Software\ALFiX inc.\GoodbyeZapret"
