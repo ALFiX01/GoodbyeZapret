@@ -93,6 +93,18 @@ trim()
 {
 	awk '{gsub(/^ +| +$/,"")}1'
 }
+split_by_separator()
+{
+	# $1 - string
+	# $2 - separator
+	# $3 - var name to get "before" part
+	# $4 - var name to get "after" part
+	local before="${1%%$2*}"
+	local after="${1#*$2}"
+	[ "$after" = "$1" ] && after=
+	[ -n "$3" ] && eval $3="\$before"
+	[ -n "$4" ] && eval $4="\$after"
+}
 
 dir_is_not_empty()
 {
@@ -297,10 +309,10 @@ minsleep()
 
 replace_char()
 {
-	local a=$1
-	local b=$2
+	local a="$1"
+	local b="$2"
 	shift; shift
-	echo "$@" | tr $a $b
+	echo "$@" | tr "$a" "$b"
 }
 
 replace_str()
@@ -318,6 +330,12 @@ setup_md5()
 	exists $MD5 || MD5=md5
 }
 
+md5f()
+{
+	setup_md5
+	$MD5 | cut -d ' ' -f1
+}
+
 setup_random()
 {
 	[ -n "$RCUT" ] && return
@@ -330,7 +348,6 @@ random()
 {
 	# $1 - min, $2 - max
 	local r rs
-	setup_md5
 	setup_random
 	if [ -c /dev/urandom ]; then
 		read rs </dev/urandom
@@ -338,7 +355,7 @@ random()
 		rs="$RANDOM$RANDOM$(date)"
 	fi
 	# shells use signed int64
-	r=1$(echo $rs | $MD5 | sed 's/[^0-9]//g' | $RCUT)
+	r=1$(echo $rs | md5f | sed 's/[^0-9]//g' | $RCUT)
 	echo $(( ($r % ($2-$1+1)) + $1 ))
 }
 

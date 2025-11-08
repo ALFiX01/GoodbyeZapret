@@ -35,11 +35,11 @@ IF "%PROCESSOR_ARCHITECTURE%"=="x86" (set "os_arch=32")
 IF DEFINED PROCESSOR_ARCHITEW6432 (set "os_arch=64")
 
 if %os_arch%==32 (
-color f2
-echo Windows x86 detected. Nothing to do.
-echo Press any key for exit
-pause > nul
-exit /b
+    color f2
+    echo Windows x86 detected. Nothing to do.
+    echo Press any key for exit
+    pause > nul
+    exit /b
 )
 
 :: Получаем путь к родительской папке
