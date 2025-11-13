@@ -49,8 +49,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 :: Version information
 set "Current_GoodbyeZapret_version=2.6.0"
 set "Current_GoodbyeZapret_version_code=06OK01"
-set "branch=Beta"
-set "beta_code=4"
+set "branch=Stable"
+set "beta_code=0"
 
 chcp 65001 >nul 2>&1
 
@@ -813,12 +813,17 @@ REM ----------------------------------------------------
 call :ResizeMenuWindow
 REM Check for last working config in registry
 call :ReadConfig GoodbyeZapret_LastWorkConfig
-
 if "%GoodbyeZapret_LastWorkConfig%"=="NotFound" (
     set "GoodbyeZapret_LastWork=none"
 ) else (
     rem Обрезать последние 4 символа: %var:~0,-4%
     set "GoodbyeZapret_LastWork=%GoodbyeZapret_LastWorkConfig:~0,-4%"
+)
+
+call :ReadConfig GoodbyeZapret_Config
+if "%GoodbyeZapret_Config%"=="NotFound" (
+    REM Если переменная не найдена, установите значение по умолчанию
+    set "GoodbyeZapret_Config=Не выбран"
 )
 
 REM Check GoodbyeZapret service status
@@ -1063,6 +1068,9 @@ if /i "%choice%"=="ые" goto CurrentStatus
 if /i "%choice%"=="AC" goto ConfigAutoFinder
 if /i "%choice%"=="фс" goto ConfigAutoFinder
 
+if /i "%choice%"=="RC" goto QuickRestart
+if /i "%choice%"=="кы" goto QuickRestart
+
 if /i "%choice%"=="R" goto RR
 
 REM --- Pagination input handling ---
@@ -1263,7 +1271,7 @@ goto :end
     taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
-    call :WriteConfig GoodbyeZapret_Config "Не выбран"
+    call :WriteConfig GoodbyeZapret_Config "NotFound"
     REM reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     timeout /t 1 >nul 2>&1
 goto :end
@@ -1317,6 +1325,12 @@ if !ErrorCount! equ 0 (
         set "GoodbyeZapret_Old=NotFound"
     ) else (
         set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
+    )
+
+    call :ReadConfig GoodbyeZapret_Config
+    if "%GoodbyeZapret_Config%"=="NotFound" (
+        REM Если переменная не найдена, установите значение по умолчанию
+        set "GoodbyeZapret_Config=Не выбран"
     )
 
     goto MainMenuWithoutUiInfo
@@ -1501,7 +1515,7 @@ for /f "tokens=2 delims=:" %%a in ('sc query 2^>NUL ^| findstr /I "SERVICE_NAME:
 
 if defined VPNServices (
     set "VPNCheckResult=Problem"
-    set "VPNCheckTips=VPN должен быть выключен ^(!VPNServices!^) ."
+    set "VPNCheckTips=VPN должен быть выключен ^(!VPNServices!^)"
 ) else (
     set "VPNCheckResult=Ok"
 )
@@ -1660,12 +1674,13 @@ if "%TotalCheck%"=="Problem" (
 echo.
 echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
+echo    %COL%[90m^[ %COL%[32mF %COL%[90m^] %COL%[32mПоддержать разработку проекта
+echo.
 echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[93mВернуться в меню
 echo    %COL%[90m^[ %COL%[36mI %COL%[90m^] %COL%[93mОткрыть инструкцию
 echo    %COL%[90m^[ %COL%[36mT %COL%[90m^] %COL%[93mОткрыть telegram канал
 echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mПереустановить GoodbyeZapret
 echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
-echo    %COL%[90m^[ %COL%[32mF %COL%[90m^] %COL%[32mПоддержать разработку проекта
 if "%UpdateNeed%"=="Yes" (
     echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mОбновить до актуальной версии
 )

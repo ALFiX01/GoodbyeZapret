@@ -42,7 +42,7 @@ REM --filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync=
 
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
---filter-l7=discord,stun --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
+--filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,2053,2083,2087,2096 --wf-udp=443,444-65535 ^
@@ -51,10 +51,10 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-l3=ipv6 --filter-tcp=80 --dpi-desync-cutoff=n4 --new ^
 --filter-udp=443 --hostlist="%LISTS%list-quick_ttl.txt" --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%fake_quic_2.bin" --dpi-desync-repeats=4 --dpi-desync-ttl=5 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --filter-l7=unknown --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-ttl=5 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
 --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fooling=md5sig --dup=1 --dup-cutoff=n2 --dup-fooling=md5sig --dpi-desync-hostfakesplit-mod=altorder=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_312.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync-any-protocol --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5 --new ^
 --filter-l3=ipv6 --filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-fake-tls=0x00F0000F --dpi-desync-fake-tls="%FAKE%fake_tls_7.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
 --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x0F0F0F0F --dpi-desync-split-pos=1,sld+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-fakedsplit-mod=altorder=0 --dpi-desync-fooling=ts --dpi-desync-cutoff=n4 --new ^
 --filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
@@ -63,11 +63,11 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=443 --hostlist="%LISTS%anomaly_site.txt" --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=2,endsld-2 --dpi-desync-fake-tls-mod=rnd,sni=fonts.google.com --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_3.bin" --dpi-desync-fakedsplit-mod=altorder=3 --ip-id=zero --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n5 --new ^
 
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=2,endsld-2 --dpi-desync-fake-tls-mod=rnd,sni=fonts.google.com --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_3.bin" --dpi-desync-fakedsplit-mod=altorder=3 --ip-id=zero --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n5 --new ^
---filter-tcp=443,444-65535 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync-any-protocol --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=443,444-65535 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
 --filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare4.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 
 --filter-tcp=2053,2083,2087,2096 --dpi-desync=rst,multidisorder --dpi-desync-split-pos=3 --dpi-desync-fooling=md5sig,badseq --dpi-desync-cutoff=n5 --new ^
---filter-udp=5056,27002 --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n15 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-udp=5056,27002 --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n15 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-retrans-threshold=4 --dpi-desync=multisplit --dpi-desync-split-seqovl=314 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-cutoff=n5
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском

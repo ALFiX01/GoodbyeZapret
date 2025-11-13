@@ -54,7 +54,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http=0x0F0F0E0F --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync=multisplit --dpi-desync-split-seqovl=211 --dpi-desync-split-pos=sld+2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_5.bin" --new ^
 --filter-tcp=443,444-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=211 --dpi-desync-split-pos=sld+2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_5.bin" --new ^
---filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-fake-unknown-udp="%FAKE%quic_6.bin" --dpi-desync-repeats=%UDP_Repeats% --dpi-desync-cutoff=n%Cutoff_Limit% --dpi-desync-ttl=%TTL_Limit% --new ^
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=fake --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_6.bin" --dpi-desync-repeats=%UDP_Repeats% --dpi-desync-cutoff=n%Cutoff_Limit% --dpi-desync-ttl=%TTL_Limit% --new ^
 --filter-l3=ipv4 --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare3.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=209 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_5.bin" --dpi-desync-split-pos=sld+1 --dup=2 --dup-cutoff=n3
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском

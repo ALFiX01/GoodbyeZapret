@@ -43,7 +43,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=443 --hostlist="%LISTS%youtube.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=3 --dpi-desync-fake-tls="%FAKE%tls_clienthello_2.bin" --dpi-desync-ttl=3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=split --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=6 --dpi-desync-autottl --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=5 --dpi-desync-udplen-pattern=0xDEADBEEF --dpi-desync-fake-quic="%FAKE%quic_2.bin" --dpi-desync-repeats=7 --dpi-desync-cutoff=n2 --new ^
---filter-udp=50000-50099 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d2 --dpi-desync-fake-quic="%FAKE%quic_1.bin" --new ^
+--filter-udp=50000-50099 --dpi-desync=fake --dpi-desync-any-protocol=1 --dpi-desync-cutoff=d2 --dpi-desync-fake-quic="%FAKE%quic_1.bin" --new ^
 --filter-tcp=443 --hostlist="%LISTS%other.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=1 --dpi-desync-split-pos=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_2.bin" --dpi-desync-ttl=5 --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-facebook_instagram.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_4.bin" --new ^
 --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare.txt" --hostlist-exclude-domains=githubusercontent.com --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
