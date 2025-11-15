@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.7.1"
+set "UpdaterVersion=2.7.2"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -107,9 +107,6 @@ set "GoodbyeZapret_Config=None"
 if not exist "%CONFIG_FILE%" call :InitConfigFromRegistry
 REM Попытка прочитать из config
 call :ReadConfig GoodbyeZapret_Config
-
-echo %GoodbyeZapret_Config%
-pause
 
 call :log INFO "Preferred config: !GoodbyeZapret_Config!"
 
