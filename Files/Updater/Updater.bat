@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.7.2"
+set "UpdaterVersion=2.7.3"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -342,6 +342,29 @@ goto :eof
 
 
 :InitConfigFromRegistry
+
+REM Переключаемся на кодовую страницу, поддерживающую символы Unicode
+chcp 850 >nul 2>&1
+for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"`) do (
+    chcp 65001 >nul 2>&1    
+    set "WinVersion=%%a"
+
+    REM Проверяем, является ли система Windows 11
+    echo !WinVersion! | find /i "Windows 11" >nul
+    if not errorlevel 1 (
+        set "WinVer=Windows 11"
+        reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "11" /f >nul 2>&1
+    ) else (
+        REM Проверяем, является ли система Windows 10
+        echo !WinVersion! | find /i "Windows 10" >nul
+        if not errorlevel 1 (
+            set "WinVer=Windows 10"
+            reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "10" /f >nul 2>&1
+        )
+    )
+)
+
+
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
 set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_OldConfig GoodbyeZapret_Version_code"
 set "REG_KEY=HKCU\Software\ALFiX inc.\GoodbyeZapret"
