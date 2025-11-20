@@ -47,8 +47,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.6.0"
-set "Current_GoodbyeZapret_version_code=16NV01"
+set "Current_GoodbyeZapret_version=2.6.1"
+set "Current_GoodbyeZapret_version_code=20NV01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -101,7 +101,6 @@ if "%FirstLaunch%"=="0" (
 )
 
 call :ui_info "Первый запуск, выполняю проверку и настройку..."
-
 
 
 
@@ -215,38 +214,37 @@ if "!UAC_check!" == "Error" (
 )
 
 REM TESTING
-reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "WinVer" >nul 2>&1
-if errorlevel 1 (
-    REM Переключаемся на кодовую страницу, поддерживающую символы Unicode
+
+call :ReadConfig WinVer
+
+rem 2) Если ключ отсутствует — записать текущую версию
+if "%WinVer%"=="NotFound" (
     chcp 850 >nul 2>&1
     for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"`) do (
-        chcp 65001 >nul 2>&1    
+        chcp 65001 >nul 2>&1
         set "WinVersion=%%a"
 
         REM Проверяем, является ли система Windows 11
         echo !WinVersion! | find /i "11" >nul
         if not errorlevel 1 (
             set "WinVer=11"
-            reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "11" /f >nul 2>&1
+            call :WriteConfig WinVer "11"
+            echo Set Win Version - 11
         ) else (
             REM Проверяем, является ли система Windows 10
             echo !WinVersion! | find /i "10" >nul
             if not errorlevel 1 (
                 set "WinVer=10"
-                reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "10" /f >nul 2>&1
+                call :WriteConfig WinVer "10"
+                echo Set Win Version - 10
             )
         )
-    )
-) else (
-    REM Получаем сохраненную версию Windows из реестра
-    for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "WinVer" 2^>nul ^| find /i "WinVer"') do (
-        set "WinVer=%%b"
     )
 )
 
 REM По завершению создаём метку в реестре
 call :WriteConfig FirstLaunch 0
-reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" /t REG_SZ /d "0" /f >nul 2>&1
+REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" /t REG_SZ /d "0" /f >nul 2>&1
 
 
 REM /// Language ///
@@ -1593,7 +1591,7 @@ if "%SilentMode%"=="1" goto :eof
 
 REM Настройка размера консоли в зависимости от наличия проблем
 if "!TotalCheck!"=="Problem" (
-    mode con: cols=92 lines=36 >nul 2>&1
+    mode con: cols=92 lines=35 >nul 2>&1
 ) else (
     mode con: cols=92 lines=27 >nul 2>&1
 )
@@ -2051,7 +2049,7 @@ if /I "%TotalCheck%"=="Problem" (
     REM Ветка для Problem (оставляю как у тебя)
     if %YesCount% equ 2 ( set /a ListBatCount+=1 )
     if %YesCount% equ 1 ( set /a ListBatCount+=1 )
-    if %YesCount% equ 0 ( set /a ListBatCount+=1 )
+    if %YesCount% equ 0 ( set /a ListBatCount+=2 )
 ) else (
     if %YesCount% equ 0 (
         set /a ListBatCount+=2

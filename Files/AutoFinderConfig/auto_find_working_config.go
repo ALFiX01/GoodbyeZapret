@@ -32,12 +32,13 @@ const (
 	fastDialTimeout    = 2 * time.Second
 	fastTLSHandshake   = 2 * time.Second
 	fastResponseHeader = 2500 * time.Millisecond
-	fastClientTimeout  = 4 * time.Second
-	slowDialTimeout    = 4 * time.Second
-	slowTLSHandshake   = 4 * time.Second
-	slowResponseHeader = 4 * time.Second
-	slowClientTimeout  = 6 * time.Second
+	fastClientTimeout  = 3 * time.Second
+	slowDialTimeout    = 3 * time.Second
+	slowTLSHandshake   = 3 * time.Second
+	slowResponseHeader = 3 * time.Second
+	slowClientTimeout  = 4 * time.Second
 )
+
 
 var (
 	checkMark = color.GreenString("OK")
@@ -106,7 +107,7 @@ func (f *Finder) testConfig(cfgPath string) {
 	cfgName := filepath.Base(cfgPath)
 	color.Cyan(" Запуск конфига %s ...", cfgName)
 	runBatch(cfgPath)
-	time.Sleep(2 * time.Second)
+	time.Sleep(1400 * time.Millisecond)
 
 	color.Cyan("  Проверка доступности доменов ...")
 	okCount, failedList := f.testDomains()
@@ -296,18 +297,27 @@ func shouldRetry(err error) bool {
 }
 
 func buildHTTPClient(dialTimeout, tlsTimeout, respHdrTimeout, overallTimeout time.Duration) *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout: dialTimeout, KeepAlive: 30 * time.Second,
-			}).DialContext,
-			TLSHandshakeTimeout:   tlsTimeout,
-			ResponseHeaderTimeout: respHdrTimeout,
-			ForceAttemptHTTP2:     true,
-		},
-		Timeout: overallTimeout,
-	}
+    tr := &http.Transport{
+        Proxy: http.ProxyFromEnvironment,
+        DialContext: (&net.Dialer{
+            Timeout:   dialTimeout,
+            KeepAlive: 30 * time.Second,
+        }).DialContext,
+        TLSHandshakeTimeout:   tlsTimeout,
+        ResponseHeaderTimeout: respHdrTimeout,
+        ForceAttemptHTTP2:     true,
+
+        // Чуть больше коннекшенов, чтобы не было лишней очереди
+        MaxIdleConns:        100,
+        MaxConnsPerHost:     100,
+        MaxIdleConnsPerHost: 10,
+        IdleConnTimeout:     30 * time.Second,
+    }
+
+    return &http.Client{
+        Transport: tr,
+        Timeout:   overallTimeout,
+    }
 }
 
 func resolveDirs() (toolsDir, projectDir string) {
