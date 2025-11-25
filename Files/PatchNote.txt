@@ -1,3 +1,2 @@
-  - Оптимизация launcher
-  - Curl обновлен до v8.17.0
-  - Ускорены некоторые алгоритмы
+  - Оптимизация GoodbyeZapretTray
+  - Обновлен дизайн меню GoodbyeZapretTray

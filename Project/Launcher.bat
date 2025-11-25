@@ -47,8 +47,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.6.1"
-set "Current_GoodbyeZapret_version_code=20NV01"
+set "Current_GoodbyeZapret_version=2.6.2"
+set "Current_GoodbyeZapret_version_code=26NV01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -302,7 +302,6 @@ rem 4) Действия после обновления (по аналогии �
 if defined UPDATED (
     if not exist "%ParentDirPath%\tools" mkdir "%ParentDirPath%\tools" >nul 2>&1
 )
-
 
 
 set "WiFi=Off"
