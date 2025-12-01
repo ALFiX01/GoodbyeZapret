@@ -47,10 +47,10 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information
-set "Current_GoodbyeZapret_version=2.6.2"
+set "Current_GoodbyeZapret_version=2.7.0"
 set "Current_GoodbyeZapret_version_code=26NV01"
-set "branch=Stable"
-set "beta_code=0"
+set "branch=Beta"
+set "beta_code=1"
 
 chcp 65001 >nul 2>&1
 
@@ -922,7 +922,7 @@ if /i "%WiFi%"=="Off" (
 
 REM ------ New: warn user if system problems detected ------
 if "%TotalCheck%"=="Problem" (
-    echo                        %COL%[91mВозможны проблемы в работе ^[ ST ^] - подробнее%COL%[37m
+    echo                       %COL%[91mВозможны проблемы в работе   ^[ ST ^] - подробнее%COL%[37m
 )
 
 REM ---------------------------------------------------------
@@ -930,7 +930,7 @@ REM ---------------------------------------------------------
 REM Display separator line
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 
-echo                 %COL%[36mКонфиги:
+echo                  %COL%[36mКонфиги:
 echo.
 set "choice="
 set "counter=0"
@@ -978,15 +978,15 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
     set "StatusColor=%COL%[37m"
 
     if /i "!ConfigName!"=="%GoodbyeZapret_Config%" (
-        set "StatusText=[Активен]"
+        set "StatusText=[Текущий]"
         set "StatusColor=%COL%[92m"
     ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" (
         if "!hasActiveOrStarted!"=="0" (
-            set "StatusText=[Раньше работал]"
+            set "StatusText=[Работал лучше других]"
             set "StatusColor=%COL%[93m"
         )
     ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
-        set "StatusText=[Использовался]"
+        set "StatusText=[Последний запущенный]"
         set "StatusColor=%COL%[93m"
     )
 
@@ -995,9 +995,9 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
 
     if !counter! geq !StartIndex! if !counter! leq !EndIndex! (
         if defined StatusText (
-            echo                 %COL%[36m!counter!.!Pad! %COL%[36m%%~nF !StatusColor!!StatusText!
+            echo                  %COL%[36m!counter!.!Pad! %COL%[36m%%~nF !StatusColor!!StatusText!
         ) else (
-            echo                 %COL%[36m!counter!.!Pad! %COL%[37m%%~nF
+            echo                  %COL%[36m!counter!.!Pad! %COL%[37m%%~nF
         )
     )
 
@@ -1019,33 +1019,33 @@ if "%UpdateNeed%"=="Yes" (
 )
 
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
-echo                 %COL%[36mДействия:
+echo                  %COL%[36mДействия:
 echo.
 
 REM Display different menu options based on current service status
 if "%GoodbyeZapret_Config%"=="Не выбран" (
     if not "%TotalCheck%"=="Problem" (
-    echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-    echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
-    echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
+    echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+    echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
+    echo                  %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     ) else (
-    echo                 %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-    echo                 %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
-    echo                 %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
+    echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+    echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
+    echo                  %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     )
 ) else (
-    echo                 %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
-    echo                 %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
-    if %YesCount% equ 2 echo                 %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск и очистка WinDivert
+    echo                  %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
+    echo                  %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
+    if %YesCount% equ 2 echo                  %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск и очистка WinDivert
 )
 
 REM ---- Pagination options ----
 if %TotalPages% gtr 1 (
     echo.
-    if %Page% lss %TotalPages% echo                 %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
-    if %Page% gtr 1 echo                 %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
+    if %Page% lss %TotalPages% echo                  %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
+    if %Page% gtr 1 echo                  %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
 
 )
 REM ----------------------------
@@ -1294,7 +1294,7 @@ goto :end
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
-                echo  Файл winws.exe остановлен
+                call :ui_ok "Файл winws.exe остановлен"
                 ipconfig /flushdns > nul
             )
             call :ui_ok "Удаление успешно завершено"
