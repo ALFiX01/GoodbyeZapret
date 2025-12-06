@@ -5,7 +5,7 @@
     <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/Design.png?raw=true" alt="GoodbyeZapret Logo Banner" >
   </a>
   <br />
-  <p><strong>Инструмент для обхода DPI-блокировок в Windows.</strong></p>
+  <p><strong>Инструмент для модификации сетевых пакетов в Windows.</strong></p>
 
   <p>
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases/latest"><img src="https://img.shields.io/github/v/release/ALFiX01/GoodbyeZapret?style=plastic" alt="GitHub Release"></a>
