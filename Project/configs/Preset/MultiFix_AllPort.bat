@@ -34,23 +34,29 @@ echo.
 echo Winws:
 
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
-rem set log=--debug=@%~dp0log_debug.txt
+REM set log=--debug=@%~dp0log_debug.txt
+
+:: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
+:: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
+if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
+
+start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media2.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
+--filter-l7=discord,stun --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1
 
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
---wf-l3=ipv4,ipv6 --wf-tcp=80,443,4950-4955,6695-6705,1024-65535 --wf-udp=443,50000-50099 ^
+--wf-l3=ipv4,ipv6 --wf-tcp=80,443,4950-4955,6695-6705,444-65535 --wf-udp=443,50000-50099 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fakedsplit-mod=altorder=2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-domains=googlevideo.com --hostlist="%LISTS%list-youtube.txt" --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld --new ^
 --filter-tcp=4950-4955 --dpi-desync=fake,multidisorder --dpi-desync-split-pos=midsld --dpi-desync-repeats=8 --dpi-desync-fooling=md5sig,badseq --new ^
 --filter-tcp=6695-6705 --dpi-desync=fake,multisplit --dpi-desync-repeats=8 --dpi-desync-fooling=md5sig --dpi-desync-autottl=2 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-tcp=80 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-udp=443 --dpi-desync=fake --dpi-desync-repeats=11 --new ^
---filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync=multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq,hopbyhop2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-base.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80 --ipset="%LISTS%ipset-cloudflare-base.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-base.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin"
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-tcp=80 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin"
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
 if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (

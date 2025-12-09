@@ -42,7 +42,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-autottl --new ^
+--filter-tcp=80 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=10 --dpi-desync-autottl --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --hostlist="%LISTS%list-youtube.txt" --filter-l7=tls --dup=%Dup% --dup-autottl=+1:3-64 --dpi-desync=fake,multidisorder --dpi-desync-repeats=20 --dpi-desync-split-pos=1,midsld --dpi-desync-fooling=md5sig --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --filter-l7=tls --dup=%Dup% --dup-autottl=+1:3-64 --dpi-desync=fake,multidisorder --dpi-desync-repeats=10 --dpi-desync-split-pos=1,midsld --dpi-desync-fooling=md5sig --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --filter-l7=quic --dup=%Dup% --dup-autottl=+1:3-64 --dpi-desync=fake --dpi-desync-repeats=20 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^

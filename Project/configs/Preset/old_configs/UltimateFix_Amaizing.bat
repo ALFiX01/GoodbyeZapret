@@ -35,12 +35,16 @@ echo Winws:
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
 REM set log=--debug=@%~dp0log_debug.txt
 
+:: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
+:: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
+if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
+
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443 --wf-udp=443,50000-50099 ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-l3=ipv4 --dpi-desync-any-protocol=1 --filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-autottl --dup=2 --dup-autottl --dup-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=9 --dpi-desync-autottl --new ^
+--filter-tcp=443 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=9 --dpi-desync-autottl --new ^
 --filter-udp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=syndata,multisplit --dpi-desync-fake-syndata="%FAKE%tls_clienthello_4.bin" --dpi-desync-split-pos=1 --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-facebook_instagram.txt" --dpi-desync=syndata,multisplit --dpi-desync-fake-syndata="%FAKE%tls_clienthello_4.bin" --dpi-desync-split-pos=1 --new ^
 --filter-udp=443 --hostlist="%LISTS%russia-youtubeQ.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=4 --dpi-desync-fake-quic="%FAKE%quic_4.bin" --dpi-desync-cutoff=n3 --dpi-desync-repeats=2 --new ^

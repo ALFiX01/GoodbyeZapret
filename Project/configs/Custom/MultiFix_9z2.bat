@@ -50,7 +50,7 @@ start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws2.exe" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --filter-l7=stun,discord ^
   --out-range=-d10 ^
-  --payload=stun_binding_req,discord_ip_discovery ^
+  --payload=stun,discord_ip_discovery ^
    --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=5
 
 REM start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media2.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
@@ -62,22 +62,41 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
 --lua-init=@"%BIN%lua\zapret-lib.lua" --lua-init=@"%BIN%lua\zapret-antidpi.lua" ^
 --blob=tls_clienthello_312:@"%FAKE%tls_clienthello_312.bin" ^
 --blob=fake_tls_2:@"%FAKE%fake_tls_2.bin" ^
---blob=fake_tls_3:"%FAKE%fake_tls_3.bin" ^
---blob=fake_tls_4:"%FAKE%fake_tls_4.bin" ^
+--blob=fake_tls_3:@"%FAKE%fake_tls_3.bin" ^
+--blob=fake_tls_4:@"%FAKE%fake_tls_4.bin" ^
+--blob=fake_quic_1:@"%FAKE%fake_quic_1.bin" ^
+--blob=fake_quic_3:@"%FAKE%fake_quic_3.bin" ^
+--blob=quic_initial_www_google_com:@"%FAKE%quic_initial_www_google_com.bin" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 -hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" ^
+--filter-tcp=80 --hostlist="%LISTS%list-discord.txt" ^
   --out-range=-d9 ^
   --payload=tls_client_hello ^
    --lua-desync=fake:blob=tls_clienthello_312:tcp_md5:tls_mod=rnd,dupsid,sni=www.google.com ^
    --lua-desync=hostfakesplit:disorder_after=1 ^
   --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" ^
+--filter-tcp=443 --hostlist="%LISTS%list-discord.txt" ^
   --out-range=-d9 ^
   --payload=tls_client_hello ^
    --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228 ^
+  --new ^
+--filter-udp=443 --filter-l7=quic --hostlist="%LISTS%list-quick_ttl.txt" ^
+  --out-range=-n3 ^
+  --payload=quic_initial ^
+  --lua-desync=fake:blob=fake_quic_3.bin:udp_ttl=7:repeats=2 ^
+  --lua-desync=udplen:pattern=0x0F0F0E0F:repeats=2 ^
+  --new ^
+--filter-tcp=443 --filter-l7=unknown --hostlist="%LISTS%russia-youtube-rtmps.txt" ^
+    --out-range=-n3 ^
+    --payload=tls_client_hello ^
+    --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228 ^
+  --new ^
+--filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com ^
+    --out-range=-d9 ^
+    --payload=quic_initial ^
+    --lua-desync=fake:blob=0x0c000000:blob=fake_quic_1:ip_ttl=6 ^
   --new ^
 --filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" ^
     --out-range=-d9 ^
@@ -96,10 +115,41 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
     --payload=tls_client_hello ^
     --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up ^
     --lua-desync=fake:blob=fake_tls_3:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com ^
-    --lua-desync=multidisorder:pos=1,sld+1
+    --lua-desync=multidisorder:pos=1,sld+1 ^
+  --new ^
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-full.txt" ^
+    --out-range=-n5 ^
+    --payload=quic_initial ^
+    --lua-desync=fake:blob=quic_initial_www_google_com:repeats=6 ^
+  --new ^
+--filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com ^
+    --out-range=-n5 ^
+    --payload=http_req ^
+    --lua-desync=fake:blob=0x1603:blob=!+2:tls_mod=rnd,dupsid,sni=fonts.google.com:ip_id=seq ^
+    --lua-desync=fakedsplit:pos=method+2:tcp_ack=-66000:tcp_ts_up ^
+    --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1 ^
+  --new ^
+--filter-tcp=80 --filter-l7=http ^
+  --out-range=-n4 ^
+  --payload=http_req ^
+  --lua-desync=fake:blob=0x0F0F0F0F:http=1:tcp_ts=1 ^
+  --lua-desync=fakedsplit:pos=1,sld+1:altorder=0 ^
+  --new ^
+--filter-tcp=2053,2083,2087,2096,8443 --filter-l7=tls ^
+  --out-range=-n5 ^
+  --payload=tls_client_hello ^
+  --lua-desync=rst:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 ^
+  --lua-desync=multidisorder:pos=3:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 ^
+  --new ^
+--filter-udp=5056,27002 ^
+  --out-range=-n15 ^
+  --payload=quic_initial ^
+  --lua-desync=fake:blob=@quic_initial_www_google_com.bin:repeats=6
 
-REM --filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fooling=md5sig --dup=1 --dup-cutoff=n2 --dup-fooling=md5sig --dpi-desync-hostfakesplit-mod=altorder=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_312.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --new ^
-REM --filter-tcp=443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5 --new ^
+
+
+REM --filter-tcp=80 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fooling=md5sig --dup=1 --dup-cutoff=n2 --dup-fooling=md5sig --dpi-desync-hostfakesplit-mod=altorder=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_312.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --new ^
+REM --filter-tcp=443 --hostlist="%LISTS%list-discord.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5 --new ^
 
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском

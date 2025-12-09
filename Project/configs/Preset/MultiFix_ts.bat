@@ -33,7 +33,11 @@ echo.
 echo Winws: %ESC%[90m
 
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
-rem set log=--debug=@%~dp0log_debug.txt
+REM set log=--debug=@%~dp0log_debug.txt
+
+:: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
+:: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
+if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media2.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fooling=ts
@@ -45,13 +49,13 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws.exe" %log% ^
 --filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%syn_packet.bin" --dup=2 --dup-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fakedsplit-mod=altorder=2 --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --new ^
 --filter-tcp=80 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake,fakedsplit --dpi-desync-fakedsplit-mod=altorder=1 --dpi-desync-fooling=ts --dpi-desync-split-pos=method+2 --dpi-desync-cutoff=n3 --new ^
---filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fakedsplit --dpi-desync-fakedsplit-mod=altorder=3 --dpi-desync-fooling=ts --dpi-desync-repeats=4 --new ^
+--filter-udp=443 --hostlist-exclude="%LISTS%list-discord.txt" --dpi-desync=fake,udplen --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
+--filter-tcp=80 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fakedsplit --dpi-desync-fakedsplit-mod=altorder=3 --dpi-desync-fooling=ts --dpi-desync-repeats=4 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync=fake --dpi-desync-fooling=ts --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+--filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync-any-protocol=1 --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-base.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-full.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=split2 --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
 --filter-tcp=80 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-fail-threshold=2 --dpi-desync=fake --dpi-desync-fooling=ts
 

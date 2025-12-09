@@ -7,7 +7,7 @@ for %%i in ("%currentDir%") do set parentDir=%%~dpi
 for %%i in ("%parentDir:~0,-1%") do set parentParentDir=%%~dpi
 
 cd /d "%parentDir%"
-set "FAKE=%parentDir%bin\"
+set "FAKE=%parentParentDir%bin\"
 set errorFlag=0
 
 REM Check Winws process status

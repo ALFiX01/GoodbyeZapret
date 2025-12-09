@@ -50,7 +50,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 set "Current_GoodbyeZapret_version=2.7.0"
 set "Current_GoodbyeZapret_version_code=26NV01"
 set "branch=Beta"
-set "beta_code=1"
+set "beta_code=2"
 
 chcp 65001 >nul 2>&1
 
@@ -1659,7 +1659,7 @@ if "%TotalCheck%"=="Problem" (
         set "CheckResult=!%%VCheckResult!"
         set "CheckTips=!%%VCheckTips!"
         if "!CheckResult!"=="Problem" (
-            echo       - %%V:%COL%[91m Проблема обнаружена%COL%[37m
+            echo       - %%V:
             if defined CheckTips (
                 echo         %COL%[90m!CheckTips!%COL%[37m
             )
@@ -1672,6 +1672,9 @@ echo.
 echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
 echo    %COL%[90m^[ %COL%[32mF %COL%[90m^] %COL%[32mПоддержать разработку проекта
+echo.
+echo    %COL%[90m^[ %COL%[36mC %COL%[90m^] %COL%[93mУровень обхода CDN ^( %COL%[96m%CDN_BypassLevel%%COL%[93m ^)
+echo    %COL%[90mОтличаются количеством обрабатываемых IP-адресов ^(чем выше уровень, тем шире список^) %COL%[93m
 echo.
 echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[93mВернуться в меню
 echo    %COL%[90m^[ %COL%[36mI %COL%[90m^] %COL%[93mОткрыть инструкцию
@@ -1700,6 +1703,9 @@ if /i "%choice%"=="ш" set "choice=" && goto OpenInstructions
 
 if /i "%choice%"=="U" set "choice=" && goto FullUpdate
 if /i "%choice%"=="г" set "choice=" && goto FullUpdate
+
+if /i "%choice%"=="C" set "choice=" && goto CDN_BypassLevelSelector
+if /i "%choice%"=="с" set "choice=" && goto CDN_BypassLevelSelector
 
 if /i "%choice%"=="T" set "choice=" && goto OpenTelegram
 if /i "%choice%"=="е" set "choice=" && goto OpenTelegram
@@ -2140,8 +2146,18 @@ REM        echo [LOG] Найден ключ: %%A, значение: %%B
     )
 )
 
-REM echo [LOG] После цикла: RES=%RES% FOUND=%FOUND%
-endlocal & set "RES=%RES%" & set "FOUND=%FOUND%"
+:: Если переменная найдена, используем цикл for для переноса через барьер
+if defined RES (
+    for /f "delims=" %%V in ("%RES%") do (
+        endlocal
+        set "RES=%%V"
+        set "FOUND=1"
+    )
+) else (
+    endlocal
+    set "RES="
+    set "FOUND=0"
+)
 
 if "%FOUND%"=="0" (
     set "RES=NotFound"
@@ -2247,6 +2263,27 @@ for %%V in (%VARS%) do (
 )
 goto :eof
 
+
+
+:CDN_BypassLevelSelector
+REM Проверяем текущее значение и переключаем на следующее по циклу
+if /i "%CDN_BypassLevel%"=="off" (
+    set "CDN_BypassLevel=min"
+) else if /i "%CDN_BypassLevel%"=="min" (
+    set "CDN_BypassLevel=base"
+) else if /i "%CDN_BypassLevel%"=="base" (
+    set "CDN_BypassLevel=full"
+) else if /i "%CDN_BypassLevel%"=="full" (
+    set "CDN_BypassLevel=full_ext"
+) else (
+    REM Если значение full_ext или переменная пуста/неизвестна — сбрасываем в off
+    set "CDN_BypassLevel=off"
+)
+
+REM Записываем новое значение в реестр (системные переменные)
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "CDN_BypassLevel" /t REG_SZ /d "%CDN_BypassLevel%" /f >nul
+
+goto :CurrentStatus
 
 
 :timer_start
