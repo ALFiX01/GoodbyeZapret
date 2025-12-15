@@ -86,6 +86,13 @@ if "%ERRORLEVEL%"=="0" (
   taskkill /F /IM winws.exe >nul 2>&1
 )
 
+REM Check if winws2.exe is running and terminate it if found
+tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
+if "%ERRORLEVEL%"=="0" (
+  REM Forcefully kill winws2.exe process
+  taskkill /F /IM winws2.exe >nul 2>&1
+)
+
 REM Flush DNS cache
 ipconfig /flushdns > nul
 cls

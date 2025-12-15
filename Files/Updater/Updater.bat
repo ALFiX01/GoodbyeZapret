@@ -86,6 +86,7 @@ echo         ^[*^] Удаление службы GoodbyeZapret
 sc delete GoodbyeZapret >nul 2>&1
 echo         ^[*^] Остановка процессов WinDivert
 taskkill /F /IM winws.exe >nul 2>&1
+taskkill /F /IM winws2.exe >nul 2>&1
 net stop "WinDivert" >nul 2>&1
 sc delete "WinDivert" >nul 2>&1
 net stop "WinDivert14" >nul 2>&1

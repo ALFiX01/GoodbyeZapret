@@ -264,8 +264,8 @@ end
 function test_bit()
 	local v, v2, v3, v4, b1, b2, pow
 
-	v = math.random(0,0xFFFFFFFFFFFF)
-	b1 = math.random(1,15)
+	v = math.random(0,0xFFFFFFFF)
+	b1 = math.random(1,16)
 
 	v2 = bitrshift(v, b1)
 	pow = 2^b1
@@ -275,17 +275,17 @@ function test_bit()
 
 	v2 = bitlshift(v, b1)
 	pow = 2^b1
-	v3 = v * pow
-	print(string.format("lshift(0x%X,%u) = 0x%X  0x%X*%u = 0x%X", v,b1,v2, v,pow,v3))
+	v3 = (v * pow) % 0x100000000
+	print(string.format("lshift(0x%X,%u) = 0x%X  0x%X*%u %% 0x10000000 = 0x%X", v,b1,v2, v,pow,v3))
 	test_assert(v2==v3)
 
-	v2 = math.random(0,0xFFFFFFFFFFFF)
+	v2 = math.random(0,0xFFFFFFFF)
 	v3 = bitxor(v, v2)
 	v4 = bitor(v, v2) - bitand(v, v2)
 	print(string.format("xor(0x%X,0x%X) = %X  or/and/minus = %X", v, v2, v3, v4))
 	test_assert(v3==v4)
 
-	b2 = b1 + math.random(1,31)
+	b2 = b1 + math.random(1,15)
 	v2 = bitget(v, b1, b2)
 	pow = 2^(b2-b1+1) - 1
 	v3 = bitand(bitrshift(v,b1), pow)
@@ -299,8 +299,32 @@ function test_bit()
 	test_assert(v2==v3)
 end
 
+function test_ux()
+	local v1, v2, v3, usum, sum
+	for k,test in pairs({
+		{ add=u8add, fname="u8add", max = 0xFF },
+		{ add=u16add, fname="u16add", max = 0xFFFF },
+		{ add=u24add, fname="u24add", max = 0xFFFFFF },
+		{ add=u32add, fname="u32add", max = 0xFFFFFFFF }
+	}) do
+		io.write(test.fname.." : ")
+		for i=1,1000 do
+			v1=math.random(-test.max,test.max)
+			v2=math.random(-test.max,test.max)
+			v3=math.random(-test.max,test.max)
+			usum = test.add(v1,v2,v3)
+			sum = bitand((v1+v2+v3)%(test.max+1),test.max)
+			if sum~=usum then
+				print("FAIL")
+			end
+			test_assert(sum==usum)
+		end
+		print("OK")
+	end
+end
+
 function test_bin(...)
-	test_run({test_ub, test_bit},...)
+	test_run({test_ub, test_bit, test_ux},...)
 end
 
 

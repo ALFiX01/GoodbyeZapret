@@ -1,8 +1,8 @@
 HEXDUMP_DLOG_MAX = HEXDUMP_DLOG_MAX or 32
 NOT3=bitnot(3)
 NOT7=bitnot(7)
-math.randomseed(os.time())
-
+-- xor pid,tid,sec,nsec
+math.randomseed(bitxor(getpid(),gettid(),clock_gettime()))
 
 -- basic desync function
 -- execute given lua code. "desync" is temporary set as global var to be accessible to the code
@@ -35,8 +35,271 @@ function pktdebug(ctx, desync)
 	DLOG("desync:")
 	var_debug(desync)
 end
+-- basic desync function
+-- prints function args
+function argdebug(ctx, desync)
+	var_debug(desync.arg)
+end
+
+-- basic desync function
+-- prints conntrack positions to DLOG
+function posdebug(ctx, desync)
+	if not desync.track then
+		DLOG("posdebug: no track")
+		return
+	end
+	local s="posdebug: "..(desync.outgoing and "out" or "in").." time +"..desync.track.pos.dt.."s direct"
+	for i,pos in pairs({'n','d','b','s','p'}) do
+		s=s.." "..pos..pos_get(desync, pos, false)
+	end
+	s=s.." reverse"
+	for i,pos in pairs({'n','d','b','s','p'}) do
+		s=s.." "..pos..pos_get(desync, pos, true)
+	end
+	s=s.." payload "..#desync.dis.payload
+	if desync.reasm_data then
+		s=s.." reasm "..#desync.reasm_data
+	end
+	if desync.decrypt_data then
+		s=s.." decrypt "..#desync.decrypt_data
+	end
+	if desync.replay_piece_count then
+		s=s.." replay "..desync.replay_piece.."/"..desync.replay_piece_count
+	end
+	DLOG(s)
+end
+
+-- basic desync function
+-- set l7payload to 'arg.payload' if reasm.data or desync.dis.payload contains 'arg.pattern' substring
+-- NOTE : this does not set payload on C code side !
+-- NOTE : C code will not see payload change. --payload args take only payloads known to C code and cause error if unknown.
+-- arg: pattern - substring for search inside reasm_data or desync.dis.payload
+-- arg: payload - set desync.l7payload to this if detected
+-- arg: undetected - set desync.l7payload to this if not detected
+-- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-antidpi.lua --lua-init=@zapret-auto.lua --lua-desync=detect_payload_str:pattern=1234:payload=my --lua-desync=fake:blob=0x1234:payload=my
+function detect_payload_str(ctx, desync)
+	if not desync.arg.pattern then
+		error("detect_payload_str: missing 'pattern'")
+	end
+	local data = desync.reasm_data or desync.dis.payload
+	local b = string.find(data,desync.arg.pattern,1,true)
+	if b then
+		DLOG("detect_payload_str: detected '"..desync.arg.payload.."'")
+		if desync.arg.payload then desync.l7payload = desync.arg.payload end
+	else
+		DLOG("detect_payload_str: not detected '"..desync.arg.payload.."'")
+		if desync.arg.undetected then desync.l7payload = desync.arg.undetected end
+	end
+end
 
 
+-- this shim is needed then function is orchestrated. ctx services not available
+-- have to emulate cutoff in LUA using connection persistent table track.lua_state
+function instance_cutoff_shim(ctx, desync, dir)
+	if ctx then
+		instance_cutoff(ctx, dir)
+	elseif not desync.track then
+		DLOG("instance_cutoff_shim: cannot cutoff '"..desync.func_instance.."' because conntrack is absent")
+	else
+		if not desync.track.lua_state.cutoff_shim then
+			desync.track.lua_state.cutoff_shim = {}
+		end
+		if not desync.track.lua_state.cutoff_shim[desync.func_instance] then
+			desync.track.lua_state.cutoff_shim[desync.func_instance] = {}
+		end
+		if type(dir)=="nil" then
+			-- cutoff both directions by default
+			desync.track.lua_state.cutoff_shim[desync.func_instance][true] = true
+			desync.track.lua_state.cutoff_shim[desync.func_instance][false] = true
+		else
+			desync.track.lua_state.cutoff_shim[desync.func_instance][dir] = true
+		end
+		if b_debug then DLOG("instance_cutoff_shim: cutoff '"..desync.func_instance.."' in="..tostring(type(dir)=="nil" and true or not dir).." out="..tostring(type(dir)=="nil" or dir)) end
+	end
+end
+function cutoff_shim_check(desync)
+	if not desync.track then
+		DLOG("cutoff_shim_check: cannot check '"..desync.func_instance.."' cutoff because conntrack is absent")
+		return false
+	else
+		local b=desync.track.lua_state.cutoff_shim and
+			desync.track.lua_state.cutoff_shim[desync.func_instance] and
+			desync.track.lua_state.cutoff_shim[desync.func_instance][desync.outgoing]
+		if b and b_debug then 
+			DLOG("cutoff_shim_check: '"..desync.func_instance.."' "..(desync.outgoing and "out" or "in").." cutoff")
+		end
+		return b
+	end
+end
+
+
+-- applies # and $ prefixes. #var means var length, %var means var value
+function apply_arg_prefix(desync)
+	for a,v in pairs(desync.arg) do
+		local c = string.sub(v,1,1)
+		if c=='#' then
+			local blb = blob(desync,string.sub(v,2))
+			desync.arg[a] = (type(blb)=='string' or type(blb)=='table') and #blb or 0
+		elseif c=='%' then
+			desync.arg[a] = blob(desync,string.sub(v,2))
+		elseif c=='\\' then
+			c = string.sub(v,2,2);
+			if c=='#' or c=='%' then
+				desync.arg[a] = string.sub(v,2)
+			end
+		end
+	end
+end
+-- copy instance identification and args from execution plan to desync table
+-- NOTE : to not lose VERDICT_MODIFY dissect changes pass original desync table
+-- NOTE : if a copy was passed and VERDICT_MODIFY returned you must copy modified dissect back to desync table or resend it and return VERDICT_DROP
+-- NOTE : args and some fields are substituted. if you need them - make a copy before calling this.
+function apply_execution_plan(desync, instance)
+	desync.func = instance.func
+	desync.func_n = instance.func_n
+	desync.func_instance = instance.func_instance
+	desync.arg = deepcopy(instance.arg)
+	apply_arg_prefix(desync)
+end
+-- produce resulting verdict from 2 verdicts
+function verdict_aggregate(v1, v2)
+	local v
+	v1 = v1 or VERDICT_PASS
+	v2 = v2 or VERDICT_PASS
+	if v1==VERDICT_DROP or v2==VERDICT_DROP then
+		v=VERDICT_DROP
+	elseif v1==VERDICT_MODIFY or v2==VERDICT_MODIFY then
+		v=VERDICT_MODIFY
+	else
+		v=VERDICT_PASS
+	end
+	return v
+end
+function plan_instance_execute(desync, verdict, instance)
+	apply_execution_plan(desync, instance)
+	if cutoff_shim_check(desync) then
+		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because of voluntary cutoff")
+	elseif not payload_match_filter(desync.l7payload, instance.payload_filter) then
+		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because payload '"..desync.l7payload.."' does not match filter '"..instance.payload_filter.."'")
+	elseif not pos_check_range(desync, instance.range) then
+		DLOG("plan_instance_execute: not calling '"..desync.func_instance.."' because pos "..pos_str(desync,instance.range.from).." "..pos_str(desync,instance.range.to).." is out of range '"..pos_range_str(instance.range).."'")
+	else
+		DLOG("plan_instance_execute: calling '"..desync.func_instance.."'")
+		verdict = verdict_aggregate(verdict,_G[instance.func](nil, desync))
+	end
+	return verdict
+end
+function plan_instance_pop(desync)
+	return (desync.plan and #desync.plan>0) and table.remove(desync.plan, 1)
+end
+function plan_clear(desync)
+	while table.remove(desync.plan) do end
+end
+-- this approach allows nested orchestrators
+function orchestrate(ctx, desync)
+	if not desync.plan then
+		execution_plan_cancel(ctx)
+		desync.plan = execution_plan(ctx)
+	end
+end
+-- copy desync preserving lua_state
+function desync_copy(desync)
+	local dcopy = deepcopy(desync)
+	if desync.track then
+		-- preserve lua state
+		dcopy.track.lua_state = desync.track.lua_state
+	end
+	if desync.plan then
+		-- preserve execution plan
+		dcopy.plan = desync.plan
+	end
+	return dcopy
+end
+-- redo what whould be done without orchestration
+function replay_execution_plan(desync)
+	local verdict = VERDICT_PASS
+	while true do
+		local instance = plan_instance_pop(desync)
+		if not instance then break end
+		verdict = plan_instance_execute(desync, verdict, instance)
+	end
+	return verdict
+end
+-- this function demonstrates how to stop execution of upcoming desync instances and take over their job
+-- this can be used, for example, for orchestrating conditional processing without modifying of desync functions code
+-- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-desync=desync_orchestrator_example --lua-desync=pass --lua-desync=pass
+function desync_orchestrator_example(ctx, desync)
+	DLOG("orchestrator: taking over upcoming desync instances")
+	orchestrate(ctx, desync)
+	return replay_execution_plan(desync)
+end
+
+-- these functions duplicate range check logic from C code
+-- mode must be n,d,b,s,x,a
+-- pos is {mode,pos}
+-- range is {from={mode,pos}, to={mode,pos}, upper_cutoff}
+-- upper_cutoff = true means non-inclusive upper boundary
+function pos_get_pos(track_pos, mode)
+	if track_pos then
+		if mode=='n' then
+			return track_pos.pcounter
+		elseif mode=='d' then
+			return track_pos.pdcounter
+		elseif mode=='b' then
+			return track_pos.pbcounter
+		elseif track_pos.tcp then
+			if mode=='s' then
+				return track_pos.tcp.rseq
+			elseif mode=='p' then
+				return track_pos.tcp.pos
+			end
+		end
+	end
+	return 0
+end
+function pos_get(desync, mode, reverse)
+	if desync.track then
+		local track_pos = reverse and desync.track.pos.reverse or desync.track.pos.direct
+		return pos_get_pos(track_pos,mode)
+	end
+	return 0
+end
+function pos_check_from(desync, range)
+	if range.from.mode == 'x' then return false end
+	if range.from.mode ~= 'a' then
+		if desync.track then
+			return pos_get(desync, range.from.mode) >= range.from.pos
+		else
+			return false
+		end
+	end
+	return true;
+end
+function pos_check_to(desync, range)
+	local ps
+	if range.to.mode == 'x' then return false end
+	if range.to.mode ~= 'a' then
+		if desync.track then
+			ps = pos_get(desync, range.to.mode)
+			return (ps < range.to.pos) or not range.upper_cutoff and (ps == range.to.pos)
+		else
+			return false
+		end
+	end
+	return true;
+end
+function pos_check_range(desync, range)
+	return pos_check_from(desync,range) and pos_check_to(desync,range)
+end
+function pos_range_str(range)
+	return range.from.mode..range.from.pos..(range.upper_cutoff and '<' or '-')..range.to.mode..range.to.pos
+end
+function pos_str(desync, pos)
+	return pos.mode..pos_get(desync, pos.mode)
+end
+function is_retransmission(desync)
+	return desync.track and desync.track.pos.direct.tcp and 0==bitand(u32add(desync.track.pos.direct.tcp.uppos_prev, -desync.track.pos.direct.tcp.pos), 0x80000000)
+end
 
 -- prepare standard rawsend options from desync
 -- repeats - how many time send the packet
@@ -108,12 +371,15 @@ function str_or_hex(s)
 		return s
 	end
 end
+function logical_xor(a,b)
+	return a and not b or not a and b
+end
 -- print to DLOG any variable. tables are expanded in the tree form, unprintables strings are hex dumped
 function var_debug(v)
 	local function dbg(v,level)
 		if type(v)=="table" then
 			for key, value in pairs(v) do
-				DLOG(string.rep(" ",2*level).."."..key)
+				DLOG(string.rep(" ",2*level).."."..tostring(key))
 				dbg(v[key],level+1)
 			end
 		elseif type(v)=="string" then
@@ -197,6 +463,9 @@ function blob(desync, name, def)
 		end
 	end
 	return blob
+end
+function blob_or_def(desync, name, def)
+	return name and blob(desync,name,def) or def
 end
 
 -- repeat pattern as needed to extract part of it with any length
@@ -297,6 +566,88 @@ function http_dissect_req(http)
 	if not pnext then pnext = #http + 1 end
 	local uri = string.sub(req,pos,pnext-1)
 	return { method = method, uri = uri, headers = http_dissect_headers(http,hdrpos) }
+end
+function http_dissect_reply(http)
+	if not http then return nil; end
+	local s, pos, code
+	s = string.sub(http,1,8)
+	if s~="HTTP/1.1" and s~="HTTP/1.0" then return nil end
+	pos = string.find(http,"[ \t\r\n]",10)
+	code = tonumber(string.sub(http,10,pos-1))
+	if not code then return nil end
+	pos = find_next_line(http,pos)
+	return { code = code, headers = http_dissect_headers(http,pos) }
+end
+function dissect_url(url)
+	local p1,pb,pstart,pend
+	local proto, creds, domain, port, uri
+	p1 = string.find(url,"[^ \t]")
+	if not p1 then return nil end
+	pb = p1
+	pstart,pend = string.find(url,"[a-z]+://",p1)
+	if pend then
+		proto = string.sub(url,pstart,pend-3)
+		p1 = pend+1
+	end
+	pstart,pend = string.find(url,"[@/]",p1)
+	if pend and string.sub(url,pstart,pend)=='@' then
+		creds = string.sub(url,p1,pend-1)
+		p1 = pend+1
+	end
+	pstart,pend = string.find(url,"/",p1,true)
+	if pend then
+		if pend==pb then
+			uri = string.sub(url,pb)
+		else
+			uri = string.sub(url,pend)
+			domain = string.sub(url,p1,pend-1)
+		end
+	else
+		if proto then
+			domain = string.sub(url,p1)
+		else
+			uri = string.sub(url,p1)
+		end
+	end
+	if domain then
+		pstart,pend = string.find(domain,':',1,true)
+		if pend then
+			port = string.sub(domain, pend+1)
+			domain = string.sub(domain, 1, pstart-1)
+		end
+	end
+	return { proto = proto, creds = creds, domain = domain, port = port, uri=uri }
+end
+function dissect_nld(domain, level)
+	if domain then
+		local n=1
+		for pos=#domain,1,-1 do
+			if string.sub(domain,pos,pos)=='.' then
+				if n==level then
+					return string.sub(domain, pos+1)
+				end
+				n=n+1
+			end
+		end
+		if n==level then
+			return domain
+		end
+	end
+	return nil
+end
+
+-- support sni=%var
+function tls_mod_shim(desync, blob, modlist, payload)
+	local p1,p2 = string.find(modlist,"sni=%%[^,]+")
+	if p1 then
+		local var = string.sub(modlist,p1+5,p2)
+		local val = desync[var] or _G[var]
+		if not val then
+			error("tls_mod_shim: non-existent var '"..var.."'")
+		end
+		modlist = string.sub(modlist,1,p1+3)..val..string.sub(modlist,p2+1)
+	end
+	return tls_mod(blob,modlist,payload)
 end
 
 -- convert comma separated list of tcp flags to tcp.th_flags bit field
@@ -448,7 +799,7 @@ end
 -- ip6_autottl=delta,min-max - set ip.ip_ttl to auto discovered ttl
 
 -- ip6_hopbyhop[=hex] - add hopbyhop ipv6 header with optional data. data size must be 6+N*8. all zero by default.
--- ip6_hopbyhop2 - add 2 hopbyhop ipv6 headers with optional data. data size must be 6+N*8. all zero by default.
+-- ip6_hopbyhop2[=hex] - add second hopbyhop ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_destopt[=hex] - add destopt ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_routing[=hex] - add routing ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_ah[=hex] - add authentication ipv6 header with optional data. data size must be 6+N*4. 0000 + 4 random bytes by default.
@@ -494,6 +845,7 @@ function apply_fooling(desync, dis, fooling_options)
 		if not ttl and tonumber(arg_ttl) then
 			ttl = tonumber(arg_ttl)
 		end
+		--io.stderr:write("TTL "..tostring(ttl).."\n")
 		return ttl
 	end
 	local function move_ts_top()
@@ -509,10 +861,10 @@ function apply_fooling(desync, dis, fooling_options)
 	if not dis then dis = desync.dis end
 	if dis.tcp then
 		if tonumber(fooling_options.tcp_seq) then
-			dis.tcp.th_seq = dis.tcp.th_seq + fooling_options.tcp_seq
+			dis.tcp.th_seq = u32add(dis.tcp.th_seq, fooling_options.tcp_seq)
 		end
 		if tonumber(fooling_options.tcp_ack) then
-			dis.tcp.th_ack = dis.tcp.th_ack + fooling_options.tcp_ack
+			dis.tcp.th_ack = u32add(dis.tcp.th_ack, fooling_options.tcp_ack)
 		end
 		if fooling_options.tcp_flags_unset then
 			dis.tcp.th_flags = bitand(dis.tcp.th_flags, bitnot(parse_tcp_flags(fooling_options.tcp_flags_unset)))
@@ -523,7 +875,7 @@ function apply_fooling(desync, dis, fooling_options)
 		if tonumber(fooling_options.tcp_ts) then
 			local idx = find_tcp_option(dis.tcp.options,TCP_KIND_TS)
 			if idx and (dis.tcp.options[idx].data and #dis.tcp.options[idx].data or 0)==8 then
-				dis.tcp.options[idx].data = bu32(u32(dis.tcp.options[idx].data)+fooling_options.tcp_ts)..string.sub(dis.tcp.options[idx].data,5)
+				dis.tcp.options[idx].data = bu32(u32add(u32(dis.tcp.options[idx].data),fooling_options.tcp_ts))..string.sub(dis.tcp.options[idx].data,5)
 			else
 				DLOG("apply_fooling: timestamp tcp option not present or invalid")
 			end
@@ -541,12 +893,12 @@ function apply_fooling(desync, dis, fooling_options)
 	end
 	if dis.ip6 then
 		local bin
-		if fooling_options.ip6_hopbyhop_x2 then
-			bin = prepare_bin(fooling_options.ip6_hopbyhop2_x2,"\x00\x00\x00\x00\x00\x00")
-			insert_ip6_exthdr(dis.ip6,nil,IPPROTO_HOPOPTS,bin)
-			insert_ip6_exthdr(dis.ip6,nil,IPPROTO_HOPOPTS,bin)
-		elseif fooling_options.ip6_hopbyhop then
+		if fooling_options.ip6_hopbyhop then
 			bin = prepare_bin(fooling_options.ip6_hopbyhop,"\x00\x00\x00\x00\x00\x00")
+			insert_ip6_exthdr(dis.ip6,nil,IPPROTO_HOPOPTS,bin)
+		end
+		if fooling_options.ip6_hopbyhop2 then
+			bin = prepare_bin(fooling_options.ip6_hopbyhop2,"\x00\x00\x00\x00\x00\x00")
 			insert_ip6_exthdr(dis.ip6,nil,IPPROTO_HOPOPTS,bin)
 		end
 		-- for possible unfragmentable part
@@ -740,21 +1092,22 @@ end
 -- send dissect with tcp segmentation based on mss value. appply specified rawsend options.
 function rawsend_dissect_segmented(desync, dis, mss, options)
 	local discopy = deepcopy(dis)
-	apply_ip_id(desync, discopy, options and options.ipid)
 	apply_fooling(desync, discopy, options and options.fooling)
 
 	if dis.tcp then
-		local extra_len = l3l4_extra_len(dis)
+		local extra_len = l3l4_extra_len(discopy)
 		if extra_len >= mss then return false end
 		local max_data = mss - extra_len
 		if #discopy.payload > max_data then
 			local pos=1
 			local len
+			local payload=discopy.payload
 
-			while pos <= #dis.payload do
-				len = #dis.payload - pos + 1
+			while pos <= #payload do
+				len = #payload - pos + 1
 				if len > max_data then len = max_data end
-				discopy.payload = string.sub(dis.payload,pos,pos+len-1)
+				discopy.payload = string.sub(payload,pos,pos+len-1)
+				apply_ip_id(desync, discopy, options and options.ipid)
 				if not rawsend_dissect_ipfrag(discopy, options) then
 					-- stop if failed
 					return false
@@ -765,6 +1118,7 @@ function rawsend_dissect_segmented(desync, dis, mss, options)
 			return true
 		end
 	end
+	apply_ip_id(desync, discopy, options and options.ipid)
 	-- no reason to segment
 	return rawsend_dissect_ipfrag(discopy, options)
 end
@@ -791,23 +1145,27 @@ function direction_cutoff_opposite(ctx, desync, def)
 	local dir = desync.arg.dir or def or "out"
 	if dir=="out" then
 		-- cutoff in
-		instance_cutoff(ctx, false)
+		instance_cutoff_shim(ctx, desync, false)
 	elseif dir=="in" then
 		-- cutoff out
-		instance_cutoff(ctx, true)
+		instance_cutoff_shim(ctx, desync, true)
 	end
+end
+
+-- return true if l7payload matches filter l7payload_filter - comma separated list of payload types
+function payload_match_filter(l7payload, l7payload_filter, def)
+	local argpl = l7payload_filter or def or "known"
+	local neg = string.sub(argpl,1,1)=="~"
+	local pl = neg and string.sub(argpl,2) or argpl
+	return neg ~= (in_list(pl, "all") or in_list(pl, l7payload) or in_list(pl, "known") and l7payload~="unknown" and l7payload~="empty")
 end
 -- check if desync payload type comply with payload type list in arg.payload
 -- if arg.payload is not present - check for known payload - not empty and not unknown (nfqws1 behavior without "--desync-any-protocol" option)
 -- if arg.payload is prefixed with '~' - it means negation
 function payload_check(desync, def)
-	local b
-	local argpl = desync.arg.payload or def or "known"
-	local neg = string.sub(argpl,1,1)=="~"
-	local pl = neg and string.sub(argpl,2) or argpl
-
-	b = neg ~= (in_list(pl, "all") or in_list(pl, desync.l7payload) or in_list(pl, "known") and desync.l7payload~="unknown" and desync.l7payload~="empty")
-	if not b then
+	local b = payload_match_filter(desync.l7payload, desync.arg.payload, def)
+	if not b and b_debug then
+		local argpl = desync.arg.payload or def or "known"
 		DLOG("payload_check: payload '"..desync.l7payload.."' does not pass '"..argpl.."' filter")
 	end
 	return b
@@ -876,6 +1234,18 @@ function genhost(len, template)
 			return brandom_az(1)..brandom_az09(len-1)
 		end
 	end
+end
+
+-- return ip addr of target host in text form
+function host_ip(desync)
+	return desync.target.ip and ntop(desync.target.ip) or desync.target.ip6 and ntop(desync.target.ip6)
+end
+-- return hostname of target host if present or ip address in text form otherwise
+function host_or_ip(desync)
+	if desync.track and desync.track.hostname then
+		return desync.track.hostname
+	end
+	return host_ip(desync)
 end
 
 function is_absolute_path(path)
@@ -1026,4 +1396,3 @@ function ipfrag2(dis, ipfrag_options)
 
 	return {dis1,dis2}
 end
-

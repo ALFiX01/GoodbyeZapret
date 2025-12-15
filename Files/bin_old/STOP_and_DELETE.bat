@@ -33,6 +33,18 @@ if "!ERRORLEVEL!"=="0" (
     echo "winws.exe" process not found.
 )
 
+REM --- Kill winws2.exe process if running ---
+tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
+if "!ERRORLEVEL!"=="0" (
+    echo Terminating "winws2.exe" process...
+    taskkill /F /IM winws2.exe >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo   Failed to terminate "winws2.exe" or process not found.
+    )
+) else (
+    echo "winws2.exe" process not found.
+)
+
 REM --- Stop and delete WinDivert service if it exists ---
 for %%S in (WinDivert monkey) do (
     sc query "%%S" >nul 2>&1

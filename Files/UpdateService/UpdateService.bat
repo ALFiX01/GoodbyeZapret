@@ -190,6 +190,7 @@ echo   ^[*^] Удаление службы GoodbyeZapret
 sc query "GoodbyeZapret" >nul 2>&1 && sc delete "GoodbyeZapret" >nul 2>&1
 echo   ^[*^] Остановка процессов/служб WinDivert
 taskkill /F /IM winws.exe >nul 2>&1
+taskkill /F /IM winws2.exe >nul 2>&1
 for %%S in (WinDivert WinDivert14 monkey) do (
   sc query "%%S" >nul 2>&1 && (
     net stop "%%S" >nul 2>&1

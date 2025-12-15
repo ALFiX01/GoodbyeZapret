@@ -37,38 +37,32 @@ echo Winws: %ESC%[90m
 :: НЕ ВКЛЮЧАТЬ без надобности - приводит к тормозам соединения или полному отключению обхода! Включить - дебаг-лог убрав rem и выключить, добавив rem ::
 REM set log=--debug=@%~dp0log_debug.txt
 
-REM --filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-base.txt" --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
-REM --filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare-full.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
-
-REM --dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0 --dpi-desync-split-pos=1 --dpi-desync-fake-tls=0x1603 --dpi-desync-fake-tls=!+2 --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fake-tcp-mod=seq --new ^
-REM --dpi-desync=rst,multisplit --dpi-desync-split-seqovl=4 --dpi-desync-split-seqovl-pattern=0x00F0000F00F0000F --dpi-desync-split-pos=3 --dpi-desync-fooling=md5sig,badseq --dpi-desync-cutoff=n5 --new ^
+:: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
+:: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
+if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
 
 start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws2.exe" ^
 --wf-tcp-out=80,443 ^
 --lua-init=@"%BIN%lua\zapret-lib.lua" --lua-init=@"%BIN%lua\zapret-antidpi.lua" ^
---wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media.txt" ^
+--wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --filter-l7=stun,discord ^
   --out-range=-d10 ^
   --payload=stun,discord_ip_discovery ^
    --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=5
 
-REM start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media2.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
-REM --dpi-desync-any-protocol=1 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=5 --dpi-desync-cutoff=n4
-
 start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
 --wf-tcp-out=80,443,2053,2083,2087,2096,8443 ^
---wf-udp-out=443,444-65535 ^
+--wf-udp-out=443,1024-65535 ^
 --lua-init=@"%BIN%lua\zapret-lib.lua" --lua-init=@"%BIN%lua\zapret-antidpi.lua" ^
 --blob=tls_clienthello_312:@"%FAKE%tls_clienthello_312.bin" ^
 --blob=fake_tls_2:@"%FAKE%fake_tls_2.bin" ^
 --blob=fake_tls_3:@"%FAKE%fake_tls_3.bin" ^
 --blob=fake_tls_4:@"%FAKE%fake_tls_4.bin" ^
+--blob=tls_clienthello_max_ru:@"%FAKE%tls_clienthello_max_ru.bin" ^
 --blob=fake_quic_1:@"%FAKE%fake_quic_1.bin" ^
 --blob=fake_quic_3:@"%FAKE%fake_quic_3.bin" ^
 --blob=quic_initial_www_google_com:@"%FAKE%quic_initial_www_google_com.bin" ^
---wf-raw-part=@"%BIN%windivert.filter\windivert.discord_media.txt" ^
---wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 -hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --filter-tcp=80 --hostlist="%LISTS%list-discord.txt" ^
@@ -78,7 +72,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
    --lua-desync=hostfakesplit:disorder_after=1 ^
   --new ^
 --filter-tcp=443 --hostlist="%LISTS%list-discord.txt" ^
-  --out-range=-d9 ^
+  --out-range=-n3 ^
   --payload=tls_client_hello ^
    --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228 ^
   --new ^
@@ -99,9 +93,11 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
     --lua-desync=fake:blob=0x0c000000:blob=fake_quic_1:ip_ttl=6 ^
   --new ^
 --filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" ^
-    --out-range=-d9 ^
+    --out-range=-n5 ^
     --payload=tls_client_hello ^
-    --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1:seqovl=314 ^
+    --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up ^
+    --lua-desync=fake:blob=tls_clienthello_max_ru:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com ^
+    --lua-desync=multidisorder:pos=5,sld+1 ^
   --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com ^
     --out-range=-n5 ^
@@ -110,14 +106,14 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
     --lua-desync=fake:blob=tls_www_google:tls_mod=rnd,dupsid,sni=fonts.google.com ^
     --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1:seqovl=314 ^
   --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-base.txt" ^
+--filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" ^
     --out-range=-n5 ^
     --payload=tls_client_hello ^
     --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up ^
     --lua-desync=fake:blob=fake_tls_3:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com ^
     --lua-desync=multidisorder:pos=1,sld+1 ^
   --new ^
---filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-full.txt" ^
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" ^
     --out-range=-n5 ^
     --payload=quic_initial ^
     --lua-desync=fake:blob=quic_initial_www_google_com:repeats=6 ^
@@ -181,6 +177,13 @@ tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
 if "%ERRORLEVEL%"=="0" (
   REM Forcefully kill winws.exe process
   taskkill /F /IM winws.exe >nul 2>&1
+)
+
+REM Check if winws2.exe is running and terminate it if found
+tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
+if "%ERRORLEVEL%"=="0" (
+  REM Forcefully kill winws2.exe process
+  taskkill /F /IM winws2.exe >nul 2>&1
 )
 
 REM Flush DNS cache

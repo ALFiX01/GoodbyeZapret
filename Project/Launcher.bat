@@ -48,9 +48,9 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 :: Version information
 set "Current_GoodbyeZapret_version=2.7.0"
-set "Current_GoodbyeZapret_version_code=26NV01"
-set "branch=Beta"
-set "beta_code=2"
+set "Current_GoodbyeZapret_version_code=15NV01"
+set "branch=Stable"
+set "beta_code=0"
 
 chcp 65001 >nul 2>&1
 
@@ -668,6 +668,7 @@ if "%StatusProject%"=="0" (
     tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
     if not errorlevel 1 (
         taskkill /F /IM winws.exe >nul 2>&1
+        taskkill /F /IM winws2.exe >nul 2>&1
     )
     
     REM  WinDivert
@@ -1228,6 +1229,13 @@ if errorlevel 1 (
     echo.
     timeout /t 2 >nul 2>&1
 )
+tasklist | find /i "Winws2.exe" >nul
+if errorlevel 1 (
+    echo.
+    echo ОШИБКА: Процесс обхода ^(Winws2.exe^) не запущен.
+    echo.
+    timeout /t 2 >nul 2>&1
+)
 goto :end
 
 :remove_service
@@ -1248,6 +1256,7 @@ goto :end
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "!errorlevel!"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
+                taskkill /F /IM winws2.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
@@ -1290,6 +1299,7 @@ goto :end
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "%ERRORLEVEL%"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
+                taskkill /F /IM winws2.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
@@ -1774,6 +1784,7 @@ goto CurrentStatus
     if not errorlevel 1 (
         echo    %COL%[90mОстановка winws.exe...%COL%[37m
         taskkill /F /IM winws.exe >nul 2>&1
+        taskkill /F /IM winws2.exe >nul 2>&1
     )
 
     for %%S in (WinDivert WinDivert14 monkey) do (
