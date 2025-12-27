@@ -1354,6 +1354,15 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
 call :ui_info "Устанавливаю !batFile! в службу GoodbyeZapret..."
 
 if "!batfile!"=="smart-config.bat" (
+    set "LUA_DIR=%ParentDirPath%\bin\lua"
+
+    :: Генерация base_path.lua
+    set "BASE_PATH_LUA=!LUA_DIR!\base_path.lua"
+    echo Генерация base_path.lua...
+    (
+        echo ORCHESTRA_BASE_PATH = "!LUA_DIR:\=/!/"
+    ) > "!BASE_PATH_LUA!"
+
     sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\main.exe\" --bin \"%ParentDirPath%\bin\" --lua \"%ParentDirPath%\bin\lua\" --learned-init \"%ParentDirPath%\bin\lua\learned-strategies.lua\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1 
 ) else (
@@ -1475,7 +1484,7 @@ goto :end
             call :ui_err "Ошибка при удалении службы"
         )
     )
-    call :WriteConfig GoodbyeZapret_Config "Не выбран"
+    call :WriteConfig GoodbyeZapret_Config "NotFound"
     timeout /t 1 >nul 2>&1
 goto :install_GZ_service
 
