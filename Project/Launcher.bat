@@ -46,11 +46,11 @@ if %os_arch%==32 (
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 
-:: Version information
-set "Current_GoodbyeZapret_version=2.7.0"
+:: Version information Stable Beta Alpha
+set "Current_GoodbyeZapret_version=3.0"
 set "Current_GoodbyeZapret_version_code=15DC01"
-set "branch=Stable"
-set "beta_code=0"
+set "branch=Alpha"
+set "beta_code=1"
 
 chcp 65001 >nul 2>&1
 
@@ -803,11 +803,180 @@ if "%UpdateNeedShowScreen%"=="1" (
     )
 )
 
+
 :MainMenu
 call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
-:MainMenuWithoutUiInfo
+call :ResizeMenuWindow
+REM Check for last working config in registry
+
+call :ReadConfig GoodbyeZapret_Config
+if "%GoodbyeZapret_Config%"=="NotFound" (
+    REM Если переменная не найдена, установите значение по умолчанию
+    set "GoodbyeZapret_Config=Не выбран"
+)
+
+REM Check GoodbyeZapret service status
+sc query "GoodbyeZapret" >nul 2>&1
+if %errorlevel% equ 0 (
+    set "GoodbyeZapretStart=Yes"
+) else (
+    set "GoodbyeZapretStart=No"
+)
+
+REM Check Winws process status
+tasklist | find /i "Winws" >nul
+if %errorlevel% equ 0 (
+    set "WinwsStart=Yes"
+) else (
+    set "WinwsStart=No"
+)
+
+REM Проверка запущенных служб WinDivert
+set "WinDivertStart=No"
+
+for %%S in ("WinDivert" "WinDivert14" "monkey") do (
+    sc query %%~S 2>nul | find /I "RUNNING" >nul
+    if not errorlevel 1 (
+        set "WinDivertStart=Yes"
+    )
+)
+
+REM Count running services/processes
+set "YesCount=0"
+if "%GoodbyeZapretStart%"=="Yes" set /a YesCount+=1
+if "%WinwsStart%"=="Yes" set /a YesCount+=1
+if "%WinDivertStart%"=="Yes" set /a YesCount+=1
+
+
+REM Display status based on running count
+if %YesCount% equ 3 (
+    REM запущены все сервисы
+    cls
+    echo.
+    echo           %COL%[92m  ______                ____            _____                         __ 
+) else if %YesCount% equ 2 (
+    REM запущены Winws и WinDivert
+    cls
+    echo.
+    echo           %COL%[33m  ______                ____            _____                         __ 
+) else (
+    REM запущен только GoodbyeZapret
+    cls
+    echo.
+    echo           %COL%[90m  ______                ____            _____                         __ 
+)
+
+
+REM Set window title
+if not defined Current_GoodbyeZapret_version (
+    if /i "%branch%"=="beta" (
+        title GoodbyeZapret - Launcher - бета версия %beta_code%
+    ) else if /i "%branch%"=="alpha" (
+        title GoodbyeZapret - Launcher - альфа версия
+    ) else (
+        title GoodbyeZapret - Launcher
+    )
+) else (
+    if /i "%branch%"=="beta" (
+        title GoodbyeZapret - Launcher v%Current_GoodbyeZapret_version% бета %beta_code%
+    ) else if /i "%branch%"=="alpha" (
+        title GoodbyeZapret - Launcher v%Current_GoodbyeZapret_version% альфа
+    ) else (
+        title GoodbyeZapret - Launcher v%Current_GoodbyeZapret_version%
+    )
+)
+
+
+echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_
+echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/
+
+if /i "%branch%"=="beta" (
+    echo                                        /____/  бета версия  /_/
+    echo.
+) else if /i "%branch%"=="alpha" (
+    echo                                        /____/ альфа версия  /_/
+    echo.
+) else (
+    echo                                        /____/              /_/
+    echo.
+)
+
+
+
+REM call :timer_end
+
+
+REM Check internet connection and file status
+if /i "%WiFi%"=="Off" (
+    echo                            %COL%[90mОшибка: Нет подключения к интернету%COL%[37m
+) else if "%CheckStatus%"=="FileCheckError" (
+    echo                %COL%[90mОшибка: Нет связи с сервером - возможны проблемы в работе%COL%[37m
+) else if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
+    echo                %COL%[90mОшибка: Не удалось проверить файлы - возможны проблемы в работе%COL%[37m
+) else (
+    echo.
+)
+
+REM ------ New: warn user if system problems detected ------
+if "%TotalCheck%"=="Problem" (
+    echo                         %COL%[90mВозможна нестабильная работа GoodbyeZapret
+)
+echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo                               %COL%[96m^[ 1 ^]%COL%[37m Состояние GoodbyeZapret
+echo.
+echo                               %COL%[96m^[ 2 ^]%COL%[37m Выбор готового конфига
+echo.
+echo                               %COL%[96m^[ 3 ^]%COL%[37m Конфигуратор конфига
+echo.
+echo                               %COL%[96m^[ 4 ^]%COL%[37m Открыть инструкцию
+echo.
+echo                               %COL%[96m^[ 5 ^]%COL%[37m Проверить обход
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo                              %COL%[96m^[ 6 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
+echo.
+echo.
+
+REM Display separator line
+echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+echo                                %COL%[90mВведите номер или действие
+set /p "choice=%DEL%                                           %COL%[90m:> "
+
+REM Handle user input with case-insensitive matching
+if /i "%choice%"=="1" goto CurrentStatus 
+if /i "%choice%"=="2" goto ConfigSelectorMenu
+if /i "%choice%"=="3" goto ConfiguratorMenu
+if /i "%choice%"=="4" goto OpenInstructions
+if /i "%choice%"=="5" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
+
+if /i "%choice%"=="6" goto CDN_BypassLevelSelector
+
+goto MainMenu
+
+
+:ConfigSelectorMenu
+call :ui_info "Загружаю интерфейс..."
+REM ------ New: run quick problem check silently ------
+REM ----------------------------------------------------
+:ConfigSelectorMenuUiInfo
 call :ResizeMenuWindow
 REM Check for last working config in registry
 call :ReadConfig GoodbyeZapret_LastWorkConfig
@@ -913,17 +1082,6 @@ REM call :timer_end
 REM Check internet connection and file status
 if /i "%WiFi%"=="Off" (
     echo                            %COL%[90mОшибка: Нет подключения к интернету%COL%[37m
-) else if "%CheckStatus%"=="FileCheckError" (
-    echo                %COL%[90mОшибка: Нет связи с сервером - возможны проблемы в работе%COL%[37m
-) else if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" (
-    echo                %COL%[90mОшибка: Не удалось проверить файлы - возможны проблемы в работе%COL%[37m
-) else (
-    echo.
-)
-
-REM ------ New: warn user if system problems detected ------
-if "%TotalCheck%"=="Problem" (
-    echo                       %COL%[91mВозможны проблемы в работе   ^[ ST ^] - подробнее%COL%[37m
 )
 
 REM ---------------------------------------------------------
@@ -1029,16 +1187,13 @@ if "%GoodbyeZapret_Config%"=="Не выбран" (
     echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    echo                  %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     ) else (
     echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    echo                  %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     )
 ) else (
     echo                  %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
-    echo                  %COL%[36m^[ ST ^] %COL%[37mСостояние GoodbyeZapret
     if %YesCount% equ 2 echo                  %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск и очистка WinDivert
 )
 
@@ -1050,7 +1205,7 @@ if %TotalPages% gtr 1 (
 
 )
 REM ----------------------------
-
+echo                  %COL%[36m^[ X ^] %COL%[37mВернуться в меню
 echo.
 echo.
 echo                                %COL%[90mВведите номер или действие
@@ -1068,6 +1223,9 @@ if /i "%choice%"=="фс" goto ConfigAutoFinder
 
 if /i "%choice%"=="RC" goto QuickRestart
 if /i "%choice%"=="кы" goto QuickRestart
+
+if /i "%choice%"=="X" goto MainMenu
+if /i "%choice%"=="ч" goto MainMenu
 
 if /i "%choice%"=="R" goto RR
 
@@ -1195,8 +1353,14 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
 
 call :ui_info "Устанавливаю !batFile! в службу GoodbyeZapret..."
 
-sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
-sc config "GoodbyeZapret" start= auto >nul 2>&1
+if "!batfile!"=="smart-config.bat" (
+    sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\main.exe\" --bin \"%ParentDirPath%\bin\" --lua \"%ParentDirPath%\bin\lua\" --learned-init \"%ParentDirPath%\bin\lua\learned-strategies.lua\"" >nul 2>&1
+    sc config "GoodbyeZapret" start= auto >nul 2>&1 
+) else (
+    sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
+    sc config "GoodbyeZapret" start= auto >nul 2>&1 
+)
+
 
 REM Извлекаем базовое имя файла (без папки и расширения) для записи в реестр/описание
 for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
@@ -1229,13 +1393,13 @@ if errorlevel 1 (
     echo.
     timeout /t 2 >nul 2>&1
 )
-tasklist | find /i "Winws2.exe" >nul
-if errorlevel 1 (
-    echo.
-    echo ОШИБКА: Процесс обхода ^(Winws2.exe^) не запущен.
-    echo.
-    timeout /t 2 >nul 2>&1
-)
+REM tasklist | find /i "Winws2.exe" >nul
+REM if errorlevel 1 (
+REM     echo.
+REM     echo ОШИБКА: Процесс обхода ^(Winws2.exe^) не запущен.
+REM     echo.
+REM     timeout /t 2 >nul 2>&1
+REM )
 goto :end
 
 :remove_service
@@ -1278,7 +1442,6 @@ goto :end
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
     call :WriteConfig GoodbyeZapret_Config "NotFound"
-    REM reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     timeout /t 1 >nul 2>&1
 goto :end
 
@@ -1313,7 +1476,6 @@ goto :end
         )
     )
     call :WriteConfig GoodbyeZapret_Config "Не выбран"
-    REM reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
     timeout /t 1 >nul 2>&1
 goto :install_GZ_service
 
@@ -1322,9 +1484,6 @@ if !ErrorCount! equ 0 (
     REM Set default values for GoodbyeZapret configuration
     set "GoodbyeZapret_Config=Не выбран"
     set "GoodbyeZapret_Old=Отсутствует"
-    REM Check if GoodbyeZapret service exists and get current configuration
-    REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
-        REM if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
 
     rem /// Check for old configuration via config ///
     call :ReadConfig GoodbyeZapret_OldConfig
@@ -1340,7 +1499,7 @@ if !ErrorCount! equ 0 (
         set "GoodbyeZapret_Config=Не выбран"
     )
 
-    goto MainMenuWithoutUiInfo
+    goto ConfigSelectorMenuUiInfo
 ) else (
     echo  Нажмите любую клавишу чтобы продолжить...
     pause >nul 2>&1
@@ -1348,9 +1507,6 @@ if !ErrorCount! equ 0 (
     REM Set default values for GoodbyeZapret configuration
     set "GoodbyeZapret_Config=Не выбран"
     set "GoodbyeZapret_Old=Отсутствует"
-    REM Check if GoodbyeZapret service exists and get current configuration
-    REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
-        REM if !errorlevel! equ 0 ( for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b" )
 
     rem /// Check for old configuration via config ///
     call :ReadConfig GoodbyeZapret_OldConfig
@@ -1359,7 +1515,7 @@ if !ErrorCount! equ 0 (
     ) else (
         set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
     )
-    goto MainMenuWithoutUiInfo
+    goto ConfigSelectorMenuUiInfo
 )
 
 :CurrentStatus
@@ -1687,7 +1843,6 @@ echo    %COL%[90m^[ %COL%[36mC %COL%[90m^] %COL%[93mУровень обхода 
 echo    %COL%[90mОтличаются количеством обрабатываемых IP-адресов ^(чем выше уровень, тем шире список^) %COL%[93m
 echo.
 echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[93mВернуться в меню
-echo    %COL%[90m^[ %COL%[36mI %COL%[90m^] %COL%[93mОткрыть инструкцию
 echo    %COL%[90m^[ %COL%[36mT %COL%[90m^] %COL%[93mОткрыть telegram канал
 echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mПереустановить GoodbyeZapret
 echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
@@ -1703,13 +1858,11 @@ if /i "%choice%"=="B" (
     call :ResizeMenuWindow
     set "choice=" && goto MainMenu
 )
+
 if /i "%choice%"=="и" (
     call :ResizeMenuWindow
     set "choice=" && goto MainMenu
 )
-
-if /i "%choice%"=="I" set "choice=" && goto OpenInstructions
-if /i "%choice%"=="ш" set "choice=" && goto OpenInstructions
 
 if /i "%choice%"=="U" set "choice=" && goto FullUpdate
 if /i "%choice%"=="г" set "choice=" && goto FullUpdate
@@ -2132,32 +2285,29 @@ if "%choice%"=="" goto MainMenu
 
 
 :: Функция: чтение значения
+:: Использование: call :ReadConfig НАЗВАНИЕ_КЛЮЧА [ЗНАЧЕНИЕ_ПО_УМОЛЧАНИЮ]
 :ReadConfig
+setlocal
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
 REM echo [LOG] Старт функции :ReadConfig для %~1, файл: %CONFIG_FILE%
 
-
 set "RES="
 set "FOUND=0"
-REM echo [LOG] Переменные RES и FOUND инициализированы
 
 if not exist "%CONFIG_FILE%" (
     echo [LOG][ОШИБКА] Файл конфигурации не найден!
-    goto :eof
+    REM Если конфига нет, сразу пробуем применить дефолтное значение
+    goto :CheckDefault
 )
 
-REM echo [LOG] Начинаем цикл по файлу конфигурации...
-
 for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
-REM    echo [LOG] Анализ строки: %%A=%%B
     if /i "%%A"=="%~1" (
-REM        echo [LOG] Найден ключ: %%A, значение: %%B
         set "RES=%%B"
         set "FOUND=1"
     )
 )
 
-:: Если переменная найдена, используем цикл for для переноса через барьер
+:: БАРЬЕР: Перенос переменной RES из setlocal в основной контекст
 if defined RES (
     for /f "delims=" %%V in ("%RES%") do (
         endlocal
@@ -2170,18 +2320,28 @@ if defined RES (
     set "FOUND=0"
 )
 
+:CheckDefault
+:: Если ключ не найден (FOUND=0), проверяем аргумент %2 (значение по умолчанию)
 if "%FOUND%"=="0" (
-    set "RES=NotFound"
-REM    echo [LOG] Ключ не найден, RES=NotFound
+    if not "%~2"=="" (
+        set "RES=%~2"
+        REM echo [LOG] Ключ не найден, установлено значение по умолчанию: %~2
+    ) else (
+        set "RES=NotFound"
+        REM echo [LOG] Ключ не найден, дефолт не задан, RES=NotFound
+    )
 )
 
+:: Очистка кавычек, если значение было найдено или задано дефолтом (и не равно NotFound)
 if not "%RES%"=="NotFound" if defined RES (
   if not "%RES%"=="%RES:"=%" set "RES=%RES:~1,-1%"
 )
 
+:: Финальное присвоение результата переменной с именем ключа
 set "%~1=%RES%"
 
 goto :eof
+
 
 
 :: Функция: запись значения с пробелами
@@ -2294,7 +2454,194 @@ if /i "%CDN_BypassLevel%"=="off" (
 REM Записываем новое значение в реестр (системные переменные)
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "CDN_BypassLevel" /t REG_SZ /d "%CDN_BypassLevel%" /f >nul
 
-goto :CurrentStatus
+if defined CDN_BypassLevel (
+    call :WriteConfig CDN_LVL "%CDN_BypassLevel%"
+) else (
+    echo ^[ERROR^] CDN_BypassLevel не определен
+)
+
+goto :MainMenu
+
+
+:ConfiguratorMenu
+title Zapret Configurator
+
+set "ENGN=1"
+call :ReadConfig ENGN 1
+
+:UpdateLimits
+:: Получаем количество стратегий в зависимости от движка
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --get-limits > _limits.bat
+
+if exist _limits.bat (
+    call _limits.bat
+    del _limits.bat
+) else (
+    echo [ERROR] Could not load limits
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0"
+)
+
+
+:: Значения по умолчанию для выбора пользователя
+set "YT=1"
+set "YTGV=1"
+set "DS=1"
+set "DSUPD=1"
+set "BL=1"
+set "STUN=1"
+set "CDN=1"
+set "CDN_LVL=base"
+
+call :ReadConfig YT 1
+call :ReadConfig YTGV 1
+call :ReadConfig DS 1
+call :ReadConfig DSUPD 1
+call :ReadConfig BL 1
+call :ReadConfig STUN 1
+call :ReadConfig CDN 1
+call :ReadConfig CDN_LVL base
+
+:MENU
+cls
+title GoodbyeZapret - Конфигуратор
+echo.
+echo    %COL%[36m┌────────────────────────────── Конфигуратор конфига ──────────────────────────────%COL%[36m
+echo    ^│ %COL%[37mСтратегии, используемые в JSON: %COL%[36m
+echo    ^│ %COL%[90m─────────────────────────────────────────────────────────────────────────────────%COL%[36m
+echo    ^│                                                                                 
+echo    ^│ %COL%[96m^[ 1 ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  (Доступны: 0-!MAX_YouTube!) %COL%[36m
+echo    ^│ %COL%[96m^[ 2 ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  (Доступны: 0-!MAX_YouTubeGoogleVideo!) %COL%[36m
+echo    ^│ %COL%[96m^[ 3 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
+echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
+echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
+echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
+echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
+echo    ^│ 
+echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
+echo    ^│ %COL%[96m^[ 9 ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
+echo    ^│                                                                                        
+echo    └───────────────────────────────────────────────────────────────────────────────────
+echo      %COL%[92m^[ S ^]%COL%[37m Запуск
+echo      %COL%[91m^[ K ^]%COL%[37m Стоп
+echo      %COL%[96m^[ B ^]%COL%[37m Вернуться в главное меню
+echo.
+set /p "opt=%DEL%   %COL%[90m:> "
+
+if /i "%opt%"=="S" goto START
+if /i "%opt%"=="K" goto KILL
+if /i "%opt%"=="B" goto MainMenu
+if /i "%opt%"=="И" goto MainMenu
+
+:: Проверки ввода с использованием полученных лимитов
+if "%opt%"=="1" (
+    set /p val="Введите YouTube стратегию (0-!MAX_YouTube!): "
+    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
+    if !val! gtr !MAX_YouTube! (
+        echo Неверное значение. Максимум - !MAX_YouTube!
+        pause
+    ) else (
+        set "YT=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="2" (
+    set /p val="Введите YouTube GoogleVideo стратегию (0-!MAX_YouTubeGoogleVideo!): "
+    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
+    if !val! gtr !MAX_YouTubeGoogleVideo! (
+        echo Неверное значение. Максимум - !MAX_YouTubeGoogleVideo!
+        pause
+    ) else (
+        set "YTGV=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="3" (
+    set /p val="Введите Discord стратегию (0-!MAX_Discord!): "
+    if !val! gtr !MAX_Discord! (
+        echo Неверное значение. Максимум - !MAX_Discord!
+        pause
+    ) else (
+        set "DS=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="4" (
+    set /p val="Введите Discord Update стратегию (0-!MAX_DiscordUpdate!): "
+    if !val! gtr !MAX_DiscordUpdate! (
+        echo Неверное значение. Максимум - !MAX_DiscordUpdate!
+        pause
+    ) else (
+        set "DSUPD=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="5" (
+    set /p val="Введите Russia-Blacklist стратегию (0-!MAX_blacklist!): "
+    if !val! gtr !MAX_blacklist! (
+        echo Неверное значение. Максимум - !MAX_blacklist!
+        pause
+    ) else (
+        set "BL=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="6" (
+    set /p val="Введите STUN стратегию (0-!MAX_STUN!): "
+    if !val! gtr !MAX_STUN! (
+        echo Неверное значение. Максимум - !MAX_STUN!
+        pause
+    ) else (
+        set "STUN=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="7" (
+    set /p val="Введите CDN стратегию (0-!MAX_CDN!): "
+    if !val! gtr !MAX_CDN! (
+        echo Неверное значение. Максимум - !MAX_CDN!
+        pause
+    ) else (
+        set "CDN=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="8" (set /p CDN_LVL="Задайте CDN (off/base/full): " & goto MENU)
+
+if "%opt%"=="9" (
+    if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
+    :: Сбрасываем значения, так как в другом движке другие лимиты
+    set "YT=1" & set "YTGV=1" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1"
+    goto UpdateLimits
+)
+
+goto MENU
+
+:START
+echo.
+
+echo [*] Настройка сборки для Zapret!ENGN!...
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
+
+if exist %ParentDirPath%\Configs\Custom\Configurator_fix.bat (
+	set "currentDir=%~dp0"
+    echo [*] Запуск...
+explorer "%ParentDirPath%\Configs\Custom\Configurator_fix.bat"
+)
+goto MENU
+
+:KILL
+echo [*] Завершаю работу winws...
+taskkill /F /IM winws.exe /T >nul 2>&1
+taskkill /F /IM winws2.exe /T >nul 2>&1
+goto MENU
+
 
 
 :timer_start

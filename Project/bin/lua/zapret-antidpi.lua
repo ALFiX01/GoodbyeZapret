@@ -416,7 +416,49 @@ function multisplit(ctx, desync)
 	end
 end
 
+-- internal function for code deduplication. do not call directly
+function pos_normalize(pos, low, hi)
+	return (pos>=low and pos<hi) and (pos-low+1) or nil
+end
+-- internal function for code deduplication. do not call directly
+function pos_array_normalize(pos, low, hi)
+	-- remove positions outside of hi,low range. normalize others to low
+	local i=1
+	while i<=#pos do
+		pos[i] = pos_normalize(pos[i], low, hi)
+		if pos[i] then
+			i = i + 1
+		else
+			table.remove(pos, i);
+		end
+	end
+end
+-- internal function for code deduplication. do not call directly
+function multidisorder_send(desync, data, seqovl, pos)
+	for i=#pos,0,-1 do
+		local pos_start = pos[i] or 1
+		local pos_end = i<#pos and pos[i+1]-1 or #data
+		local part = string.sub(data,pos_start,pos_end)
+		local ovl=0
+		if i==1 and seqovl and seqovl>0 then
+			if seqovl>=pos[1] then
+				DLOG("multidisorder: seqovl cancelled because seqovl "..(seqovl-1).." is not less than the first split pos "..(pos[1]-1))
+			else
+				ovl = seqovl - 1
+				local pat = desync.arg.seqovl_pattern and blob(desync,desync.arg.seqovl_pattern) or "\x00"
+				part = pattern(pat,1,ovl)..part
+			end
+		end
+		if b_debug then DLOG("multidisorder: sending part "..(i+1).." "..(pos_start-1).."-"..(pos_end-1).." len="..#part.." seqovl="..ovl.." : "..hexdump_dlog(part)) end
+		if not rawsend_payload_segmented(desync,part,pos_start-1-ovl) then
+			return VERDICT_PASS
+		end
+	end
+	return VERDICT_DROP
+end
+
 -- nfqws1 : "--dpi-desync=multidisorder"
+-- algorithm is not 100% the same as in nfqws1. multi-segment queries can produce different segment ordering.
 -- standard args : direction, payload, fooling, ip_id, rawsend, reconstruct, ipfrag
 -- arg : pos=<postmarker list> . position marker list. example : "1,host,midsld+1,-10"
 -- arg : seqovl=N . decrease seq number of the second segment in the original order by N and fill N bytes with pattern (default - all zero). N must be less than the first split pos.
@@ -440,31 +482,15 @@ function multidisorder(ctx, desync)
 			if b_debug then DLOG("multidisorder: resolved split pos: "..table.concat(zero_based_pos(pos)," ")) end
 			delete_pos_1(pos) -- cannot split at the first byte
 			if #pos>0 then
-				for i=#pos,0,-1 do
-					local pos_start = pos[i] or 1
-					local pos_end = i<#pos and pos[i+1]-1 or #data
-					local part = string.sub(data,pos_start,pos_end)
-					local seqovl=0
-					if i==1 and desync.arg.seqovl then
-						seqovl = resolve_pos(data, desync.l7payload, desync.arg.seqovl)
-						if not seqovl then
-							DLOG("multidisorder: seqovl cancelled because could not resolve marker '"..desync.arg.seqovl.."'")
-							seqovl = 0
-						else
-							seqovl = seqovl - 1
-							if seqovl>=(pos[1]-1) then
-								DLOG("multidisorder: seqovl cancelled because seqovl "..seqovl.." is not less than the first split pos "..(pos[1]-1))
-								seqovl = 0
-							else
-								local pat = desync.arg.seqovl_pattern and blob(desync,desync.arg.seqovl_pattern) or "\x00"
-								part = pattern(pat,1,seqovl)..part
-							end
-						end
+				local seqovl
+				if desync.arg.seqovl then
+					seqovl = resolve_pos(data, desync.l7payload, desync.arg.seqovl)
+					if not seqovl then
+						DLOG("multidisorder: seqovl cancelled because could not resolve marker '"..desync.arg.seqovl.."'")
 					end
-					if b_debug then DLOG("multidisorder: sending part "..(i+1).." "..(pos_start-1).."-"..(pos_end-1).." len="..#part.." seqovl="..seqovl.." : "..hexdump_dlog(part)) end
-					if not rawsend_payload_segmented(desync,part,pos_start-1-seqovl) then
-						return VERDICT_PASS
-					end
+				end
+				if multidisorder_send(desync, data, seqovl, pos)==VERDICT_PASS then
+					return VERDICT_PASS
 				end
 				replay_drop_set(desync)
 				return desync.arg.nodrop and VERDICT_PASS or VERDICT_DROP
@@ -477,6 +503,59 @@ function multidisorder(ctx, desync)
 		-- drop replayed packets if reasm was sent successfully in splitted form
 		if replay_drop(desync) then
 			return desync.arg.nodrop and VERDICT_PASS or VERDICT_DROP
+		end
+	end
+end
+
+-- nfqws1 : "--dpi-desync=multidisorder". segment ordering is the same as in nfqws1
+-- standard args : direction, payload, fooling, ip_id, rawsend, reconstruct, ipfrag
+-- arg : pos=<postmarker list> . position marker list. example : "1,host,midsld+1,-10"
+-- arg : seqovl=N . decrease seq number of the second segment in the original order by N and fill N bytes with pattern (default - all zero). N must be less than the first split pos.
+-- arg : seqovl_pattern=<blob> . override pattern
+function multidisorder_legacy(ctx, desync)
+	if not desync.dis.tcp then
+		instance_cutoff_shim(ctx, desync)
+		return
+	end
+	direction_cutoff_opposite(ctx, desync)
+	-- by default process only outgoing known payloads
+	local data = desync.dis.payload
+	local fulldata = desync.reasm_data
+	if #data>0 and direction_check(desync) and payload_check(desync) then
+		local range_low = (desync.reasm_offset or 0) + 1
+		local range_hi = range_low + #data
+		local spos = desync.arg.pos or "2"
+		-- check debug to save CPU
+		if b_debug then DLOG("multidisorder_legacy: split pos: "..spos) end
+		local pos = resolve_multi_pos(fulldata, desync.l7payload, spos)
+		if b_debug then DLOG("multidisorder_legacy: resolved split pos: "..table.concat(zero_based_pos(pos)," ")) end
+		DLOG("multidisorder_legacy: reasm piece range: "..(range_low-1).."-"..(range_hi-2))
+		pos_array_normalize(pos, range_low, range_hi)
+		delete_pos_1(pos) -- cannot split at the first byte
+		if #pos>0 then
+			if b_debug then DLOG("multidisorder_legacy: normalized split pos: "..table.concat(zero_based_pos(pos)," ")) end
+			local seqovl
+			if desync.arg.seqovl then
+				seqovl = resolve_pos(fulldata, desync.l7payload, desync.arg.seqovl)
+				if seqovl then
+					DLOG("multidisorder_legacy: resolved seqovl pos: "..(seqovl-1))
+					seqovl = pos_normalize(seqovl, range_low, range_hi)
+					if seqovl then
+						DLOG("multidisorder_legacy: normalized seqovl pos: "..(seqovl-1))
+					else
+						DLOG("multidisorder_legacy: normalized seqovl pos is outside of the reasm piece range")
+					end
+				else
+					DLOG("multidisorder_legacy: seqovl cancelled because could not resolve marker '"..desync.arg.seqovl.."'")
+				end
+			end
+			return multidisorder_send(desync, data, seqovl, pos)
+		else
+			DLOG("multidisorder_legacy: no normalized split pos in this packet")
+			-- send as is with applied options
+			if rawsend_payload_segmented(desync) then
+				return VERDICT_DROP
+			end
 		end
 	end
 end
@@ -616,7 +695,7 @@ function fakedsplit(ctx, desync)
 			local pos = resolve_pos(data, desync.l7payload, spos)
 			if pos then
 				if pos == 1 then
-					DLOG("multidisorder: split pos resolved to 0. cannot split.")
+					DLOG("fakedsplit: split pos resolved to 0. cannot split.")
 				else
 					if b_debug then DLOG("fakedsplit: resolved split pos: "..tostring(pos-1)) end
 
@@ -709,7 +788,7 @@ function fakeddisorder(ctx, desync)
 			local pos = resolve_pos(data, desync.l7payload, spos)
 			if pos then
 				if pos == 1 then
-					DLOG("multidisorder: split pos resolved to 0. cannot split.")
+					DLOG("fakeddisorder: split pos resolved to 0. cannot split.")
 				else
 					if b_debug then DLOG("fakeddisorder: resolved split pos: "..tostring(pos-1)) end
 

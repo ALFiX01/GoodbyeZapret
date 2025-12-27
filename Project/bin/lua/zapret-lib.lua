@@ -76,7 +76,7 @@ end
 -- arg: pattern - substring for search inside reasm_data or desync.dis.payload
 -- arg: payload - set desync.l7payload to this if detected
 -- arg: undetected - set desync.l7payload to this if not detected
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-antidpi.lua --lua-init=@zapret-auto.lua --lua-desync=detect_payload_str:pattern=1234:payload=my --lua-desync=fake:blob=0x1234:payload=my
+-- test case : --lua-desync=detect_payload_str:pattern=1234:payload=my --lua-desync=fake:blob=0x1234:payload=my
 function detect_payload_str(ctx, desync)
 	if not desync.arg.pattern then
 		error("detect_payload_str: missing 'pattern'")
@@ -190,7 +190,7 @@ function plan_instance_execute(desync, verdict, instance)
 	return verdict
 end
 function plan_instance_pop(desync)
-	return (desync.plan and #desync.plan>0) and table.remove(desync.plan, 1)
+	return (desync.plan and #desync.plan>0) and table.remove(desync.plan, 1) or nil
 end
 function plan_clear(desync)
 	while table.remove(desync.plan) do end
@@ -227,13 +227,19 @@ function replay_execution_plan(desync)
 end
 -- this function demonstrates how to stop execution of upcoming desync instances and take over their job
 -- this can be used, for example, for orchestrating conditional processing without modifying of desync functions code
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-desync=desync_orchestrator_example --lua-desync=pass --lua-desync=pass
+-- test case : --lua-desync=desync_orchestrator_example --lua-desync=pass --lua-desync=pass
 function desync_orchestrator_example(ctx, desync)
 	DLOG("orchestrator: taking over upcoming desync instances")
 	orchestrate(ctx, desync)
 	return replay_execution_plan(desync)
 end
 
+-- if seq is over 2G s and p position comparision can be wrong
+function pos_counter_overflow(desync, mode, reverse)
+	if not desync.track or not desync.track.tcp or (mode~='s' and mode~='p') then return false end
+	local track_pos = reverse and desync.track.pos.reverse or desync.track.pos.direct
+	return track_pos.tcp.rseq_over_2G
+end
 -- these functions duplicate range check logic from C code
 -- mode must be n,d,b,s,x,a
 -- pos is {mode,pos}
@@ -265,7 +271,7 @@ function pos_get(desync, mode, reverse)
 	return 0
 end
 function pos_check_from(desync, range)
-	if range.from.mode == 'x' then return false end
+	if range.from.mode == 'x' or pos_counter_overflow(desync, range.from.mode) then return false end
 	if range.from.mode ~= 'a' then
 		if desync.track then
 			return pos_get(desync, range.from.mode) >= range.from.pos
@@ -277,7 +283,7 @@ function pos_check_from(desync, range)
 end
 function pos_check_to(desync, range)
 	local ps
-	if range.to.mode == 'x' then return false end
+	if range.to.mode == 'x' or pos_counter_overflow(desync, range.to.mode) then return false end
 	if range.to.mode ~= 'a' then
 		if desync.track then
 			ps = pos_get(desync, range.to.mode)
@@ -297,8 +303,31 @@ end
 function pos_str(desync, pos)
 	return pos.mode..pos_get(desync, pos.mode)
 end
+
+-- sequence comparision functions. they work only within 2G interval
+-- seq1>=seq2
+function seq_ge(seq1, seq2)
+	return 0==bitand(u32add(seq1, -seq2), 0x80000000)
+end
+-- seq1>seq2
+function seq_gt(seq1, seq2)
+	return seq1~=seq2 and seq_ge(seq1, seq2)
+end
+-- seq1<seq2
+function seq_lt(seq1, seq2)
+	return 0~=bitand(u32add(seq1, -seq2), 0x80000000)
+end
+-- seq1<=seq2
+function seq_le(seq1, seq2)
+	return seq1==seq2 or 0~=bitand(u32add(seq1, -seq2), 0x80000000)
+end
+-- seq_low<=seq<=seq_hi
+function seq_within(seq, seq_low, seq_hi)
+	return seq_ge(seq, seq_low) and seq_le(seq, seq_hi)
+end
+
 function is_retransmission(desync)
-	return desync.track and desync.track.pos.direct.tcp and 0==bitand(u32add(desync.track.pos.direct.tcp.uppos_prev, -desync.track.pos.direct.tcp.pos), 0x80000000)
+	return desync.track and desync.track.pos.direct.tcp and seq_ge(desync.track.pos.direct.tcp.uppos_prev, desync.track.pos.direct.tcp.pos)
 end
 
 -- prepare standard rawsend options from desync
@@ -733,6 +762,22 @@ function fix_ip6_next(ip6, last_proto)
 	end
 end
 
+-- reverses ip addresses, ports and seq/ack
+function dis_reverse(dis)
+	if dis.ip then
+		dis.ip.ip_src, dis.ip.ip_dst = dis.ip.ip_dst, dis.ip.ip_src
+	end
+	if dis.ip6 then
+		dis.ip6.ip6_src, dis.ip6.ip6_dst = dis.ip6.ip6_dst, dis.ip6.ip6_src
+	end
+	if dis.tcp then
+		dis.tcp.th_sport, dis.tcp.th_dport = dis.tcp.th_dport, dis.tcp.th_sport
+		dis.tcp.th_ack, dis.tcp.th_seq = dis.tcp.th_seq, dis.tcp.th_ack
+	end
+	if dis.udp then
+		dis.udp.uh_sport, dis.udp.uh_dport = dis.udp.uh_dport, dis.udp.uh_sport
+	end
+end
 
 -- parse autottl : delta,min-max
 function parse_autottl(s)
@@ -801,6 +846,7 @@ end
 -- ip6_hopbyhop[=hex] - add hopbyhop ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_hopbyhop2[=hex] - add second hopbyhop ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_destopt[=hex] - add destopt ipv6 header with optional data. data size must be 6+N*8. all zero by default.
+-- ip6_destopt2[=hex] - add second destopt ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_routing[=hex] - add routing ipv6 header with optional data. data size must be 6+N*8. all zero by default.
 -- ip6_ah[=hex] - add authentication ipv6 header with optional data. data size must be 6+N*4. 0000 + 4 random bytes by default.
 
@@ -1270,7 +1316,7 @@ function wsize_rewrite(dis, arg)
 	local b = false
 	if arg.wsize then
 		local wsize = tonumber(arg.wsize)
-		DLOG("window size "..dis.tcp.th_win.." => "..wsize)
+		DLOG("wsize_rewrite: window size "..dis.tcp.th_win.." => "..wsize)
 		dis.tcp.th_win = tonumber(arg.wsize)
 		b = true
 	end
@@ -1280,9 +1326,9 @@ function wsize_rewrite(dis, arg)
 		if i then
 			local oldscale = u8(dis.tcp.options[i].data)
 			if scale>oldscale then
-				DLOG("not increasing scale factor")
+				DLOG("wsize_rewrite: not increasing scale factor")
 			elseif scale<oldscale then
-				DLOG("scale factor "..oldscale.." => "..scale)
+				DLOG("wsize_rewrite: scale factor "..oldscale.." => "..scale)
 				dis.tcp.options[i].data = bu8(scale)
 				b = true
 			end

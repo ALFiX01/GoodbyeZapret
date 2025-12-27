@@ -42,4 +42,5 @@ findAdiscord.com
 mee6.xyz
 top.gg
 discord-attachments-uploads-prd.storage.googleapis.com
+cloudflare-ech.com
 updates.discord.com

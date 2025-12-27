@@ -1,0 +1,15 @@
+!impostor and !loopback and
+(outbound and
+ ((tcp and (tcp.DstPort == 80 or tcp.DstPort == 443 or tcp.DstPort == 2053 or tcp.DstPort == 2083 or tcp.DstPort == 2087 or tcp.DstPort == 2096 or tcp.DstPort == 8443)) or
+  (udp and
+    ((udp.DstPort >= 19294 and udp.DstPort <= 19344) or
+     (udp.DstPort >= 50000 and udp.DstPort <= 50100) or
+     (udp.DstPort >= 3478 and udp.DstPort <= 3481) or
+     udp.DstPort == 3659 or
+     (udp.SrcPort >= START_PORT and udp.SrcPort <= END_PORT) or
+     udp.DstPort == 443))) and
+ (ip.DstAddr < 127.0.0.1 or ip.DstAddr > 127.255.255.255) and
+ (ip.DstAddr < 10.0.0.0 or ip.DstAddr > 10.255.255.255) and
+ (ip.DstAddr < 192.168.0.0 or ip.DstAddr > 192.168.255.255) and
+ (ip.DstAddr < 172.16.0.0 or ip.DstAddr > 172.31.255.255) and
+ (ip.DstAddr < 169.254.0.0 or ip.DstAddr > 169.254.255.255)

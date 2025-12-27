@@ -3,19 +3,26 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
+	"math/rand"
 	"net"
 	"net/http"
+	"net/http/httptrace"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/fatih/color"
+	"golang.org/x/net/publicsuffix"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -24,102 +31,342 @@ const (
 	fastDialTimeout    = 2 * time.Second
 	fastTLSHandshake   = 2 * time.Second
 	fastResponseHeader = 2500 * time.Millisecond
-	fastClientTimeout  = 3 * time.Second
 
-	slowClientTimeout = 6 * time.Second // Увеличил, чтобы retry имел больше шансов
+	// Read-timeout (аналог requests read_timeout)
+	fastReadTimeout = 3 * time.Second
+	slowReadTimeout = 6 * time.Second
+
+	// Общий потолок на запрос (context timeout)
+	fastTotalTimeout = 6 * time.Second
+	slowTotalTimeout = 12 * time.Second
 
 	// Конфигурация
-	userAgent      = "GoodbyeZapretChecker/2.1"
+	userAgent      = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 	registryPath   = `Software\ALFiX inc.\GoodbyeZapret`
 	githubCheckURI = "/ALFiX01/GoodbyeZapret/main/GoodbyeZapret_Version"
+
+	// Порог “успеха” как в Python-алгоритме
+	baseThreshold = 64 * 1024
+	chunkSize     = 4096
 )
 
-// --- Транспорт ---
-func buildHTTPTransport() *http.Transport {
+var realHeaders = map[string]string{
+	"User-Agent":      userAgent,
+	"Accept":          "*/*",
+	"Connection":      "keep-alive",
+	"Cache-Control":   "no-cache",
+	"Pragma":          "no-cache",
+	"Accept-Encoding": "identity",
+}
+
+// timeoutConn ставит ReadDeadline перед каждым Read (read-timeout “на сокете”)
+type timeoutConn struct {
+	net.Conn
+	readTimeout time.Duration
+}
+
+func (c *timeoutConn) Read(p []byte) (int, error) {
+	if c.readTimeout > 0 {
+		_ = c.Conn.SetReadDeadline(time.Now().Add(c.readTimeout))
+	}
+	return c.Conn.Read(p)
+}
+
+// --- Транспорт (параметризованный read-timeout) ---
+func buildHTTPTransport(readTimeout time.Duration) *http.Transport {
+	d := &net.Dialer{
+		Timeout:   fastDialTimeout,
+		KeepAlive: -1,
+	}
+
 	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout: fastDialTimeout,
-			// KeepAlive не нужен для разовых проверок разных доменов,
-			// отключение экономит файловые дескрипторы
-			KeepAlive: -1,
-		}).DialContext,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			conn, err := d.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			return &timeoutConn{Conn: conn, readTimeout: readTimeout}, nil
+		},
+		// как в Python verify=False
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+
 		TLSHandshakeTimeout:   fastTLSHandshake,
 		ResponseHeaderTimeout: fastResponseHeader,
 		ForceAttemptHTTP2:     true,
-		DisableKeepAlives:     true, // Важно: закрываем соединение сразу после запроса
+		DisableKeepAlives:     true,
 		DisableCompression:    true,
 		MaxIdleConns:          100,
 	}
 }
 
 type Checker struct {
-	client     *http.Client
+	clientFast *http.Client
+	clientSlow *http.Client
+
 	githubPath string
 }
 
-func NewChecker(githubPath string, tr *http.Transport) *Checker {
+func NewChecker(githubPath string) *Checker {
+	trFast := buildHTTPTransport(fastReadTimeout)
+	trSlow := buildHTTPTransport(slowReadTimeout)
+
 	return &Checker{
-		// Используем один клиент, таймауты регулируем через Context
-		client:     &http.Client{Transport: tr, Timeout: 0},
+		clientFast: &http.Client{Transport: trFast, Timeout: 0},
+		clientSlow: &http.Client{Transport: trSlow, Timeout: 0},
 		githubPath: githubPath,
 	}
 }
 
-func (c *Checker) Check(domain string) (bool, string) {
-	url := c.buildURL(domain)
+func (c *Checker) Check(domainOrURL string) (bool, string) {
+	rawURL := c.buildURL(domainOrURL)
+	rawURL = bypassURL(rawURL)
 
-	// Попытка 1: Быстрая
-	err := c.checkOnce(url, fastClientTimeout)
-	if err == nil {
+	// 1) Быстрая попытка
+	r := c.checkOncePyLike(rawURL, c.clientFast, fastTotalTimeout)
+	if r.err == nil {
 		return true, ""
 	}
 
-	// Попытка 2: Медленная (Retry), только если ошибка сетевая
-	if shouldRetry(err) {
-		err = c.checkOnce(url, slowClientTimeout)
-		if err == nil {
+	// 2) Retry (только если есть смысл)
+	if shouldRetry(r.err) {
+		r = c.checkOncePyLike(rawURL, c.clientSlow, slowTotalTimeout)
+		if r.err == nil {
 			return true, ""
 		}
 	}
 
-	return false, classifyError(err)
+	return false, classifyPyLike(r)
 }
 
-func (c *Checker) buildURL(domain string) string {
-	if domain == "raw.githubusercontent.com" {
-		return "https://" + domain + c.githubPath
+func (c *Checker) buildURL(domainOrURL string) string {
+	// Если в domains.txt уже полный URL
+	if strings.HasPrefix(domainOrURL, "http://") || strings.HasPrefix(domainOrURL, "https://") {
+		return domainOrURL
 	}
-	return "https://" + domain
+
+	// YouTube кэши: rr*---sn-*.googlevideo.com -> /generate_204
+	if strings.HasSuffix(strings.ToLower(domainOrURL), ".googlevideo.com") {
+		return "https://" + domainOrURL + "/generate_204"
+	}
+
+	// GitHub raw special-case
+	if strings.EqualFold(domainOrURL, "raw.githubusercontent.com") {
+		return "https://" + domainOrURL + c.githubPath
+	}
+
+	return "https://" + domainOrURL
 }
 
-func (c *Checker) checkOnce(url string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func bypassURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+	if u.Path == "" {
+		u.Path = "/"
+	}
+	q := u.Query()
+	q.Set("_t", strconv.Itoa(1000+rand.Intn(9000)))
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// displayDomain возвращает “главный” домен (eTLD+1) для вывода
+func displayDomain(domainOrURL string) string {
+	s := strings.TrimSpace(domainOrURL)
+	s = strings.TrimSuffix(s, ".")
+
+	// 1) Если это похоже на "host/path" без схемы (как i.ytimg.com/vi/...)
+	// то host = до первого "/" или "?"
+	host := s
+	if strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
+		// нормальный URL
+		if u, err := url.Parse(s); err == nil {
+			if hn := u.Hostname(); hn != "" {
+				host = hn
+			}
+		}
+	} else {
+		// без схемы: режем по / ? #
+		cut := len(s)
+		for _, sep := range []string{"/", "?", "#"} {
+			if i := strings.Index(s, sep); i >= 0 && i < cut {
+				cut = i
+			}
+		}
+		host = s[:cut]
+	}
+
+	// 2) убрать порт, если вдруг есть
+	if h, _, err := net.SplitHostPort(host); err == nil && h != "" {
+		host = h
+	}
+
+	host = strings.TrimSuffix(host, ".")
+	if host == "" {
+		return s
+	}
+
+	// IP адреса не прогоняем через publicsuffix
+	if net.ParseIP(host) != nil {
+		return host
+	}
+
+	// 3) eTLD+1: rr6---sn-xxx.googlevideo.com -> googlevideo.com
+	if etld1, err := publicsuffix.EffectiveTLDPlusOne(host); err == nil && etld1 != "" {
+		return etld1
+	}
+
+	// fallback: последние 2 метки
+	parts := strings.Split(host, ".")
+	if len(parts) >= 2 {
+		return parts[len(parts)-2] + "." + parts[len(parts)-1]
+	}
+	return host
+}
+
+
+type checkRes struct {
+	downloaded int
+	statusCode int
+	gotFirst   bool
+	err        error
+}
+
+func (c *Checker) checkOncePyLike(urlStr string, client *http.Client, totalTimeout time.Duration) checkRes {
+	ctx, cancel := context.WithTimeout(context.Background(), totalTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	var gotFirst int32
+	trace := &httptrace.ClientTrace{
+		GotFirstResponseByte: func() { atomic.StoreInt32(&gotFirst, 1) },
+	}
+	ctx = httptrace.WithClientTrace(ctx, trace)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
 	if err != nil {
-		return err
+		return checkRes{err: err}
 	}
 
-	req.Header.Set("User-Agent", userAgent)
-	// Трюк с Range 0-0 отличный, он экономит трафик, оставляем
-	req.Header.Set("Range", "bytes=0-0")
-	req.Header.Set("Accept-Encoding", "identity")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
+	for k, v := range realHeaders {
+		req.Header.Set(k, v)
 	}
-	// Обязательно закрываем Body через defer для гарантии
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return checkRes{gotFirst: atomic.LoadInt32(&gotFirst) == 1, err: err}
+	}
 	defer resp.Body.Close()
 
-	// Дополнительная проверка статуса, если нужно (например, не считать 500 OK)
-	// Но для проверки DPI доступности даже 500 или 403 часто значит "доступ есть"
-	return nil
+	// Как в Python-алгоритме: HTTP>=400 считаем ошибкой
+	if resp.StatusCode >= 400 {
+		return checkRes{
+			statusCode: resp.StatusCode,
+			gotFirst:   true,
+			err:        fmt.Errorf("http %d", resp.StatusCode),
+		}
+	}
+
+	buf := make([]byte, chunkSize)
+	downloaded := 0
+
+	for downloaded < baseThreshold {
+		n, rerr := resp.Body.Read(buf)
+		if n > 0 {
+			downloaded += n
+		}
+		if rerr == io.EOF {
+			break
+		}
+		if rerr != nil {
+			return checkRes{
+				downloaded: downloaded,
+				statusCode: resp.StatusCode,
+				gotFirst:   atomic.LoadInt32(&gotFirst) == 1,
+				err:        rerr,
+			}
+		}
+	}
+
+	return checkRes{
+		downloaded: downloaded,
+		statusCode: resp.StatusCode,
+		gotFirst:   atomic.LoadInt32(&gotFirst) == 1,
+		err:        nil,
+	}
+}
+
+func classifyPyLike(r checkRes) string {
+	if r.err == nil {
+		return ""
+	}
+
+	if r.statusCode >= 400 {
+		return fmt.Sprintf("HTTP_%d", r.statusCode)
+	}
+
+	// TIMEOUT vs DPI-blackhole (read-timeout после первого байта)
+	if isTimeoutErr(r.err) {
+		if r.gotFirst {
+			return "DPI_TIMEOUT"
+		}
+		return "TIMEOUT"
+	}
+
+	// RST / forcibly closed
+	if isRSTErr(r.err) {
+		return "RST"
+	}
+
+	// DNS
+	var dnsErr *net.DNSError
+	if errors.As(r.err, &dnsErr) {
+		return "DNS"
+	}
+
+	return "CONN"
+}
+
+func isTimeoutErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
+func isRSTErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := strings.ToLower(err.Error())
+	return strings.Contains(s, "connection reset") ||
+		strings.Contains(s, "wsarecv") ||
+		strings.Contains(s, "forcibly closed") ||
+		strings.Contains(s, "remote host")
+}
+
+func shouldRetry(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) {
+		return netErr.Timeout() || netErr.Temporary()
+	}
+	return false
 }
 
 func main() {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	var batFile string
 	if len(os.Args) > 1 {
 		batFile = os.Args[1]
@@ -135,8 +382,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Упрощенная логика параллелизма.
-	// Для сетевых задач можно брать N * CPU, но не меньше определенного числа.
 	concurrency := runtime.NumCPU() * 4
 	if concurrency < 32 {
 		concurrency = 32
@@ -146,29 +391,26 @@ func main() {
 	}
 
 	fmt.Printf(" Запуск проверки: потоков=%d, доменов=%d, CPU=%d\n",
-    	concurrency, len(domains), runtime.NumCPU())
+		concurrency, len(domains), runtime.NumCPU())
 
-	tr := buildHTTPTransport()
-	checker := NewChecker(githubCheckURI, tr)
+	checker := NewChecker(githubCheckURI)
 
 	var okCnt int32
 	var wg sync.WaitGroup
-
-	// Используем семафор для ограничения параллелизма
 	sem := make(chan struct{}, concurrency)
 
 	fmt.Println(" " + strings.Repeat("-", 50))
 
 	for _, d := range domains {
 		wg.Add(1)
-		sem <- struct{}{} // Захват слота
+		sem <- struct{}{}
 
-		go func(domain string) {
+		go func(domainOrURL string) {
 			defer wg.Done()
-			defer func() { <-sem }() // Освобождение слота
+			defer func() { <-sem }()
 
-			ok, reason := checker.Check(domain)
-			printResult(domain, ok, reason)
+			ok, reason := checker.Check(domainOrURL)
+			printResult(domainOrURL, ok, reason)
 
 			if ok {
 				atomic.AddInt32(&okCnt, 1)
@@ -188,7 +430,6 @@ func main() {
 		if batFile != "" {
 			writeRegistrySuccess(batFile)
 		}
-		// Небольшая пауза перед выходом, чтобы юзер успел прочитать
 		time.Sleep(1 * time.Second)
 		os.Exit(0)
 	} else {
@@ -198,16 +439,18 @@ func main() {
 	}
 }
 
-// Вывод результатов потокобезопасно (через fmt в одной горутине - нет,
-// но fmt.Printf в Go атомарен для вывода строки, так что текст не смешается)
-func printResult(domain string, ok bool, reason string) {
-	// Форматирование с фиксированной шириной для красоты
+const colWidth = 32
+
+func printResult(domainOrURL string, ok bool, reason string) {
+	name := displayDomain(domainOrURL)
+
 	if ok {
-		fmt.Printf(" %-40s %s\n", domain, color.GreenString("OK"))
+		fmt.Printf(" %-*s %s\n", colWidth, name, color.GreenString("OK"))
 	} else {
-		fmt.Printf(" %-40s %s\n", domain, color.RedString("ERR [%s]", reason))
+		fmt.Printf(" %-*s %s\n", colWidth, name, color.RedString("ERR [%s]", reason))
 	}
 }
+
 
 func loadDomains() ([]string, error) {
 	exePath, err := os.Executable()
@@ -222,7 +465,6 @@ func loadDomains() ([]string, error) {
 	}
 	defer f.Close()
 
-	// Преаллокация слайса (примерно), чтобы уменьшить перевыделение памяти
 	domains := make([]string, 0, 50)
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -234,47 +476,9 @@ func loadDomains() ([]string, error) {
 	return domains, scanner.Err()
 }
 
-func classifyError(err error) string {
-	if err == nil {
-		return ""
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return "TIMEOUT"
-	}
-	var netErr net.Error
-	if errors.As(err, &netErr) && netErr.Timeout() {
-		return "TIMEOUT"
-	}
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
-		return "DNS"
-	}
-	var opErr *net.OpError
-	if errors.As(err, &opErr) {
-		return strings.ToUpper(opErr.Op)
-	}
-	return "CONN"
-}
-
-func shouldRetry(err error) bool {
-	if err == nil {
-		return false
-	}
-	// Рекомендуется ретраить при таймаутах или временных ошибках сети
-	if errors.Is(err, context.DeadlineExceeded) {
-		return true
-	}
-	var netErr net.Error
-	if errors.As(err, &netErr) {
-		return netErr.Timeout() || netErr.Temporary()
-	}
-	return false
-}
-
 func writeRegistrySuccess(batFile string) {
 	k, _, err := registry.CreateKey(registry.CURRENT_USER, registryPath, registry.SET_VALUE)
 	if err != nil {
-		// Логирование ошибки реестра (опционально)
 		return
 	}
 	defer k.Close()

@@ -1,8 +1,8 @@
 # List of domains to test (one per line). Lines starting with
-rr5---sn-f5f7lnld.googlevideo.com
 rr6---sn-jvhnu5g-n8vy.googlevideo.com
-i.ytimg.com
+i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg
 discord.com
+updates.discord.com
 cloudflare.com
 aws.amazon.com
 raw.githubusercontent.com 

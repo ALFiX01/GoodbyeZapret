@@ -9,7 +9,7 @@
 function standard_hostkey(desync)
 	local hostkey = desync.track and desync.track.hostname
 	if hostkey then
-		if desync.arg.nld and tonumber(desync.arg.nld)>0 then
+		if desync.arg.nld and tonumber(desync.arg.nld)>0 and not (desync.track and desync.track.hostname_is_ip) then
 			-- dissect_nld returns nil if domain is invalid or does not have this NLD
 			-- fall back to original hostkey if it fails
 			local hktemp = dissect_nld(hostkey, tonumber(desync.arg.nld))
@@ -20,7 +20,6 @@ function standard_hostkey(desync)
 	elseif not desync.arg.reqhost then
 		hostkey = host_ip(desync)
 	end
-	-- prevent nld for ip addresses
 	return hostkey
 end
 
@@ -123,7 +122,8 @@ function standard_detector_defaults(arg)
 		udp_in = tonumber(arg.udp_in) or 1,
 		udp_out = tonumber(arg.udp_out) or 4,
 		no_http_redirect = arg.no_http_redirect,
-		no_rst = arg.no_rst
+		no_rst = arg.no_rst,
+		reset = arg.reset
 	}
 end
 
@@ -136,6 +136,7 @@ end
 --   udp too much out with too few in
 -- arg: maxseq=<rseq> - tcp: test retransmissions only within this relative sequence. default is 32K
 -- arg: retrans=N - tcp: retrans count threshold. default is 3
+-- arg: reset - send RST to retransmitter to break long wait
 -- arg: inseq=<rseq> - tcp: maximum relative sequence number to treat incoming RST as DPI reset. default is 4K
 -- arg: no_http_redirect - tcp: disable http_reply dpi redirect trigger
 -- arg: no_rst - tcp: disable incoming RST trigger
@@ -152,6 +153,19 @@ function standard_failure_detector(desync, crec)
 					crec.retrans = crec.retrans and (crec.retrans+1) or 1
 					DLOG("standard_failure_detector: retransmission "..crec.retrans.."/"..arg.retrans)
 					trigger = crec.retrans>=arg.retrans
+					if trigger and arg.reset then
+						local dis = deepcopy(desync.dis)
+						dis.payload = nil
+						dis_reverse(dis)
+						dis.tcp.th_flags = TH_RST
+						dis.tcp.th_win = desync.track and desync.track.pos.reverse.tcp.winsize or 64
+						dis.tcp.options = nil
+						if dis.ip6 then
+							dis.ip6.ip6_flow = (desync.track and desync.track.pos.reverse.ip6_flow) and desync.track.pos.reverse.ip6_flow or 0x60000000;
+						end
+						DLOG("standard_failure_detector: sending RST to retransmitter")
+						rawsend_dissect(dis, {ifout = desync.ifin})
+					end
 				end
 			end
 		else
@@ -284,12 +298,13 @@ end
 -- if 'final' arg is present in an orchestrated instance it stops rotation
 -- arg: fails=N - failture count threshold. default is 3
 -- arg: time=<sec> - if last failure happened earlier than `maxtime` seconds ago - reset failure counter. default is 60.
--- arg: reqhost - pass with no tampering if hostname is unavailable
 -- arg: success_detector - success detector function name
 -- arg: failure_detector - failure detector function name
+-- arg: hostkey - hostkey generator function name
 -- args for failure detector - see standard_failure_detector or your own detector
 -- args for success detector - see standard_success_detector or your own detector
--- test case: nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-auto.lua --in-range=-s34228 --lua-desync=circular --lua-desync=argdebug:strategy=1 --lua-desync=argdebug:strategy=2
+-- args for hostkey generator - see standard_hostkey or your own generator
+-- test case: --in-range=-s34228 --lua-desync=circular --lua-desync=argdebug:strategy=1 --lua-desync=argdebug:strategy=2
 function circular(ctx, desync)
 	local function count_strategies(hrec)
 		if not hrec.ctstrategy then
@@ -377,7 +392,7 @@ function cond_random(desync)
 	return math.random(0,99)<(tonumber(desync.arg.percent) or 50)
 end
 -- this iif function detects packets having 'arg.pattern' string in their payload
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-auto.lua --lua-desync=condition:iff=cond_payload_str:pattern=1234 --lua-desync=argdebug:testarg=1 --lua-desync=argdebug:testarg=2:morearg=xyz
+-- test case : --lua-desync=condition:iff=cond_payload_str:pattern=1234 --lua-desync=argdebug:testarg=1 --lua-desync=argdebug:testarg=2:morearg=xyz
 -- test case (true)  : echo aaz1234zzz | ncat -4u 1.1.1.1 443
 -- test case (false) : echo aaze124zzz | ncat -4u 1.1.1.1 443
 function cond_payload_str(desync)
@@ -399,7 +414,7 @@ end
 -- for example, this can be used by custom protocol detectors
 -- arg: iff - condition function. takes desync as arg and returns bool. (cant use 'if' because of reserved word)
 -- arg: neg - invert condition function result
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-auto.lua --lua-desync=condition:iff=cond_random --lua-desync=argdebug:testarg=1 --lua-desync=argdebug:testarg=2:morearg=xyz
+-- test case : --lua-desync=condition:iff=cond_random --lua-desync=argdebug:testarg=1 --lua-desync=argdebug:testarg=2:morearg=xyz
 function condition(ctx, desync)
 	require_iff(desync, "condition")
 	orchestrate(ctx, desync)
@@ -415,7 +430,7 @@ end
 -- can be used with other orchestrators to stop execution conditionally
 -- arg: iff - condition function. takes desync as arg and returns bool. (cant use 'if' because of reserved word)
 -- arg: neg - invert condition function result
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-auto.lua --in-range=-s1 --lua-desync=circular --lua-desync=stopif:iff=cond_random:strategy=1 --lua-desync=argdebug:strategy=1 --lua-desync=argdebug:strategy=2
+-- test case : --in-range=-s1 --lua-desync=circular --lua-desync=stopif:iff=cond_random:strategy=1 --lua-desync=argdebug:strategy=1 --lua-desync=argdebug:strategy=2
 function stopif(ctx, desync)
 	require_iff(desync, "stopif")
 	orchestrate(ctx, desync)
@@ -426,4 +441,62 @@ function stopif(ctx, desync)
 		-- do not do anything. allow other orchestrator to finish the plan
 		DLOG("stopif: false")
 	end
+end
+
+-- repeat following 'instances' 'repeats' times, execute others with no tampering
+-- arg: instances - number of following instances to be repeated. 1 by default
+-- arg: repeats - number of repeats
+-- arg: iff - condition function to continue execution. takes desync as arg and returns bool. (cant use 'if' because of reserved word)
+-- arg: neg - invert condition function result
+-- arg: stop - do not replay remaining execution plan after 'instances'
+-- arg: clear - clear execution plan after 'instances'
+-- test case : --lua-desync=repeater:repeats=2:instances=2 --lua-desync=argdebug:v=1 --lua-desync=argdebug:v=2 --lua-desync=argdebug:v=3
+function repeater(ctx, desync)
+	local repeats = tonumber(desync.arg.repeats)
+	if not repeats then
+		error("repeat: missing 'repeats'")
+	end
+	local iff = desync.arg.iff or "cond_true"
+	if type(_G[iff])~="function" then
+		error(name..": invalid 'iff' function '"..iff.."'")
+	end
+	orchestrate(ctx, desync)
+	local neg = desync.arg.neg
+	local stop = desync.arg.stop
+	local clear = desync.arg.clear
+	local verdict = VERDICT_PASS
+	local instances = tonumber(desync.arg.instances) or 1
+	local repinst = desync.func_instance
+	if instances>#desync.plan then
+		instances = #desync.plan
+	end
+	-- save plan copy
+	local plancopy = deepcopy(desync.plan)
+	for r=1,repeats do
+		if not logical_xor(_G[iff](desync), neg) then
+			DLOG("repeater: break by iff")
+			break
+		end
+		DLOG("repeater: "..repinst.." "..r.."/"..repeats)
+		-- nested orchestrators can also pop
+		local ct_end = #desync.plan - instances
+		repeat
+			local instance = plan_instance_pop(desync)
+			verdict = plan_instance_execute(desync, verdict, instance)
+		until #desync.plan <= ct_end
+		-- rollback desync plan
+		desync.plan = deepcopy(plancopy)
+	end
+	-- remove repeated instances from desync plan
+	for i=1,instances do
+		table.remove(desync.plan,1)
+	end
+	if clear then
+		plan_clear(desync)
+		return verdict
+	elseif stop then
+		return verdict
+	end
+	-- replay the rest
+	return verdict_aggregate(verdict, replay_execution_plan(desync))
 end
