@@ -932,7 +932,6 @@ echo.
 echo.
 echo.
 echo.
-echo.
 echo                               %COL%[96m^[ 1 ^]%COL%[37m Состояние GoodbyeZapret
 echo.
 echo                               %COL%[96m^[ 2 ^]%COL%[37m Выбор готового конфига

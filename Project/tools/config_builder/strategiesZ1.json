@@ -1,6 +1,8 @@
 {
   "prefix_rules": [
     "--wf-tcp=80,443,2053,2083,2087,2096,6568,8443 --wf-udp=443,1024-65535",
+    "--wf-raw-part=@\"%BIN%windivert.filter\\windivert_part.discord_media.txt\"",
+    "--wf-raw-part=@\"%BIN%windivert.filter\\windivert_part.stun.txt\"",
     "--filter-tcp=80,443 --ipset=\"%LISTS%netrogat_ip.txt\" --ipset=\"%LISTS%netrogat_ip_custom.txt\" --new",
     "--filter-tcp=80,443 --hostlist=\"%LISTS%netrogat.txt\" --hostlist=\"%LISTS%netrogat_custom.txt\""
   ],
@@ -70,52 +72,37 @@
     },
     "Discord": {
       "1": [
-        "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=multisplit --dpi-desync-split-seqovl=211 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_5.bin\"",
-        "--filter-l3=ipv6 --filter-tcp=443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_2.bin\" --dpi-desync-cutoff=n5"
+        "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=hostfakesplit --dpi-desync-repeats=4 --dpi-desync-fooling=ts,md5sig --dpi-desync-hostfakesplit-mod=host=yandex.ru"
       ],
       "2": [
-        "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_2.bin\" --dpi-desync-cutoff=n4",
-        "--filter-l3=ipv6 --filter-tcp=443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_2.bin\" --dpi-desync-cutoff=n5"
+        "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=fake,fakedsplit --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fakedsplit-pattern=0x00 --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_www_google_com.bin\""
       ],
       "3": [
-        "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_2.bin\" --dpi-desync-cutoff=n5"
-      ],
-      "4": [
-        "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=224 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_1.bin\" --dpi-desync-cutoff=n4"
-      ],
-      "5": [
         "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=fake,fakedsplit --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-split-pos=1,sld+1 --dpi-desync-fakedsplit-pattern=\"%FAKE%fake_tls_2.bin\" --dpi-desync-fakedsplit-mod=altorder=0 --dpi-desync-fooling=ts,badseq --dpi-desync-badseq-increment=10000000 --dpi-desync-cutoff=n5"
       ],
-      "6": [
+      "4": [
         "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=7,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_4.bin\" --dpi-desync-fake-tls-mod=rnd,dupsid,sni=fonts.google.com --dpi-desync-fooling=badseq --dpi-desync-autottl 2:2-12"
       ],
-      "7": [
+      "5": [
         "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=fake,multisplit --dpi-desync-ttl=8 --dpi-desync-split-pos=midsld --dpi-desync-fake-http=0x00000000 --dpi-desync-fake-tls=!"
       ],
-      "8": [
+      "6": [
         "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=multisplit --dpi-desync-split-pos=method+2,midsld --dpi-desync-repeats=6"
       ],
-      "9": [
+      "7": [
         "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync-any-protocol=1 --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld --dpi-desync-cutoff=n4"
       ],
-      "10": [
+      "8": [
         "--filter-tcp=443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --dpi-desync=fakedsplit --dpi-desync-fakedsplit-mod=altorder=3 --dpi-desync-fooling=ts --dpi-desync-repeats=4"
       ]
     },
     "DiscordUpdate": {
-      "1": [
-        "--filter-tcp=443 --hostlist-domains=updates.discord.com --dpi-desync=multisplit --dpi-desync-split-seqovl=211 --dpi-desync-split-seqovl-pattern=\"%FAKE%fake_tls_5.bin\""
-      ]
     },
     "STUN": {
       "1": [
-      "--wf-tcp=80,443",
-      "--wf-raw-part=@\"%BIN%windivert.filter\\windivert_part.discord_media.txt\" --wf-raw-part=@\"%BIN%windivert.filter\\windivert_part.stun.txt\"",
       "--filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n3"
       ],
       "2": [
-      "--wf-tcp=80,443",
-      "--wf-raw-part=@\"%BIN%windivert.filter\\windivert_part.discord_media.txt\" --wf-raw-part=@\"%BIN%windivert.filter\\windivert_part.stun.txt\"",
       "--filter-l7=discord,stun --dpi-desync-any-protocol --dpi-desync=fake --dpi-desync-cutoff=d3 --dpi-desync-repeats=6"
       ]
     },
