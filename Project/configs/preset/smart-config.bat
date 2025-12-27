@@ -47,8 +47,8 @@ echo ==========================================
 echo.
 
 :: Проверка существования файлов
-if not exist "%TOOLS_DIR%\main.exe" (
-    echo ОШИБКА: main.exe не найден!
+if not exist "%TOOLS_DIR%\SmartConfig.exe" (
+    echo ОШИБКА: SmartConfig.exe не найден!
     pause
     exit /b 1
 )
@@ -57,7 +57,7 @@ if not exist "%LUA_DIR%\learned-strategies.lua" (
     echo ПРЕДУПРЕЖДЕНИЕ: learned-strategies.lua не найден
 )
 
-echo Запуск main.exe...
+echo Запуск SmartConfig.exe...
 echo Нажмите Ctrl+C для остановки.
 echo.
 
@@ -67,10 +67,10 @@ echo.
 :: 2. Add-Content ... -Encoding UTF8 -> пишет в файл в правильной кодировке
 
 chcp 850 >nul 2>&1
-"%TOOLS_DIR%\main.exe" --bin "%BIN_DIR%" --lua "%LUA_DIR%" --learned-init "%LUA_DIR%\learned-strategies.lua" 2>&1 | powershell -NoProfile -ExecutionPolicy Bypass -Command "$input | ForEach-Object { Write-Host $_; $_ | Add-Content -Path '%LOG_FILE%' -Encoding UTF8 }"
+"%TOOLS_DIR%\SmartConfig.exe" --bin "%BIN_DIR%" --lua "%LUA_DIR%" --learned-init "%LUA_DIR%\learned-strategies.lua" 2>&1 | powershell -NoProfile -ExecutionPolicy Bypass -Command "$input | ForEach-Object { Write-Host $_; $_ | Add-Content -Path '%LOG_FILE%' -Encoding UTF8 }"
 
 echo.
 chcp 65001 >nul
-echo main.exe завершен. Лог сохранен в:
+echo SmartConfig.exe завершен. Лог сохранен в:
 echo %LOG_FILE%
 pause

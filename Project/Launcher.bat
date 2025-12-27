@@ -1362,7 +1362,7 @@ if "!batfile!"=="smart-config.bat" (
         echo ORCHESTRA_BASE_PATH = "!LUA_DIR:\=/!/"
     ) > "!BASE_PATH_LUA!"
 
-    sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\main.exe\" --bin \"%ParentDirPath%\bin\" --lua \"%ParentDirPath%\bin\lua\" --learned-init \"%ParentDirPath%\bin\lua\learned-strategies.lua\"" >nul 2>&1
+    sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\SmartConfig.exe\" --bin \"%ParentDirPath%\bin\" --lua \"%ParentDirPath%\bin\lua\" --learned-init \"%ParentDirPath%\bin\lua\learned-strategies.lua\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1 
 ) else (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
