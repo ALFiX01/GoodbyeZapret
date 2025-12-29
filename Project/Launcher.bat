@@ -11,7 +11,10 @@ for %%A in ("%ParentDirPathForCheck%") do set "FolderName=%%~nxA"
 :: Проверка на пробелы
 set "tempvar=%FolderName%"
 echo."%tempvar%"| findstr /c:" " >nul && (
-    echo WARN: The folder name contains spaces.
+    cls
+    echo.
+    echo  WARN: The folder name contains spaces.
+    echo.
     pause
     exit /b
 )
@@ -49,7 +52,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 :: Version information Stable Beta Alpha
 set "Current_GoodbyeZapret_version=3.0"
 set "Current_GoodbyeZapret_version_code=15DC01"
-set "branch=Alpha"
+set "branch=Beta"
 set "beta_code=1"
 
 chcp 65001 >nul 2>&1
@@ -811,6 +814,15 @@ REM ----------------------------------------------------
 call :ResizeMenuWindow
 REM Check for last working config in registry
 
+set "hostspath=%SystemRoot%\System32\drivers\etc\hosts"
+set "tempfile=%temp%\hosts.tmp"
+findstr /c:"### Discord Finland Media Servers BEGIN" "%hostspath%" >nul
+if not errorlevel 1 (
+    set "FinlandDiscordHost=On"
+) else (
+    set "FinlandDiscordHost=Off"
+)
+
 call :ReadConfig GoodbyeZapret_Config
 if "%GoodbyeZapret_Config%"=="NotFound" (
     REM Если переменная не найдена, установите значение по умолчанию
@@ -950,8 +962,8 @@ echo.
 echo.
 echo.
 echo.
-echo                              %COL%[96m^[ 6 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
-echo.
+echo                             %COL%[96m^[ 6 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
+echo                             %COL%[96m^[ 7 ^]%COL%[37m Обход Финских ip Discord ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
 echo.
 
 REM Display separator line
@@ -967,7 +979,7 @@ if /i "%choice%"=="4" goto OpenInstructions
 if /i "%choice%"=="5" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
 
 if /i "%choice%"=="6" goto CDN_BypassLevelSelector
-
+if /i "%choice%"=="7" goto FinlandDiscordHostSelector
 goto MainMenu
 
 
@@ -1182,18 +1194,13 @@ echo.
 
 REM Display different menu options based on current service status
 if "%GoodbyeZapret_Config%"=="Не выбран" (
-    if not "%TotalCheck%"=="Problem" (
     echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
     echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
     echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    ) else (
-    echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-    echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
-    echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
-    )
 ) else (
     echo                  %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
-    if %YesCount% equ 2 echo                  %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск и очистка WinDivert
+    echo                  %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск конфига
+    echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
 )
 
 REM ---- Pagination options ----
@@ -1386,28 +1393,38 @@ call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
 
 set installing_service=0
 
-if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
-    echo.
-    REM Цветной текст
-    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-    "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
+if not "!batfile!"=="smart-config.bat" (
+    if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
+        echo.
+        REM Цветной текст
+        for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+        "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
+    )
 )
-timeout /t 1 >nul 2>&1
 
-tasklist | find /i "Winws.exe" >nul
-if errorlevel 1 (
-    echo.
-    echo ОШИБКА: Процесс обхода ^(Winws.exe^) не запущен.
-    echo.
-    timeout /t 2 >nul 2>&1
+if /I not "!batfile!"=="smart-config.bat" (
+    if /I not "!batfile!"=="Configurator_fix.bat" (
+
+        tasklist | find /I "Winws.exe" >nul
+        if errorlevel 1 (
+            timeout /t 1 >nul 2>&1
+            echo.
+            echo ОШИБКА: Процесс обхода ^(Winws.exe^) не запущен.
+            echo.
+            timeout /t 2 >nul 2>&1
+        ) else (
+            tasklist | find /I "Winws2.exe" >nul
+            if errorlevel 1 (
+                echo.
+                echo ОШИБКА: Процесс обхода ^(Winws2.exe^) не запущен.
+                echo.
+                timeout /t 2 >nul 2>&1
+            )  
+        )
+
+    )
 )
-REM tasklist | find /i "Winws2.exe" >nul
-REM if errorlevel 1 (
-REM     echo.
-REM     echo ОШИБКА: Процесс обхода ^(Winws2.exe^) не запущен.
-REM     echo.
-REM     timeout /t 2 >nul 2>&1
-REM )
+
 goto :end
 
 :remove_service
@@ -1428,7 +1445,6 @@ goto :end
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "!errorlevel!"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
-                taskkill /F /IM winws2.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
@@ -1436,6 +1452,18 @@ goto :end
                 net stop "monkey" >nul 2>&1
                 sc delete "monkey" >nul 2>&1
                 call :ui_ok "Файл winws.exe остановлен"
+                ipconfig /flushdns > nul
+            )
+            tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
+            if "!errorlevel!"=="0" (
+                taskkill /F /IM winws2.exe >nul 2>&1
+                net stop "WinDivert" >nul 2>&1
+                sc delete "WinDivert" >nul 2>&1
+                net stop "WinDivert14" >nul 2>&1
+                sc delete "WinDivert14" >nul 2>&1
+                net stop "monkey" >nul 2>&1
+                sc delete "monkey" >nul 2>&1
+                call :ui_ok "Файл winws2.exe остановлен"
                 ipconfig /flushdns > nul
             )
             call :ui_ok "Удаление успешно завершено"
@@ -1470,12 +1498,21 @@ goto :end
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "%ERRORLEVEL%"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
-                taskkill /F /IM winws2.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
                 net stop "WinDivert14" >nul 2>&1
                 sc delete "WinDivert14" >nul 2>&1
                 call :ui_ok "Файл winws.exe остановлен"
+                ipconfig /flushdns > nul
+            )
+            tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
+            if "%ERRORLEVEL%"=="0" (
+                taskkill /F /IM winws2.exe >nul 2>&1
+                net stop "WinDivert" >nul 2>&1
+                sc delete "WinDivert" >nul 2>&1
+                net stop "WinDivert14" >nul 2>&1
+                sc delete "WinDivert14" >nul 2>&1
+                call :ui_ok "Файл winws2.exe остановлен"
                 ipconfig /flushdns > nul
             )
             call :ui_ok "Удаление успешно завершено"
@@ -2191,7 +2228,7 @@ if %Remaining% gtr %PageSize% set /a Remaining=%PageSize%
 set /a VisibleOnPage=Remaining
 
 REM === Базовое количество строк интерфейса ===
-set /a BaseLines=22
+set /a BaseLines=23
 set /a ListBatCount=BaseLines+VisibleOnPage
 
 REM === Пагинация: если страниц больше одной, добавляем 2 строки ===
@@ -2200,7 +2237,7 @@ if %TotalPages% gtr 1 set /a ListBatCount+=2
 REM === Проверка сервисов для YesCount ===
 set "YesCount=0"
 sc query "GoodbyeZapret" >nul 2>&1
-if %errorlevel% equ 0 set /a YesCount+=1
+if %errorlevel% equ 0 ( set /a YesCount+=1 ) else ( set /a YesCount-=1 )
 
 tasklist | find /i "Winws" >nul 2>&1
 if %errorlevel% equ 0 set /a YesCount+=1
@@ -2225,12 +2262,8 @@ REM === Корректировка по YesCount ===
 if /I "%TotalCheck%"=="Problem" (
     REM Ветка для Problem (оставляю как у тебя)
     if %YesCount% equ 2 ( set /a ListBatCount+=1 )
-    if %YesCount% equ 1 ( set /a ListBatCount+=1 )
-    if %YesCount% equ 0 ( set /a ListBatCount+=2 )
 ) else (
-    if %YesCount% equ 0 (
-        set /a ListBatCount+=2
-    ) else if %YesCount% equ 1 (
+    if %YesCount% equ 1 (
         set /a ListBatCount+=2
     ) else if %YesCount% equ 2 (
         REM ничего не добавляем
@@ -2349,7 +2382,6 @@ if not "%RES%"=="NotFound" if defined RES (
 set "%~1=%RES%"
 
 goto :eof
-
 
 
 :: Функция: запись значения с пробелами
@@ -2486,13 +2518,14 @@ if exist _limits.bat (
     del _limits.bat
 ) else (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0"
 )
 
 
 :: Значения по умолчанию для выбора пользователя
 set "YT=1"
 set "YTGV=1"
+set "YTQ=1"
 set "DS=1"
 set "DSUPD=1"
 set "BL=1"
@@ -2502,6 +2535,7 @@ set "CDN_LVL=base"
 
 call :ReadConfig YT 1
 call :ReadConfig YTGV 1
+call :ReadConfig YTQ 1
 call :ReadConfig DS 1
 call :ReadConfig DSUPD 1
 call :ReadConfig BL 1
@@ -2514,38 +2548,41 @@ cls
 title GoodbyeZapret - Конфигуратор
 echo.
 echo    %COL%[36m┌────────────────────────────── Конфигуратор конфига ──────────────────────────────%COL%[36m
-echo    ^│ %COL%[37mСтратегии, используемые в JSON: %COL%[36m
+echo    ^│ %COL%[37mПараметры, доступные для изменения: %COL%[36m
 echo    ^│ %COL%[90m─────────────────────────────────────────────────────────────────────────────────%COL%[36m
 echo    ^│                                                                                 
 echo    ^│ %COL%[96m^[ 1 ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  (Доступны: 0-!MAX_YouTube!) %COL%[36m
 echo    ^│ %COL%[96m^[ 2 ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  (Доступны: 0-!MAX_YouTubeGoogleVideo!) %COL%[36m
-echo    ^│ %COL%[96m^[ 3 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
-echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
-echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
-echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
-echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
+echo    ^│ %COL%[96m^[ 3 ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%COL%[37m  (Доступны: 0-!MAX_YouTubeQuic!) %COL%[36m
+echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
+echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
+echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
+echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
+echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
 echo    ^│ 
-echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
-echo    ^│ %COL%[96m^[ 9 ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
+echo    ^│ %COL%[96m^[ L ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
+echo    ^│ %COL%[96m^[ E ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
 echo    ^│                                                                                        
 echo    └───────────────────────────────────────────────────────────────────────────────────
-echo      %COL%[92m^[ S ^]%COL%[37m Запуск
-echo      %COL%[91m^[ K ^]%COL%[37m Стоп
+echo      %COL%[92m^[ S ^]%COL%[37m Запустить обход
+echo      %COL%[91m^[ K ^]%COL%[37m Завершить процесс обхода
 echo      %COL%[96m^[ B ^]%COL%[37m Вернуться в главное меню
 echo.
 set /p "opt=%DEL%   %COL%[90m:> "
 
 if /i "%opt%"=="S" goto START
+if /i "%opt%"=="ы" goto START
 if /i "%opt%"=="K" goto KILL
+if /i "%opt%"=="л" goto KILL
 if /i "%opt%"=="B" goto MainMenu
 if /i "%opt%"=="И" goto MainMenu
 
 :: Проверки ввода с использованием полученных лимитов
 if "%opt%"=="1" (
-    set /p val="Введите YouTube стратегию (0-!MAX_YouTube!): "
+    set /p val="  Введите YouTube стратегию (0-!MAX_YouTube!): "
     :: Простая проверка: если введено больше макс, сбрасываем (опционально)
     if !val! gtr !MAX_YouTube! (
-        echo Неверное значение. Максимум - !MAX_YouTube!
+        echo  Неверное значение. Максимум - !MAX_YouTube!
         pause
     ) else (
         set "YT=!val!"
@@ -2554,10 +2591,10 @@ if "%opt%"=="1" (
 )
 
 if "%opt%"=="2" (
-    set /p val="Введите YouTube GoogleVideo стратегию (0-!MAX_YouTubeGoogleVideo!): "
+    set /p val="  Введите YouTube GoogleVideo стратегию (0-!MAX_YouTubeGoogleVideo!): "
     :: Простая проверка: если введено больше макс, сбрасываем (опционально)
     if !val! gtr !MAX_YouTubeGoogleVideo! (
-        echo Неверное значение. Максимум - !MAX_YouTubeGoogleVideo!
+        echo  Неверное значение. Максимум - !MAX_YouTubeGoogleVideo!
         pause
     ) else (
         set "YTGV=!val!"
@@ -2566,9 +2603,21 @@ if "%opt%"=="2" (
 )
 
 if "%opt%"=="3" (
-    set /p val="Введите Discord стратегию (0-!MAX_Discord!): "
+    set /p val="  Введите YouTube Quic стратегию (0-!MAX_YouTubeQuic!): "
+    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
+    if !val! gtr !MAX_YouTubeQuic! (
+        echo  Неверное значение. Максимум - !MAX_YouTubeQuic!
+        pause
+    ) else (
+        set "YTQ=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="4" (
+    set /p val="  Введите Discord стратегию (0-!MAX_Discord!): "
     if !val! gtr !MAX_Discord! (
-        echo Неверное значение. Максимум - !MAX_Discord!
+        echo  Неверное значение. Максимум - !MAX_Discord!
         pause
     ) else (
         set "DS=!val!"
@@ -2576,10 +2625,10 @@ if "%opt%"=="3" (
     goto MENU
 )
 
-if "%opt%"=="4" (
-    set /p val="Введите Discord Update стратегию (0-!MAX_DiscordUpdate!): "
+if "%opt%"=="5" (
+    set /p val="  Введите Discord Update стратегию (0-!MAX_DiscordUpdate!): "
     if !val! gtr !MAX_DiscordUpdate! (
-        echo Неверное значение. Максимум - !MAX_DiscordUpdate!
+        echo  Неверное значение. Максимум - !MAX_DiscordUpdate!
         pause
     ) else (
         set "DSUPD=!val!"
@@ -2587,10 +2636,10 @@ if "%opt%"=="4" (
     goto MENU
 )
 
-if "%opt%"=="5" (
-    set /p val="Введите Russia-Blacklist стратегию (0-!MAX_blacklist!): "
+if "%opt%"=="6" (
+    set /p val="  Введите Russia-Blacklist стратегию (0-!MAX_blacklist!): "
     if !val! gtr !MAX_blacklist! (
-        echo Неверное значение. Максимум - !MAX_blacklist!
+        echo  Неверное значение. Максимум - !MAX_blacklist!
         pause
     ) else (
         set "BL=!val!"
@@ -2598,10 +2647,10 @@ if "%opt%"=="5" (
     goto MENU
 )
 
-if "%opt%"=="6" (
-    set /p val="Введите STUN стратегию (0-!MAX_STUN!): "
+if "%opt%"=="7" (
+    set /p val="  Введите STUN стратегию (0-!MAX_STUN!): "
     if !val! gtr !MAX_STUN! (
-        echo Неверное значение. Максимум - !MAX_STUN!
+        echo  Неверное значение. Максимум - !MAX_STUN!
         pause
     ) else (
         set "STUN=!val!"
@@ -2609,10 +2658,10 @@ if "%opt%"=="6" (
     goto MENU
 )
 
-if "%opt%"=="7" (
-    set /p val="Введите CDN стратегию (0-!MAX_CDN!): "
+if "%opt%"=="8" (
+    set /p val="  Введите CDN стратегию (0-!MAX_CDN!): "
     if !val! gtr !MAX_CDN! (
-        echo Неверное значение. Максимум - !MAX_CDN!
+        echo  Неверное значение. Максимум - !MAX_CDN!
         pause
     ) else (
         set "CDN=!val!"
@@ -2620,12 +2669,12 @@ if "%opt%"=="7" (
     goto MENU
 )
 
-if "%opt%"=="8" (set /p CDN_LVL="Задайте CDN (off/base/full): " & goto MENU)
+if "%opt%"=="L" (set /p CDN_LVL="  Задайте CDN (off/base/full): " & goto MENU)
 
-if "%opt%"=="9" (
+if "%opt%"=="E" (
     if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
     :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1"
+    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1"
     goto UpdateLimits
 )
 
@@ -2634,22 +2683,84 @@ goto MENU
 :START
 echo.
 
-echo [*] Настройка сборки для Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
+echo  [*] Настройка сборки для Zapret!ENGN!...
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\Configurator_fix.bat (
 	set "currentDir=%~dp0"
-    echo [*] Запуск...
+    echo  [*] Запуск...
 explorer "%ParentDirPath%\Configs\Custom\Configurator_fix.bat"
+)
+echo  [*] Проверяем процесс обхода...
+timeout /t 2 >nul 2>&1
+if !ENGN! equ 1 (
+    tasklist | find /i "Winws.exe" >nul
+        if errorlevel 1 (
+            echo.
+            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws.exe^) НЕ ЗАПУЩЕН. %COL%[37m
+            echo.
+            timeout /t 3 >nul 2>&1
+        ) else (
+            echo  [*] Процесс обхода работает, ошибки не обнаружены
+            timeout /t 1 >nul 2>&1
+        )
+) else (
+    tasklist | find /i "Winws2.exe" >nul
+        if errorlevel 1 (
+            echo.
+            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws2.exe^) НЕ ЗАПУЩЕН. %COL%[37m
+            echo.
+            timeout /t 3 >nul 2>&1
+        ) else (
+            echo  [*] Процесс обхода работает, ошибки не обнаружены
+            timeout /t 1 >nul 2>&1
+        )
 )
 goto MENU
 
 :KILL
-echo [*] Завершаю работу winws...
+echo  [*] Завершаю работу winws...
 taskkill /F /IM winws.exe /T >nul 2>&1
 taskkill /F /IM winws2.exe /T >nul 2>&1
 goto MENU
 
+
+:FinlandDiscordHostSelector
+set "HOSTS=%hostspath%"
+
+if /i "%FinlandDiscordHost%"=="off" (
+    rem На всякий случай сначала чистим старый блок, потом добавляем свежий
+    call :ui_info "Добавляю записи в файл hosts..."
+    call :AddFinlandDiscordHosts
+
+    timeout /t 2 >nul
+    ipconfig /flushdns >nul
+
+) else (
+    call :ui_info "Удаляю записи из файла hosts..."
+    call :RemoveFinlandDiscordHosts
+
+    timeout /t 2 >nul
+    ipconfig /flushdns >nul
+)
+
+goto MainMenu
+
+
+:AddFinlandDiscordHosts
+>>"%HOSTS%" echo ### Discord Finland Media Servers BEGIN
+for /l %%N in (10001,1,10199) do (
+    >>"%HOSTS%" echo 104.25.158.178 finland%%N.discord.media
+)
+>>"%HOSTS%" echo ### Discord Finland Media Servers END
+goto :eof
+
+
+:RemoveFinlandDiscordHosts
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%HOSTS%'; if(-not (Test-Path -LiteralPath $p)) { exit }; $t=Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue; if($null -eq $t){$t=''}; $re='(?ms)^\s*### Discord Finland Media Servers BEGIN\s*$.*?^\s*### Discord Finland Media Servers END\s*$\r?\n?'; $t=[regex]::Replace($t,$re,''); Set-Content -LiteralPath $p -Value $t -Encoding ASCII"
+chcp 65001 >nul 2>&1
+goto :eof
 
 
 :timer_start

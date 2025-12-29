@@ -1,6 +1,5 @@
 dis.gd
 disboard.org
-discord-activities.com
 discord.center
 discord.co
 discord.com
@@ -15,11 +14,10 @@ discord.new
 discord.st
 discord.store
 discord.tools
-discordInvites.net
 discordactivities.com
+discord-activities.com
 discordapp.com
 discordapp.io
-stable.dl2.discordapp.net
 discordapp.net
 discordbee.com
 discordbotlist.com
@@ -27,6 +25,7 @@ discordcdn.com
 discordexpert.com
 discordhome.com
 discordhub.com
+discordinvites.net
 discordlist.me
 discordlist.space
 discordmerch.com
@@ -38,7 +37,7 @@ discordstatus.com
 discordtop.com
 disforge.com
 dyno.gg
-findAdiscord.com
+findadiscord.com
 mee6.xyz
 top.gg
 discord-attachments-uploads-prd.storage.googleapis.com

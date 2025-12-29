@@ -2564,3 +2564,713 @@ function http_simple_bypass(ctx, desync)
         return VERDICT_MODIFY
     end
 end
+
+-- ============================================================================
+-- DISCORD BYPASS STRATEGIES - Экспериментальные техники обхода DPI
+-- Автор: lua-strategy-creator agent
+-- ============================================================================
+
+--[[
+Название: discord_window_collapse
+Описание: Атака через Window=0 для сброса сессии DPI.
+          Отправляем первый фрагмент, затем ACK с Window=0.
+          DPI видит нулевое окно и может сбросить сессию по таймауту,
+          после чего отправляем оставшиеся данные.
+
+Использование: --lua-desync=discord_window_collapse
+
+Параметры:
+  - pos: позиция разбиения (default: "host" для TLS SNI)
+  - delay: задержка перед отправкой второй части в мс (опционально)
+]]
+function discord_window_collapse(ctx, desync)
+    -- Проверка наличия TCP
+    if not desync.dis.tcp then
+        instance_cutoff_shim(ctx, desync)
+        return
+    end
+
+    -- Отключаем обработку в обратном направлении
+    direction_cutoff_opposite(ctx, desync, "out")
+
+    -- Проверяем направление и тип payload
+    if not direction_check(desync, "out") then return end
+    if not payload_check(desync, "tls_client_hello") then return end
+
+    -- Работаем только с первым пакетом
+    if not replay_first(desync) then
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
+        return
+    end
+
+    local data = desync.reasm_data or desync.dis.payload
+    if #data < 10 then return end
+
+    DLOG("discord_window_collapse: processing TLS Client Hello len="..#data)
+
+    -- Определяем позицию разбиения (по умолчанию - начало SNI)
+    local split_marker = desync.arg.pos or "host"
+    local split_pos = resolve_pos(data, desync.l7payload, split_marker)
+
+    if not split_pos or split_pos <= 1 or split_pos >= #data then
+        -- Fallback: разбиваем на позиции 50 (примерно после TLS заголовков)
+        split_pos = math.min(50, math.floor(#data / 2))
+        DLOG("discord_window_collapse: using fallback split_pos="..split_pos)
+    else
+        DLOG("discord_window_collapse: resolved '"..split_marker.."' to pos="..split_pos)
+    end
+
+    local base_seq = desync.dis.tcp.th_seq
+
+    -- Опции для отправки
+    local opts = {
+        rawsend = rawsend_opts_base(desync),
+        reconstruct = {},
+        ipfrag = {},
+        ipid = desync.arg,
+        fooling = {}
+    }
+
+    -- ШАГ 1: Отправляем первую часть данных (до SNI)
+    local part1 = string.sub(data, 1, split_pos - 1)
+    local pkt1 = deepcopy(desync.dis)
+    pkt1.payload = part1
+    pkt1.tcp.th_flags = bitor(TH_ACK, TH_PSH)
+
+    DLOG("discord_window_collapse: sending part1 len="..#part1)
+    rawsend_dissect(pkt1, opts.rawsend, opts.reconstruct)
+
+    -- ШАГ 2: Отправляем ACK с Window=0 (сигнал о переполнении буфера)
+    -- DPI может интерпретировать это как "соединение приостановлено"
+    local ack_pkt = deepcopy(desync.dis)
+    ack_pkt.payload = ""
+    ack_pkt.tcp.th_seq = base_seq + #part1
+    ack_pkt.tcp.th_flags = TH_ACK
+    ack_pkt.tcp.th_win = 0  -- Нулевое окно!
+
+    DLOG("discord_window_collapse: sending Window=0 ACK")
+    rawsend_dissect(ack_pkt, opts.rawsend, opts.reconstruct)
+
+    -- ШАГ 3: Отправляем Window Update (восстанавливаем окно)
+    local update_pkt = deepcopy(desync.dis)
+    update_pkt.payload = ""
+    update_pkt.tcp.th_seq = base_seq + #part1
+    update_pkt.tcp.th_flags = TH_ACK
+    update_pkt.tcp.th_win = 65535  -- Восстанавливаем окно
+
+    DLOG("discord_window_collapse: sending Window Update")
+    rawsend_dissect(update_pkt, opts.rawsend, opts.reconstruct)
+
+    -- ШАГ 4: Отправляем вторую часть данных (с SNI)
+    -- К этому моменту DPI мог сбросить состояние сессии
+    local part2 = string.sub(data, split_pos)
+    local pkt2 = deepcopy(desync.dis)
+    pkt2.payload = part2
+    pkt2.tcp.th_seq = base_seq + #part1
+    pkt2.tcp.th_flags = bitor(TH_ACK, TH_PSH)
+
+    DLOG("discord_window_collapse: sending part2 len="..#part2)
+    rawsend_dissect(pkt2, opts.rawsend, opts.reconstruct)
+
+    replay_drop_set(desync)
+    return VERDICT_DROP
+end
+
+
+--[[
+Название: discord_router_alert
+Описание: Добавляем IP Option Router Alert (type=148/0x94).
+          Аппаратные DPI на маршрутизаторах часто пропускают пакеты
+          с Router Alert option через fast path без глубокой инспекции,
+          так как это опция для RSVP/IGMP.
+
+Использование: --lua-desync=discord_router_alert
+
+Параметры:
+  - split: дополнительно разбить payload (default: false)
+  - pos: позиция разбиения если split=true
+]]
+function discord_router_alert(ctx, desync)
+    if not desync.dis.tcp then
+        instance_cutoff_shim(ctx, desync)
+        return
+    end
+
+    direction_cutoff_opposite(ctx, desync, "out")
+
+    if not direction_check(desync, "out") then return end
+    if not payload_check(desync, "tls_client_hello") then return end
+    if not replay_first(desync) then
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
+        return
+    end
+
+    local data = desync.reasm_data or desync.dis.payload
+    if #data < 10 then return end
+
+    DLOG("discord_router_alert: processing TLS len="..#data)
+
+    -- Опции для отправки
+    local opts = {
+        rawsend = rawsend_opts_base(desync),
+        reconstruct = {},
+        ipfrag = {},
+        ipid = desync.arg,
+        fooling = {}
+    }
+
+    -- Создаём IP Option Router Alert
+    -- Format: Type(1) + Length(1) + Value(2)
+    -- Type = 0x94 (148) = копировать при фрагментации + класс 0 + номер 20
+    -- Length = 4
+    -- Value = 0x0000 (Router shall examine packet)
+    local router_alert_option = string.char(0x94, 0x04, 0x00, 0x00)
+
+    if desync.dis.ip then
+        -- IPv4: добавляем Router Alert option
+        local pkt = deepcopy(desync.dis)
+
+        -- Добавляем опцию к существующим или создаём новые
+        if pkt.ip.options then
+            pkt.ip.options = pkt.ip.options .. router_alert_option
+        else
+            pkt.ip.options = router_alert_option
+        end
+
+        -- IP Header Length увеличивается (options добавляют байты)
+        -- winws2 пересчитает автоматически при reconstruct
+
+        DLOG("discord_router_alert: added Router Alert IP option")
+
+        if desync.arg.split then
+            -- Дополнительно разбиваем на части
+            local split_marker = desync.arg.pos or "host"
+            local split_pos = resolve_pos(data, desync.l7payload, split_marker) or math.floor(#data / 2)
+
+            if split_pos > 1 and split_pos < #data then
+                local base_seq = pkt.tcp.th_seq
+
+                -- Часть 1 с Router Alert
+                local pkt1 = deepcopy(pkt)
+                pkt1.payload = string.sub(data, 1, split_pos - 1)
+                rawsend_dissect(pkt1, opts.rawsend, opts.reconstruct)
+
+                -- Часть 2 с Router Alert
+                local pkt2 = deepcopy(pkt)
+                pkt2.payload = string.sub(data, split_pos)
+                pkt2.tcp.th_seq = base_seq + split_pos - 1
+                rawsend_dissect(pkt2, opts.rawsend, opts.reconstruct)
+
+                DLOG("discord_router_alert: sent 2 parts with Router Alert")
+                replay_drop_set(desync)
+                return VERDICT_DROP
+            end
+        end
+
+        -- Отправляем единым пакетом с Router Alert
+        rawsend_dissect(pkt, opts.rawsend, opts.reconstruct)
+        replay_drop_set(desync)
+        return VERDICT_DROP
+
+    elseif desync.dis.ip6 then
+        -- IPv6: используем Hop-by-Hop Options с Router Alert
+        -- Это сложнее, создаём extension header
+        local pkt = deepcopy(desync.dis)
+
+        -- Hop-by-Hop Options Header с Router Alert
+        -- Next Header (1) + Hdr Ext Len (1) + Options
+        -- Router Alert Option: Type=5, Len=2, Value=0x0000
+        local hop_by_hop_data = string.char(
+            0x05, 0x02, 0x00, 0x00,  -- Router Alert option
+            0x01, 0x00              -- PadN для выравнивания до 8 байт
+        )
+
+        -- Вставляем Hop-by-Hop header (должен быть первым после IPv6)
+        insert_ip6_exthdr(pkt.ip6, 1, IPPROTO_HOPOPTS, hop_by_hop_data)
+        fix_ip6_next(pkt.ip6, IPPROTO_TCP)
+
+        DLOG("discord_router_alert: added IPv6 Hop-by-Hop Router Alert")
+        rawsend_dissect(pkt, opts.rawsend, opts.reconstruct)
+        replay_drop_set(desync)
+        return VERDICT_DROP
+    end
+end
+
+
+--[[
+Название: discord_ecn_exploit
+Описание: Используем ECN (Explicit Congestion Notification) флаги.
+          ECE и CWR флаги в TCP + ECN биты в IP ToS заставляют
+          некоторые DPI идти по fast path, так как ECN-трафик
+          требует приоритетной обработки.
+
+Использование: --lua-desync=discord_ecn_exploit
+
+Параметры:
+  - split: разбить payload на части (default: true)
+  - pos: позиция разбиения
+  - disorder: отправить в обратном порядке
+]]
+function discord_ecn_exploit(ctx, desync)
+    if not desync.dis.tcp then
+        instance_cutoff_shim(ctx, desync)
+        return
+    end
+
+    direction_cutoff_opposite(ctx, desync, "out")
+
+    if not direction_check(desync, "out") then return end
+    if not payload_check(desync, "tls_client_hello") then return end
+    if not replay_first(desync) then
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
+        return
+    end
+
+    local data = desync.reasm_data or desync.dis.payload
+    if #data < 10 then return end
+
+    DLOG("discord_ecn_exploit: processing TLS len="..#data)
+
+    local opts = {
+        rawsend = rawsend_opts_base(desync),
+        reconstruct = {},
+        ipfrag = {},
+        ipid = desync.arg,
+        fooling = {}
+    }
+
+    -- Функция для применения ECN marking
+    local function apply_ecn(pkt)
+        -- TCP: добавляем ECE (ECN-Echo) флаг
+        -- CWR можно добавить, но он обычно только в ответ
+        pkt.tcp.th_flags = bitor(pkt.tcp.th_flags, TH_ECE)
+
+        -- IP: устанавливаем ECN bits в ToS/Traffic Class
+        -- ECN использует 2 младших бита поля ToS:
+        -- 00 = Not-ECT, 01 = ECT(1), 10 = ECT(0), 11 = CE (Congestion Experienced)
+        -- Используем CE (11) - сигнал о перегрузке
+        if pkt.ip then
+            -- Сохраняем DSCP (старшие 6 бит), устанавливаем ECN=CE (11)
+            pkt.ip.ip_tos = bitor(bitand(pkt.ip.ip_tos, 0xFC), 0x03)
+        elseif pkt.ip6 then
+            -- Для IPv6 ECN в Traffic Class (те же 2 младших бита)
+            pkt.ip6.ip6_flow = bitor(bitand(pkt.ip6.ip6_flow, 0xFFCFFFFF), 0x00300000)
+        end
+    end
+
+    local do_split = desync.arg.split ~= "false" and desync.arg.split ~= "0"
+
+    if do_split then
+        local split_marker = desync.arg.pos or "host"
+        local split_pos = resolve_pos(data, desync.l7payload, split_marker)
+
+        if not split_pos or split_pos <= 1 or split_pos >= #data then
+            split_pos = math.min(50, math.floor(#data / 2))
+        end
+
+        local base_seq = desync.dis.tcp.th_seq
+        local part1 = string.sub(data, 1, split_pos - 1)
+        local part2 = string.sub(data, split_pos)
+
+        local pkt1 = deepcopy(desync.dis)
+        pkt1.payload = part1
+        apply_ecn(pkt1)
+
+        local pkt2 = deepcopy(desync.dis)
+        pkt2.payload = part2
+        pkt2.tcp.th_seq = base_seq + #part1
+        apply_ecn(pkt2)
+
+        if desync.arg.disorder then
+            -- Отправляем в обратном порядке
+            DLOG("discord_ecn_exploit: sending disorder with ECN, part2 first")
+            rawsend_dissect(pkt2, opts.rawsend, opts.reconstruct)
+            rawsend_dissect(pkt1, opts.rawsend, opts.reconstruct)
+        else
+            DLOG("discord_ecn_exploit: sending split with ECN")
+            rawsend_dissect(pkt1, opts.rawsend, opts.reconstruct)
+            rawsend_dissect(pkt2, opts.rawsend, opts.reconstruct)
+        end
+    else
+        -- Без разбиения - просто добавляем ECN
+        local pkt = deepcopy(desync.dis)
+        apply_ecn(pkt)
+        DLOG("discord_ecn_exploit: sending single packet with ECN")
+        rawsend_dissect(pkt, opts.rawsend, opts.reconstruct)
+    end
+
+    replay_drop_set(desync)
+    return VERDICT_DROP
+end
+
+
+--[[
+Название: discord_timestamp_travel
+Описание: Отправляем TCP пакет с Timestamp из "прошлого".
+          DPI с PAWS (Protection Against Wrapped Sequences) проверкой
+          может отбросить такой пакет как невалидный, но сервер
+          без строгой PAWS проверки примет.
+
+Использование: --lua-desync=discord_timestamp_travel
+
+Параметры:
+  - offset_sec: смещение timestamp в секундах назад (default: 7200 = 2 часа)
+  - split: разбить на части
+  - pos: позиция разбиения
+]]
+function discord_timestamp_travel(ctx, desync)
+    if not desync.dis.tcp then
+        instance_cutoff_shim(ctx, desync)
+        return
+    end
+
+    direction_cutoff_opposite(ctx, desync, "out")
+
+    if not direction_check(desync, "out") then return end
+    if not payload_check(desync, "tls_client_hello") then return end
+    if not replay_first(desync) then
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
+        return
+    end
+
+    local data = desync.reasm_data or desync.dis.payload
+    if #data < 10 then return end
+
+    DLOG("discord_timestamp_travel: processing TLS len="..#data)
+
+    local opts = {
+        rawsend = rawsend_opts_base(desync),
+        reconstruct = {},
+        ipfrag = {},
+        ipid = desync.arg,
+        fooling = {}
+    }
+
+    -- Смещение в миллисекундах (TCP timestamp обычно в ms)
+    local offset_sec = tonumber(desync.arg.offset_sec) or 7200  -- 2 часа по умолчанию
+    local offset_ms = offset_sec * 1000
+
+    -- Функция для модификации TCP Timestamp
+    local function modify_timestamp(pkt, time_offset)
+        if not pkt.tcp.options then
+            -- Создаём timestamp option если его нет
+            -- Kind=8, Length=10, TSval(4 bytes), TSecr(4 bytes)
+            local now = os.time() * 1000  -- Примерное значение
+            local old_ts = now - time_offset
+            -- Упаковываем в big-endian
+            local tsval = string.char(
+                bitand(bitright(old_ts, 24), 0xFF),
+                bitand(bitright(old_ts, 16), 0xFF),
+                bitand(bitright(old_ts, 8), 0xFF),
+                bitand(old_ts, 0xFF)
+            )
+            local tsecr = string.char(0, 0, 0, 0)  -- TSecr = 0 для исходящих
+            pkt.tcp.options = {{kind = 8, data = tsval .. tsecr}}
+            return true
+        end
+
+        -- Ищем существующий timestamp option
+        local ts_idx = find_tcp_option(pkt.tcp.options, 8)
+        if ts_idx then
+            local opt = pkt.tcp.options[ts_idx]
+            if opt.data and #opt.data >= 4 then
+                -- Читаем текущий TSval (первые 4 байта)
+                local b1, b2, b3, b4 = string.byte(opt.data, 1, 4)
+                local current_ts = b1 * 16777216 + b2 * 65536 + b3 * 256 + b4
+
+                -- Вычитаем offset (уходим в "прошлое")
+                local new_ts = current_ts - time_offset
+                if new_ts < 0 then new_ts = 0 end
+
+                -- Упаковываем обратно
+                local new_tsval = string.char(
+                    bitand(bitright(new_ts, 24), 0xFF),
+                    bitand(bitright(new_ts, 16), 0xFF),
+                    bitand(bitright(new_ts, 8), 0xFF),
+                    bitand(new_ts, 0xFF)
+                )
+
+                -- Сохраняем TSecr (оставшиеся 4 байта)
+                local tsecr = string.sub(opt.data, 5, 8)
+                if #tsecr < 4 then tsecr = string.char(0,0,0,0) end
+
+                opt.data = new_tsval .. tsecr
+                DLOG("discord_timestamp_travel: modified TSval "..current_ts.." -> "..new_ts)
+                return true
+            end
+        end
+        return false
+    end
+
+    local do_split = desync.arg.split
+
+    if do_split then
+        local split_marker = desync.arg.pos or "host"
+        local split_pos = resolve_pos(data, desync.l7payload, split_marker)
+
+        if not split_pos or split_pos <= 1 or split_pos >= #data then
+            split_pos = math.min(50, math.floor(#data / 2))
+        end
+
+        local base_seq = desync.dis.tcp.th_seq
+
+        -- Первая часть - с нормальным timestamp
+        local pkt1 = deepcopy(desync.dis)
+        pkt1.payload = string.sub(data, 1, split_pos - 1)
+
+        -- Вторая часть - с timestamp из "прошлого"
+        local pkt2 = deepcopy(desync.dis)
+        pkt2.payload = string.sub(data, split_pos)
+        pkt2.tcp.th_seq = base_seq + split_pos - 1
+        modify_timestamp(pkt2, offset_ms)
+
+        DLOG("discord_timestamp_travel: sending split with time-traveled timestamp")
+        rawsend_dissect(pkt1, opts.rawsend, opts.reconstruct)
+        rawsend_dissect(pkt2, opts.rawsend, opts.reconstruct)
+    else
+        -- Весь пакет с timestamp из прошлого
+        local pkt = deepcopy(desync.dis)
+        modify_timestamp(pkt, offset_ms)
+        DLOG("discord_timestamp_travel: sending packet with old timestamp")
+        rawsend_dissect(pkt, opts.rawsend, opts.reconstruct)
+    end
+
+    replay_drop_set(desync)
+    return VERDICT_DROP
+end
+
+
+--[[
+Название: discord_urgent_sni
+Описание: Используем URG флаг + Urgent Pointer на середину SNI.
+          URG данные обрабатываются вне очереди (out-of-band).
+          DPI может неправильно интерпретировать границы данных
+          когда urgent pointer указывает в середину важных данных.
+
+Использование: --lua-desync=discord_urgent_sni
+
+Параметры:
+  - urgent_pos: позиция urgent pointer (default: "midsld" - середина домена)
+  - urgent_byte: байт для urgent data (default: 0x00)
+]]
+function discord_urgent_sni(ctx, desync)
+    if not desync.dis.tcp then
+        instance_cutoff_shim(ctx, desync)
+        return
+    end
+
+    direction_cutoff_opposite(ctx, desync, "out")
+
+    if not direction_check(desync, "out") then return end
+    if not payload_check(desync, "tls_client_hello") then return end
+    if not replay_first(desync) then
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
+        return
+    end
+
+    local data = desync.reasm_data or desync.dis.payload
+    if #data < 10 then return end
+
+    DLOG("discord_urgent_sni: processing TLS len="..#data)
+
+    local opts = {
+        rawsend = rawsend_opts_base(desync),
+        reconstruct = {},
+        ipfrag = {},
+        ipid = desync.arg,
+        fooling = {}
+    }
+
+    -- Определяем позицию для Urgent Pointer
+    local urgent_marker = desync.arg.urgent_pos or "midsld"
+    local urgent_pos = resolve_pos(data, desync.l7payload, urgent_marker)
+
+    if not urgent_pos or urgent_pos <= 0 or urgent_pos > #data then
+        -- Fallback: середина payload
+        urgent_pos = math.floor(#data / 2)
+        DLOG("discord_urgent_sni: using fallback urgent_pos="..urgent_pos)
+    else
+        DLOG("discord_urgent_sni: resolved '"..urgent_marker.."' to pos="..urgent_pos)
+    end
+
+    -- Urgent pointer указывает на байт ПОСЛЕ urgent данных
+    -- Если urp=5, то байты 1-5 - urgent, байт 6+ - обычные
+
+    local pkt = deepcopy(desync.dis)
+
+    -- Устанавливаем URG флаг
+    pkt.tcp.th_flags = bitor(pkt.tcp.th_flags, TH_URG)
+
+    -- Urgent Pointer - смещение от начала данных до конца urgent части
+    -- Указываем на середину SNI, чтобы запутать DPI
+    pkt.tcp.th_urp = urgent_pos
+
+    -- Опционально: вставляем urgent byte в начало payload
+    -- Это OOB данные которые не должны влиять на TLS handshake
+    if desync.arg.urgent_byte then
+        local urg_byte = string.char(tonumber(desync.arg.urgent_byte) or 0)
+        -- Вставляем urgent byte, корректируем urgent pointer
+        pkt.payload = urg_byte .. data
+        pkt.tcp.th_urp = 1  -- Urgent pointer на первый байт
+        DLOG("discord_urgent_sni: inserted urgent byte at start")
+    end
+
+    DLOG("discord_urgent_sni: sending with URG flag, urp="..pkt.tcp.th_urp)
+    rawsend_dissect(pkt, opts.rawsend, opts.reconstruct)
+
+    replay_drop_set(desync)
+    return VERDICT_DROP
+end
+
+
+--[[
+Название: discord_ultimate_combo
+Описание: Комбинированная атака: обратный порядок сегментов (disorder) +
+          ECN marking + случайные IP ID + разбиение на SNI.
+          Максимально запутывает DPI множеством аномалий одновременно.
+
+Использование: --lua-desync=discord_ultimate_combo
+
+Параметры:
+  - pos: позиция первого разбиения (default: "host")
+  - pos2: позиция второго разбиения (default: "endhost")
+  - fakes: количество fake пакетов с низким TTL (default: 2)
+  - ttl: TTL для fake пакетов (default: 3)
+]]
+function discord_ultimate_combo(ctx, desync)
+    if not desync.dis.tcp then
+        instance_cutoff_shim(ctx, desync)
+        return
+    end
+
+    direction_cutoff_opposite(ctx, desync, "out")
+
+    if not direction_check(desync, "out") then return end
+    if not payload_check(desync, "tls_client_hello") then return end
+    if not replay_first(desync) then
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
+        return
+    end
+
+    local data = desync.reasm_data or desync.dis.payload
+    if #data < 20 then return end
+
+    DLOG("discord_ultimate_combo: processing TLS len="..#data)
+
+    local opts_real = {
+        rawsend = rawsend_opts_base(desync),
+        reconstruct = {},
+        ipfrag = {},
+        ipid = desync.arg,
+        fooling = {}
+    }
+
+    -- Параметры
+    local pos1_marker = desync.arg.pos or "host"
+    local pos2_marker = desync.arg.pos2 or "endhost"
+    local num_fakes = tonumber(desync.arg.fakes) or 2
+    local fake_ttl = tonumber(desync.arg.ttl) or 3
+
+    -- Определяем позиции разбиения
+    local pos1 = resolve_pos(data, desync.l7payload, pos1_marker)
+    local pos2 = resolve_pos(data, desync.l7payload, pos2_marker)
+
+    -- Валидация позиций
+    if not pos1 or pos1 <= 1 then pos1 = math.floor(#data / 3) end
+    if not pos2 or pos2 <= pos1 then pos2 = math.floor(#data * 2 / 3) end
+    if pos2 >= #data then pos2 = #data - 1 end
+    if pos1 >= pos2 then pos1 = pos2 - 10 end
+    if pos1 < 2 then pos1 = 2 end
+
+    DLOG("discord_ultimate_combo: split positions: "..pos1..", "..pos2)
+
+    local base_seq = desync.dis.tcp.th_seq
+
+    -- Разбиваем на 3 части
+    local part1 = string.sub(data, 1, pos1 - 1)
+    local part2 = string.sub(data, pos1, pos2 - 1)
+    local part3 = string.sub(data, pos2)
+
+    -- Функция для применения ECN и случайного IP ID
+    local function apply_combo_mods(pkt, add_ecn)
+        -- Случайный IP ID
+        if pkt.ip then
+            pkt.ip.ip_id = math.random(1, 65535)
+        end
+
+        -- ECN marking
+        if add_ecn then
+            pkt.tcp.th_flags = bitor(pkt.tcp.th_flags, TH_ECE)
+            if pkt.ip then
+                pkt.ip.ip_tos = bitor(bitand(pkt.ip.ip_tos, 0xFC), 0x02)  -- ECT(0)
+            end
+        end
+    end
+
+    -- ШАГ 1: Отправляем fake пакеты с низким TTL
+    if num_fakes > 0 then
+        local fake_blob = blob(desync, "fake_default_tls")
+        if fake_blob then
+            for i = 1, num_fakes do
+                local fake_pkt = deepcopy(desync.dis)
+                fake_pkt.payload = fake_blob
+                if fake_pkt.ip then
+                    fake_pkt.ip.ip_ttl = fake_ttl
+                    fake_pkt.ip.ip_id = math.random(1, 65535)
+                end
+                if fake_pkt.ip6 then
+                    fake_pkt.ip6.ip6_hlim = fake_ttl
+                end
+                DLOG("discord_ultimate_combo: sending fake #"..i.." TTL="..fake_ttl)
+                rawsend_dissect(fake_pkt, opts_real.rawsend, opts_real.reconstruct)
+            end
+        end
+    end
+
+    -- ШАГ 2: Отправляем реальные части в ОБРАТНОМ порядке (disorder)
+    -- Это ключевая техника - DPI видит части не по порядку
+
+    -- Часть 3 (последняя) - отправляем ПЕРВОЙ
+    local pkt3 = deepcopy(desync.dis)
+    pkt3.payload = part3
+    pkt3.tcp.th_seq = base_seq + #part1 + #part2
+    pkt3.tcp.th_flags = bitor(TH_ACK, TH_PSH)
+    apply_combo_mods(pkt3, true)
+
+    DLOG("discord_ultimate_combo: sending part3 (disorder) len="..#part3.." seq_offset="..(#part1 + #part2))
+    rawsend_dissect(pkt3, opts_real.rawsend, opts_real.reconstruct)
+
+    -- Часть 2 (средняя, содержит SNI) - отправляем ВТОРОЙ
+    local pkt2 = deepcopy(desync.dis)
+    pkt2.payload = part2
+    pkt2.tcp.th_seq = base_seq + #part1
+    pkt2.tcp.th_flags = bitor(TH_ACK, TH_PSH)
+    apply_combo_mods(pkt2, true)
+
+    DLOG("discord_ultimate_combo: sending part2 (disorder) len="..#part2.." seq_offset="..#part1)
+    rawsend_dissect(pkt2, opts_real.rawsend, opts_real.reconstruct)
+
+    -- Часть 1 (первая) - отправляем ПОСЛЕДНЕЙ
+    local pkt1 = deepcopy(desync.dis)
+    pkt1.payload = part1
+    pkt1.tcp.th_flags = bitor(TH_ACK, TH_PSH)
+    apply_combo_mods(pkt1, false)  -- Первая часть без ECN для вариативности
+
+    DLOG("discord_ultimate_combo: sending part1 (disorder) len="..#part1.." seq_offset=0")
+    rawsend_dissect(pkt1, opts_real.rawsend, opts_real.reconstruct)
+
+    replay_drop_set(desync)
+    return VERDICT_DROP
+end

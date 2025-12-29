@@ -50,6 +50,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
 --lua-init=@"%BIN%lua\zapret-auto.lua" ^
 --lua-init=@"%BIN%lua\zapret-antidpi.lua" ^
 --blob=tls_clienthello_312:@"%FAKE%tls_clienthello_312.bin" ^
+--blob=fake_tls_1:@"%FAKE%fake_tls_1.bin" ^
 --blob=fake_tls_2:@"%FAKE%fake_tls_2.bin" ^
 --blob=fake_tls_3:@"%FAKE%fake_tls_3.bin" ^
 --blob=fake_tls_4:@"%FAKE%fake_tls_4.bin" ^
@@ -61,13 +62,13 @@ start "GoodbyeZapret: %CONFIG_NAME%" /b "%BIN%winws2.exe" ^
 --blob=tls_clienthello_5:@"%FAKE%tls_clienthello_5.bin" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 -hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
---filter-tcp=443,2053,2083,2087,2096,8443 --hostlist="%LISTS%list-discord.txt" --payload tls_client_hello --lua-desync=multidisorder:pos=host+1 --new ^
+--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist="%LISTS%list-discord.txt" --payload tls_client_hello --lua-desync=multidisorder:pos=host+1 --new ^
 --filter-udp=443 --filter-l7=quic --hostlist="%LISTS%list-quick_ttl.txt" --out-range=-n3 --payload=quic_initial --lua-desync=fake:blob=fake_quic_3.bin:udp_ttl=7:repeats=2 --lua-desync=udplen:pattern=0x0F0F0E0F:repeats=2 --new ^
 --filter-tcp=443 --filter-l7=unknown --hostlist="%LISTS%russia-youtube-rtmps.txt" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --out-range=-d9 --payload=quic_initial --lua-desync=fake:blob=0x0c000000:blob=fake_quic_1:ip_ttl=6 --new ^
 --filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --out-range=-n5 --payload=tls_client_hello --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up --lua-desync=fake:blob=tls_clienthello_max_ru:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com --lua-desync=multidisorder:pos=5,sld+1 --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-n5 --payload=tls_client_hello --lua-desync=fake:blob=0x1603:tls_mod=rnd,dupsid,sni=fonts.google.com --lua-desync=fake:blob=tls_www_google:tls_mod=rnd,dupsid,sni=fonts.google.com --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1:seqovl=314 --new ^
---filter-tcp=443 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-n5 --payload=tls_client_hello --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up --lua-desync=fake:blob=fake_tls_3:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com --lua-desync=multidisorder:pos=1,sld+1 --new ^
+--filter-tcp=80,443-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-n5 --payload=tls_client_hello --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up --lua-desync=fake:blob=fake_tls_3:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com --lua-desync=multidisorder:pos=1,sld+1 --new ^
 --filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-n5 --payload=quic_initial --lua-desync=fake:blob=quic_initial_www_google_com:repeats=6 --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-n5 --payload=http_req --lua-desync=fake:blob=0x1603:blob=!+2:tls_mod=rnd,dupsid,sni=fonts.google.com:ip_id=seq --lua-desync=fakedsplit:pos=method+2:tcp_ack=-66000:tcp_ts_up --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1 --new ^
 --filter-tcp=80 --filter-l7=http --out-range=-n4 --payload=http_req --lua-desync=fake:blob=0x0F0F0F0F:http=1:tcp_ts=1 --lua-desync=fakedsplit:pos=1,sld+1:altorder=0 --new ^

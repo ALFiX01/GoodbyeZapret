@@ -61,10 +61,7 @@ echo Запуск SmartConfig.exe...
 echo Нажмите Ctrl+C для остановки.
 echo.
 
-:: === ИСПРАВЛЕННАЯ СТРОКА ЗАПУСКА ===
-:: Используем ForEach-Object вместо Tee-Object для совместимости с любой версией Windows
-:: 1. Write-Host $_ -> выводит в консоль
-:: 2. Add-Content ... -Encoding UTF8 -> пишет в файл в правильной кодировке
+:: === ЗАПУСК ===
 
 chcp 850 >nul 2>&1
 "%TOOLS_DIR%\SmartConfig.exe" --bin "%BIN_DIR%" --lua "%LUA_DIR%" --learned-init "%LUA_DIR%\learned-strategies.lua" 2>&1 | powershell -NoProfile -ExecutionPolicy Bypass -Command "$input | ForEach-Object { Write-Host $_; $_ | Add-Content -Path '%LOG_FILE%' -Encoding UTF8 }"

@@ -2086,7 +2086,7 @@ if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
 
 
 REM === DEBUG ===
-set DEBUG_mode=0
+set DEBUG_mode=1
 if "%DEBUG_mode%"=="1" (
  echo WiFi - %WiFi%
  echo CheckStatus - %CheckStatus%
