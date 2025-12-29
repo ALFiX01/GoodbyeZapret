@@ -134,38 +134,47 @@
       ],
       "7": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload tls_client_hello --lua-desync=multidisorder:pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-n3 --payload tls_client_hello --lua-desync=multidisorder:pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "8": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\"  --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google",
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\"  --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "9": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack",
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "10": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld",
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "11": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld",
+        "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\"",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "12": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls5:@\"%FAKE%fake_tls_5.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:seqovl=211:seqovl_pattern=tls5",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:seqovl=211:seqovl_pattern=tls5",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "13": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown,quic_initial --out-range=-d10 --lua-desync=fake:blob=quic_google:repeats=6 --lua-desync=udplen:increment=10:pattern=0xDEADBEEF",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:pos=1,midsld:ip_autottl=-1,3-20:ip6_autottl=-1,3-20",
+        "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
+      ],
+      "14": [
+        "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
+        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:pos=sniext+1,midsld:seqovl=652",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ]
     },
@@ -190,12 +199,15 @@
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --lua-desync=wssize:wsize=1:scale=6 --lua-desync=syndata --payload tls_client_hello --lua-desync=multisplit"
       ],
       "7": [
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
       ],
       "8": [
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld"
       ],
       "9": [
+        "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\"",
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld"
       ],
       "10": [
