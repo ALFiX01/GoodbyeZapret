@@ -29,7 +29,6 @@ nvidia.com
 geforce.com
 nvidiagrid.net
 xbox-dns.ru
-aus5.mozilla.org
 forum.ru-board.com
 okcdn.ru
 rtbcdn.ru

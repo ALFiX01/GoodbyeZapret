@@ -304,6 +304,17 @@ function pos_str(desync, pos)
 	return pos.mode..pos_get(desync, pos.mode)
 end
 
+-- convert array a to packed string using 'packer' function
+function barray(a, packer)
+	if a then
+		local s=""
+		for i=1,#a do
+			s = s .. packer(a[i])
+		end
+		return s
+	end
+end
+
 -- sequence comparision functions. they work only within 2G interval
 -- seq1>=seq2
 function seq_ge(seq1, seq2)
@@ -421,7 +432,8 @@ function var_debug(v)
 end
 
 -- make hex dump
-function hexdump(s,max)
+function hexdump(s, max)
+	if not s then return nil end
 	local l = max<#s and max or #s
 	local ss = string.sub(s,1,l)
 	return string2hex(ss)..(#s>max and " ... " or "  " )..make_readable(ss)..(#s>max and " ... " or "" )
@@ -465,6 +477,9 @@ function in_list(s, v)
 	return false
 end
 
+function blob_exist(desync, name)
+	return name and (string.sub(name,1,2)=="0x" or _G[name] or desync[name])
+end
 -- blobs can be 0xHEX, field name in desync or global var
 -- if name is nil - return def
 function blob(desync, name, def)
@@ -531,6 +546,25 @@ function delete_pos_1(a)
 	return a
 end
 
+-- linear search array a for a[index]==v. return index
+function array_search(a, v)
+	for k,val in pairs(a) do
+		if val==v then
+			return k
+		end
+	end
+	return nil
+end
+-- linear search array a for a[index].f==v. return index
+function array_field_search(a, f, v)
+	for k,val in pairs(a) do
+		if type(val)=="table" and val[f]==v then
+			return k
+		end
+	end
+	return nil
+end
+
 -- find pos of the next eol and pos of the next non-eol character after eol
 function find_next_line(s, pos)
 	local p1, p2
@@ -547,123 +581,6 @@ function find_next_line(s, pos)
 	return p1,p2
 end
 
-function http_dissect_header(header)
-	local p1,p2
-	p1,p2 = string.find(header,":")
-	if p1 then
-		p2=string.find(header,"[^ \t]",p2+1)
-		return string.sub(header,1,p1-1), p2 and string.sub(header,p2) or "", p1-1, p2 or #header
-	end
-	return nil
-end
--- make table with structured http header representation
-function http_dissect_headers(http, pos)
-	local eol,pnext,header,value,idx,headers,pos_endheader,pos_startvalue
-	headers={}
-	while pos do
-		eol,pnext = find_next_line(http,pos)
-		header = string.sub(http,pos,eol)
-		if #header == 0 then break end
-		header,value,pos_endheader,pos_startvalue = http_dissect_header(header)
-		if header then
-			headers[string.lower(header)] = { header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
-		end
-		pos=pnext
-	end
-	return headers
-end
--- make table with structured http request representation
-function http_dissect_req(http)
-	if not http then return nil; end
-	local eol,pnext,req,hdrpos
-	local pos=1
-	-- skip methodeol empty line(s)
-	while pos do
-		eol,pnext = find_next_line(http,pos)
-		req = string.sub(http,pos,eol)
-		pos=pnext
-		if #req>0 then break end
-	end
-	hdrpos = pos
-	if not req or #req==0 then return nil end
-	pos = string.find(req,"[ \t]")
-	if not pos then return nil end
-	local method = string.sub(req,1,pos-1);
-	pos = string.find(req,"[^ \t]",pos+1)
-	if not pos then return nil end
-	pnext = string.find(req,"[ \t]",pos+1)
-	if not pnext then pnext = #http + 1 end
-	local uri = string.sub(req,pos,pnext-1)
-	return { method = method, uri = uri, headers = http_dissect_headers(http,hdrpos) }
-end
-function http_dissect_reply(http)
-	if not http then return nil; end
-	local s, pos, code
-	s = string.sub(http,1,8)
-	if s~="HTTP/1.1" and s~="HTTP/1.0" then return nil end
-	pos = string.find(http,"[ \t\r\n]",10)
-	code = tonumber(string.sub(http,10,pos-1))
-	if not code then return nil end
-	pos = find_next_line(http,pos)
-	return { code = code, headers = http_dissect_headers(http,pos) }
-end
-function dissect_url(url)
-	local p1,pb,pstart,pend
-	local proto, creds, domain, port, uri
-	p1 = string.find(url,"[^ \t]")
-	if not p1 then return nil end
-	pb = p1
-	pstart,pend = string.find(url,"[a-z]+://",p1)
-	if pend then
-		proto = string.sub(url,pstart,pend-3)
-		p1 = pend+1
-	end
-	pstart,pend = string.find(url,"[@/]",p1)
-	if pend and string.sub(url,pstart,pend)=='@' then
-		creds = string.sub(url,p1,pend-1)
-		p1 = pend+1
-	end
-	pstart,pend = string.find(url,"/",p1,true)
-	if pend then
-		if pend==pb then
-			uri = string.sub(url,pb)
-		else
-			uri = string.sub(url,pend)
-			domain = string.sub(url,p1,pend-1)
-		end
-	else
-		if proto then
-			domain = string.sub(url,p1)
-		else
-			uri = string.sub(url,p1)
-		end
-	end
-	if domain then
-		pstart,pend = string.find(domain,':',1,true)
-		if pend then
-			port = string.sub(domain, pend+1)
-			domain = string.sub(domain, 1, pstart-1)
-		end
-	end
-	return { proto = proto, creds = creds, domain = domain, port = port, uri=uri }
-end
-function dissect_nld(domain, level)
-	if domain then
-		local n=1
-		for pos=#domain,1,-1 do
-			if string.sub(domain,pos,pos)=='.' then
-				if n==level then
-					return string.sub(domain, pos+1)
-				end
-				n=n+1
-			end
-		end
-		if n==level then
-			return domain
-		end
-	end
-	return nil
-end
 
 -- support sni=%var
 function tls_mod_shim(desync, blob, modlist, payload)
@@ -1441,4 +1358,980 @@ function ipfrag2(dis, ipfrag_options)
 	end
 
 	return {dis1,dis2}
+end
+
+
+-- option: sni_snt - server name type value in existing names
+-- option: sni_snt_new - server name type value for new names
+-- option: sni_del_ext - delete sni extension
+-- option: sni_del - delete all names
+-- option: sni_first - add name to the beginning
+-- option: sni_last - add name to the end
+function tls_client_hello_mod(tls, options)
+	local tdis = tls_dissect(tls)
+	if not tdis then
+		DLOG("tls_client_hello_mod: could not dissect tls")
+		return
+	end
+	if not tdis.handshake or not tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT] then
+		DLOG("tls_client_hello_mod: handshake not dissected")
+		return
+	end
+	local idx_sni
+	if options.sni_snt or options.sni_del_ext or options.sni_del or options.sni_first or options.sni_last then
+		idx_sni = array_field_search(tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext, "type", TLS_EXT_SERVER_NAME)
+		if not idx_sni then
+			DLOG("tls_client_hello_mod: no SNI extension. adding")
+			table.insert(tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext, 1, { type = TLS_EXT_SERVER_NAME, dis = { list = {} } } )
+			idx_sni = 1
+		end
+	end
+	if options.sni_del_ext then
+		table.remove(tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext, idx_sni)
+	else
+		if options.sni_del then
+			tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext[idx_sni].dis.list = {}
+		elseif options.sni_snt then
+			for i,v in pairs(tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext[idx_sni].dis.list) do
+				v.type = options.sni_snt
+			end
+		end
+		if options.sni_first then
+			table.insert(tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext[idx_sni].dis.list, 1, { name = options.sni_first, type = options.sni_snt_new } )
+		end
+		if options.sni_last then
+			table.insert(tdis.handshake[TLS_HANDSHAKE_TYPE_CLIENT].dis.ext[idx_sni].dis.list, { name = options.sni_last, type = options.sni_snt_new } )
+		end
+	end
+	local tls = tls_reconstruct(tdis)
+	if not tls then
+		DLOG_ERR("tls_client_hello_mod: reconstruct error")
+	end
+	return tls
+end
+
+-- DISSECTORS
+
+function http_dissect_header(header)
+	local p1,p2
+	p1,p2 = string.find(header,":")
+	if p1 then
+		p2=string.find(header,"[^ \t]",p2+1)
+		return string.sub(header,1,p1-1), p2 and string.sub(header,p2) or "", p1-1, p2 or #header
+	end
+	return nil
+end
+-- make table with structured http header representation
+function http_dissect_headers(http, pos)
+	local eol,pnext,header,value,idx,headers,pos_endheader,pos_startvalue
+	headers={}
+	while pos do
+		eol,pnext = find_next_line(http,pos)
+		header = string.sub(http,pos,eol)
+		if #header == 0 then break end
+		header,value,pos_endheader,pos_startvalue = http_dissect_header(header)
+		if header then
+			headers[string.lower(header)] = { header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
+		end
+		pos=pnext
+	end
+	return headers
+end
+-- make table with structured http request representation
+function http_dissect_req(http)
+	if not http then return nil; end
+	local eol,pnext,req,hdrpos
+	local pos=1
+	-- skip methodeol empty line(s)
+	while pos do
+		eol,pnext = find_next_line(http,pos)
+		req = string.sub(http,pos,eol)
+		pos=pnext
+		if #req>0 then break end
+	end
+	hdrpos = pos
+	if not req or #req==0 then return nil end
+	pos = string.find(req,"[ \t]")
+	if not pos then return nil end
+	local method = string.sub(req,1,pos-1);
+	pos = string.find(req,"[^ \t]",pos+1)
+	if not pos then return nil end
+	pnext = string.find(req,"[ \t]",pos+1)
+	if not pnext then pnext = #http + 1 end
+	local uri = string.sub(req,pos,pnext-1)
+	return { method = method, uri = uri, headers = http_dissect_headers(http,hdrpos) }
+end
+function http_dissect_reply(http)
+	if not http then return nil; end
+	local s, pos, code
+	s = string.sub(http,1,8)
+	if s~="HTTP/1.1" and s~="HTTP/1.0" then return nil end
+	pos = string.find(http,"[ \t\r\n]",10)
+	code = tonumber(string.sub(http,10,pos-1))
+	if not code then return nil end
+	pos = find_next_line(http,pos)
+	return { code = code, headers = http_dissect_headers(http,pos) }
+end
+
+function dissect_url(url)
+	local p1,pb,pstart,pend
+	local proto, creds, domain, port, uri
+	p1 = string.find(url,"[^ \t]")
+	if not p1 then return nil end
+	pb = p1
+	pstart,pend = string.find(url,"[a-z]+://",p1)
+	if pend then
+		proto = string.sub(url,pstart,pend-3)
+		p1 = pend+1
+	end
+	pstart,pend = string.find(url,"[@/]",p1)
+	if pend and string.sub(url,pstart,pend)=='@' then
+		creds = string.sub(url,p1,pend-1)
+		p1 = pend+1
+	end
+	pstart,pend = string.find(url,"/",p1,true)
+	if pend then
+		if pend==pb then
+			uri = string.sub(url,pb)
+		else
+			uri = string.sub(url,pend)
+			domain = string.sub(url,p1,pend-1)
+		end
+	else
+		if proto then
+			domain = string.sub(url,p1)
+		else
+			uri = string.sub(url,p1)
+		end
+	end
+	if domain then
+		pstart,pend = string.find(domain,':',1,true)
+		if pend then
+			port = string.sub(domain, pend+1)
+			domain = string.sub(domain, 1, pstart-1)
+		end
+	end
+	return { proto = proto, creds = creds, domain = domain, port = port, uri=uri }
+end
+
+function dissect_nld(domain, level)
+	if domain then
+		local n=1
+		for pos=#domain,1,-1 do
+			if string.sub(domain,pos,pos)=='.' then
+				if n==level then
+					return string.sub(domain, pos+1)
+				end
+				n=n+1
+			end
+		end
+		if n==level then
+			return domain
+		end
+	end
+	return nil
+end
+
+
+
+TLS_EXT_SERVER_NAME=0
+TLS_EXT_MAX_FRAGMENT_LENGTH=1
+TLS_EXT_CLIENT_CERTIFICATE_URL=2
+TLS_EXT_TRUSTED_CA_KEYS=3
+TLS_EXT_TRUNCATED_HMAC=4
+TLS_EXT_STATUS_REQUEST=5
+TLS_EXT_USER_MAPPING=6
+TLS_EXT_CLIENT_AUTHZ=7
+TLS_EXT_SERVER_AUTHZ=8
+TLS_EXT_CERT_TYPE=9
+TLS_EXT_SUPPORTED_GROUPS=10
+TLS_EXT_EC_POINT_FORMATS=11
+TLS_EXT_SRP=12
+TLS_EXT_SIGNATURE_ALGORITHMS=13
+TLS_EXT_USE_SRTP=14
+TLS_EXT_HEARTBEAT=15
+TLS_EXT_ALPN=16
+TLS_EXT_STATUS_REQUEST_V2=17
+TLS_EXT_SIGNED_CERTIFICATE_TIMESTAMP=18
+TLS_EXT_CLIENT_CERT_TYPE=19
+TLS_EXT_SERVER_CERT_TYPE=20
+TLS_EXT_PADDING=21
+TLS_EXT_ENCRYPT_THEN_MAC=22
+TLS_EXT_EXTENDED_MASTER_SECRET=23
+TLS_EXT_TOKEN_BINDING=24
+TLS_EXT_CACHED_INFO=25
+TLS_EXT_COMPRESS_CERTIFICATE=27
+TLS_EXT_RECORD_SIZE_LIMIT=28
+TLS_EXT_DELEGATED_CREDENTIALS=34
+TLS_EXT_SESSION_TICKET_TLS=35
+TLS_EXT_KEY_SHARE_OLD=40
+TLS_EXT_PRE_SHARED_KEY=41
+TLS_EXT_EARLY_DATA=42
+TLS_EXT_SUPPORTED_VERSIONS=43
+TLS_EXT_COOKIE=44
+TLS_EXT_PSK_KEY_EXCHANGE_MODES=45
+TLS_EXT_TICKET_EARLY_DATA_INFO=46
+TLS_EXT_CERTIFICATE_AUTHORITIES=47
+TLS_EXT_OID_FILTERS=48
+TLS_EXT_POST_HANDSHAKE_AUTH=49
+TLS_EXT_SIGNATURE_ALGORITHMS_CERT=50
+TLS_EXT_KEY_SHARE=51
+TLS_EXT_TRANSPARENCY_INFO=52
+TLS_EXT_CONNECTION_ID_DEPRECATED=53
+TLS_EXT_CONNECTION_ID=54
+TLS_EXT_EXTERNAL_ID_HASH=55
+TLS_EXT_EXTERNAL_SESSION_ID=56
+TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1=57
+TLS_EXT_TICKET_REQUEST=58
+TLS_EXT_DNSSEC_CHAIN=59
+TLS_EXT_GREASE_0A0A=2570
+TLS_EXT_GREASE_1A1A=6682
+TLS_EXT_GREASE_2A2A=10794
+TLS_EXT_NPN=13172
+TLS_EXT_GREASE_3A3A=14906
+TLS_EXT_ALPS_OLD=17513
+TLS_EXT_ALPS=17613
+TLS_EXT_GREASE_4A4A=19018
+TLS_EXT_GREASE_5A5A=23130
+TLS_EXT_GREASE_6A6A=27242
+TLS_EXT_CHANNEL_ID_OLD=30031
+TLS_EXT_CHANNEL_ID=30032
+TLS_EXT_GREASE_7A7A=31354
+TLS_EXT_GREASE_8A8A=35466
+TLS_EXT_GREASE_9A9A=39578
+TLS_EXT_GREASE_AAAA=43690
+TLS_EXT_GREASE_BABA=47802
+TLS_EXT_GREASE_CACA=51914
+TLS_EXT_GREASE_DADA=56026
+TLS_EXT_GREASE_EAEA=60138
+TLS_EXT_GREASE_FAFA=64250
+TLS_EXT_ECH_OUTER_EXTENSIONS=64768
+TLS_EXT_ENCRYPTED_CLIENT_HELLO=65037
+TLS_EXT_RENEGOTIATION_INFO=65281
+TLS_EXT_QUIC_TRANSPORT_PARAMETERS=65445
+TLS_EXT_ENCRYPTED_SERVER_NAME=65486
+
+TLS_HELLO_EXT_NAMES = {
+ [TLS_EXT_SERVER_NAME] = "server_name", -- RFC 6066
+ [TLS_EXT_MAX_FRAGMENT_LENGTH] = "max_fragment_length",-- RFC 6066
+ [TLS_EXT_CLIENT_CERTIFICATE_URL] = "client_certificate_url", -- RFC 6066
+ [TLS_EXT_TRUSTED_CA_KEYS] = "trusted_ca_keys", -- RFC 6066
+ [TLS_EXT_TRUNCATED_HMAC] = "truncated_hmac", -- RFC 6066
+ [TLS_EXT_STATUS_REQUEST] = "status_request", -- RFC 6066
+ [TLS_EXT_USER_MAPPING] = "user_mapping", -- RFC 4681
+ [TLS_EXT_CLIENT_AUTHZ] = "client_authz", -- RFC 5878
+ [TLS_EXT_SERVER_AUTHZ] = "server_authz", -- RFC 5878
+ [TLS_EXT_CERT_TYPE] = "cert_type", -- RFC 6091
+ [TLS_EXT_SUPPORTED_GROUPS] = "supported_groups", -- RFC 4492, RFC 7919
+ [TLS_EXT_EC_POINT_FORMATS] = "ec_point_formats", -- RFC 4492
+ [TLS_EXT_SRP] = "srp", -- RFC 5054
+ [TLS_EXT_SIGNATURE_ALGORITHMS] = "signature_algorithms", -- RFC 5246
+ [TLS_EXT_USE_SRTP] = "use_srtp", -- RFC 5764
+ [TLS_EXT_HEARTBEAT] = "heartbeat", -- RFC 6520
+ [TLS_EXT_ALPN] = "application_layer_protocol_negotiation", -- RFC 7301
+ [TLS_EXT_STATUS_REQUEST_V2] = "status_request_v2", -- RFC 6961
+ [TLS_EXT_SIGNED_CERTIFICATE_TIMESTAMP] = "signed_certificate_timestamp", -- RFC 6962
+ [TLS_EXT_CLIENT_CERT_TYPE] = "client_certificate_type", -- RFC 7250
+ [TLS_EXT_SERVER_CERT_TYPE] = "server_certificate_type", -- RFC 7250
+ [TLS_EXT_PADDING] = "padding", -- RFC 7685
+ [TLS_EXT_ENCRYPT_THEN_MAC] = "encrypt_then_mac", -- RFC 7366
+ [TLS_EXT_EXTENDED_MASTER_SECRET] = "extended_master_secret", -- RFC 7627
+ [TLS_EXT_TOKEN_BINDING] = "token_binding", -- https://tools.ietf.org/html/draft-ietf-tokbind-negotiation
+ [TLS_EXT_CACHED_INFO] = "cached_info", -- RFC 7924
+ [TLS_EXT_COMPRESS_CERTIFICATE] = "compress_certificate", -- https://tools.ietf.org/html/draft-ietf-tls-certificate-compression-03
+ [TLS_EXT_RECORD_SIZE_LIMIT] = "record_size_limit", -- RFC 8449
+ [TLS_EXT_DELEGATED_CREDENTIALS] = "delegated_credentials", -- draft-ietf-tls-subcerts-10.txt
+ [TLS_EXT_SESSION_TICKET_TLS] = "session_ticket", -- RFC 5077 / RFC 8447
+ [TLS_EXT_KEY_SHARE_OLD] = "Reserved (key_share)", -- https://tools.ietf.org/html/draft-ietf-tls-tls13-22 (removed in -23)
+ [TLS_EXT_PRE_SHARED_KEY] = "pre_shared_key", -- RFC 8446
+ [TLS_EXT_EARLY_DATA] = "early_data", -- RFC 8446
+ [TLS_EXT_SUPPORTED_VERSIONS] = "supported_versions", -- RFC 8446
+ [TLS_EXT_COOKIE] = "cookie", -- RFC 8446
+ [TLS_EXT_PSK_KEY_EXCHANGE_MODES] = "psk_key_exchange_modes", -- RFC 8446
+ [TLS_EXT_TICKET_EARLY_DATA_INFO] = "Reserved (ticket_early_data_info)", -- draft-ietf-tls-tls13-18 (removed in -19)
+ [TLS_EXT_CERTIFICATE_AUTHORITIES] = "certificate_authorities", -- RFC 8446
+ [TLS_EXT_OID_FILTERS] = "oid_filters", -- RFC 8446
+ [TLS_EXT_POST_HANDSHAKE_AUTH] = "post_handshake_auth", -- RFC 8446
+ [TLS_EXT_SIGNATURE_ALGORITHMS_CERT] = "signature_algorithms_cert", -- RFC 8446
+ [TLS_EXT_KEY_SHARE] = "key_share", -- RFC 8446
+ [TLS_EXT_TRANSPARENCY_INFO] = "transparency_info", -- draft-ietf-trans-rfc6962-bis-41
+ [TLS_EXT_CONNECTION_ID_DEPRECATED] = "connection_id (deprecated)", -- draft-ietf-tls-dtls-connection-id-07
+ [TLS_EXT_CONNECTION_ID] = "connection_id", -- RFC 9146
+ [TLS_EXT_EXTERNAL_ID_HASH] = "external_id_hash", -- RFC 8844
+ [TLS_EXT_EXTERNAL_SESSION_ID] = "external_session_id", -- RFC 8844
+ [TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1] = "quic_transport_parameters", -- draft-ietf-quic-tls-33
+ [TLS_EXT_TICKET_REQUEST] = "ticket_request", -- draft-ietf-tls-ticketrequests-07
+ [TLS_EXT_DNSSEC_CHAIN] = "dnssec_chain", -- RFC 9102
+ [TLS_EXT_GREASE_0A0A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_1A1A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_2A2A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_NPN] = "next_protocol_negotiation", -- https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-03
+ [TLS_EXT_GREASE_3A3A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_ALPS_OLD] = "application_settings_old", -- draft-vvv-tls-alps-01
+ [TLS_EXT_ALPS] = "application_settings", -- draft-vvv-tls-alps-01 -- https://chromestatus.com/feature/5149147365900288
+ [TLS_EXT_GREASE_4A4A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_5A5A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_6A6A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_CHANNEL_ID_OLD] = "channel_id_old", -- https://tools.ietf.org/html/draft-balfanz-tls-channelid-00
+ [TLS_EXT_CHANNEL_ID] = "channel_id", -- https://tools.ietf.org/html/draft-balfanz-tls-channelid-01
+ [TLS_EXT_RENEGOTIATION_INFO] = "renegotiation_info", -- RFC 5746
+ [TLS_EXT_GREASE_7A7A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_8A8A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_9A9A] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_AAAA] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_BABA] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_CACA] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_DADA] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_EAEA] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_GREASE_FAFA] = "Reserved (GREASE)", -- RFC 8701
+ [TLS_EXT_QUIC_TRANSPORT_PARAMETERS] = "quic_transport_parameters (drafts version)", -- https://tools.ietf.org/html/draft-ietf-quic-tls
+ [TLS_EXT_ENCRYPTED_SERVER_NAME] = "encrypted_server_name", -- https://tools.ietf.org/html/draft-ietf-tls-esni-01
+ [TLS_EXT_ENCRYPTED_CLIENT_HELLO] = "encrypted_client_hello", -- https://datatracker.ietf.org/doc/draft-ietf-tls-esni/17/
+ [TLS_EXT_ECH_OUTER_EXTENSIONS] = "ech_outer_extensions" -- https://datatracker.ietf.org/doc/draft-ietf-tls-esni/17/
+}
+
+TLS_RECORD_TYPE_CHANGE_CIPHER_SPEC=0x14
+TLS_RECORD_TYPE_ALERT=0x15
+TLS_RECORD_TYPE_HANDSHAKE=0x16
+TLS_RECORD_TYPE_DATA=0x17
+TLS_RECORD_TYPE_HEARTBEAT=0x18
+
+TLS_RECORD_TYPE_NAMES = {
+ [TLS_RECORD_TYPE_CHANGE_CIPHER_SPEC] = "change_cipher_spec",
+ [TLS_RECORD_TYPE_ALERT] = "alert",
+ [TLS_RECORD_TYPE_HANDSHAKE] = "handshake",
+ [TLS_RECORD_TYPE_DATA] = "data",
+ [TLS_RECORD_TYPE_HEARTBEAT] = "heartbeat"
+}
+
+TLS_HANDSHAKE_TYPE_HELLO_REQUEST=0
+TLS_HANDSHAKE_TYPE_CLIENT=1
+TLS_HANDSHAKE_TYPE_SERVER=2
+TLS_HANDSHAKE_TYPE_CERTIFICATE=11
+TLS_HANDSHAKE_TYPE_KEY_EXCHANGE=12
+TLS_HANDSHAKE_TYPE_CERTIFICATE_REQUEST=13
+TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE=14
+TLS_HANDSHAKE_TYPE_CERTIFICATE_VERIFY=15
+TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE=16
+TLS_HANDSHAKE_TYPE_FINISHED=20
+TLS_HANDSHAKE_TYPE_CERTIFICATE_URL=21
+TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS=22
+TLS_HANDSHAKE_TYPE_SUPPLEMENTAL_DATA=23
+TLS_HANDSHAKE_TYPE_KEY_UPDATE=24
+TLS_HANDSHAKE_TYPE_COMPRESSED_CERTIFICATE=25
+
+TLS_HANDSHAKE_TYPE_NAMES = {
+ [TLS_HANDSHAKE_TYPE_HELLO_REQUEST]="hello_request",
+ [TLS_HANDSHAKE_TYPE_CLIENT]="client_hello",
+ [TLS_HANDSHAKE_TYPE_SERVER]="server_hello",
+ [TLS_HANDSHAKE_TYPE_CERTIFICATE]="certificate",
+ [TLS_HANDSHAKE_TYPE_KEY_EXCHANGE]="key_exchange",
+ [TLS_HANDSHAKE_TYPE_CERTIFICATE_REQUEST]="certificate_request",
+ [TLS_HANDSHAKE_TYPE_SERVER_HELLO_DONE]="hello_done",
+ [TLS_HANDSHAKE_TYPE_CERTIFICATE_VERIFY]="certificate_verify",
+ [TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE]="client_key_exchange",
+ [TLS_HANDSHAKE_TYPE_FINISHED]="finished",
+ [TLS_HANDSHAKE_TYPE_CERTIFICATE_URL]="certificate_url",
+ [TLS_HANDSHAKE_TYPE_CERTIFICATE_STATUS]="certificate_status",
+ [TLS_HANDSHAKE_TYPE_SUPPLEMENTAL_DATA]="supplemental_data",
+ [TLS_HANDSHAKE_TYPE_KEY_UPDATE]="key_update",
+ [TLS_HANDSHAKE_TYPE_COMPRESSED_CERTIFICATE]="compressed_certificate"
+}
+
+TLS_VER_SSL30=0x0300
+TLS_VER_TLS10=0x0301
+TLS_VER_TLS11=0x0302
+TLS_VER_TLS12=0x0303
+TLS_VER_TLS13=0x0304
+
+TLS_HANDSHAKE_QUIC_TP_ORIGINAL_DESTINATION_CONNECTION_ID=0x00
+TLS_HANDSHAKE_QUIC_TP_MAX_IDLE_TIMEOUT=0x01
+TLS_HANDSHAKE_QUIC_TP_STATELESS_RESET_TOKEN=0x02
+TLS_HANDSHAKE_QUIC_TP_MAX_UDP_PAYLOAD_SIZE=0x03
+TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_DATA=0x04
+TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL=0x05
+TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE=0x06
+TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAM_DATA_UNI=0x07
+TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAMS_BIDI=0x08
+TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAMS_UNI=0x09
+TLS_HANDSHAKE_QUIC_TP_ACK_DELAY_EXPONENT=0x0a
+TLS_HANDSHAKE_QUIC_TP_MAX_ACK_DELAY=0x0b
+TLS_HANDSHAKE_QUIC_TP_DISABLE_ACTIVE_MIGRATION=0x0c
+TLS_HANDSHAKE_QUIC_TP_PREFERRED_ADDRESS=0x0d
+TLS_HANDSHAKE_QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT=0x0e
+TLS_HANDSHAKE_QUIC_TP_INITIAL_SOURCE_CONNECTION_ID=0x0f
+TLS_HANDSHAKE_QUIC_TP_RETRY_SOURCE_CONNECTION_ID=0x10
+TLS_HANDSHAKE_QUIC_TP_VERSION_INFORMATION=0x11 -- https://tools.ietf.org/html/draft-ietf-quic-version-negotiation-14
+TLS_HANDSHAKE_QUIC_TP_MAX_DATAGRAM_FRAME_SIZE=0x20 -- https://datatracker.ietf.org/doc/html/draft-ietf-quic-datagram-06
+TLS_HANDSHAKE_QUIC_TP_CIBIR_ENCODING=0x1000 -- https://datatracker.ietf.org/doc/html/draft-banks-quic-cibir-01
+TLS_HANDSHAKE_QUIC_TP_LOSS_BITS=0x1057 -- https://tools.ietf.org/html/draft-ferrieuxhamchaoui-quic-lossbits-03
+TLS_HANDSHAKE_QUIC_TP_GREASE_QUIC_BIT=0x2ab2 -- RFC 9287
+TLS_HANDSHAKE_QUIC_TP_ENABLE_TIME_STAMP=0x7157 -- https://tools.ietf.org/html/draft-huitema-quic-ts-02
+TLS_HANDSHAKE_QUIC_TP_ENABLE_TIME_STAMP_V2=0x7158 -- https://tools.ietf.org/html/draft-huitema-quic-ts-03
+TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY_OLD=0xde1a -- https://tools.ietf.org/html/draft-iyengar-quic-delayed-ack-00
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_USER_AGENT=0x3129
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_KEY_UPDATE_NOT_YET_SUPPORTED=0x312B
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_QUIC_VERSION=0x4752
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_INITIAL_RTT=0x3127
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_SUPPORT_HANDSHAKE_DONE=0x312A
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_QUIC_PARAMS=0x4751
+TLS_HANDSHAKE_QUIC_TP_GOOGLE_CONNECTION_OPTIONS=0x3128
+TLS_HANDSHAKE_QUIC_TP_FACEBOOK_PARTIAL_RELIABILITY=0xFF00
+TLS_HANDSHAKE_QUIC_TP_VERSION_INFORMATION_DRAFT=0xff73db -- https://datatracker.ietf.org/doc/draft-ietf-quic-version-negotiation/13/
+TLS_HANDSHAKE_QUIC_TP_ADDRESS_DISCOVERY=0x9f81a176 -- https://tools.ietf.org/html/draft-ietf-quic-address-discovery-00
+TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY_DRAFT_V1=0xFF03DE1A -- https://tools.ietf.org/html/draft-ietf-quic-ack-frequency-01
+TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY_DRAFT05=0xff04de1a -- https://tools.ietf.org/html/draft-ietf-quic-ack-frequency-04 / draft-05
+TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY=0xff04de1b -- https://tools.ietf.org/html/draft-ietf-quic-ack-frequency-07
+
+TLS_HANDSHAKE_QUIC_TP_NAMES = {
+ [TLS_HANDSHAKE_QUIC_TP_ORIGINAL_DESTINATION_CONNECTION_ID]="original_destination_connection_id",
+ [TLS_HANDSHAKE_QUIC_TP_MAX_IDLE_TIMEOUT]="max_idle_timeout",
+ [TLS_HANDSHAKE_QUIC_TP_STATELESS_RESET_TOKEN]="stateless_reset_token",
+ [TLS_HANDSHAKE_QUIC_TP_MAX_UDP_PAYLOAD_SIZE]="max_udp_payload_size",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_DATA]="initial_max_data",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL]="initial_max_stream_data_bidi_local",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE]="initial_max_stream_data_bidi_remote",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAM_DATA_UNI]="initial_max_stream_data_uni",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAMS_UNI]="initial_max_streams_uni",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_MAX_STREAMS_BIDI]="initial_max_streams_bidi",
+ [TLS_HANDSHAKE_QUIC_TP_ACK_DELAY_EXPONENT]="ack_delay_exponent",
+ [TLS_HANDSHAKE_QUIC_TP_MAX_ACK_DELAY]="max_ack_delay",
+ [TLS_HANDSHAKE_QUIC_TP_DISABLE_ACTIVE_MIGRATION]="disable_active_migration",
+ [TLS_HANDSHAKE_QUIC_TP_PREFERRED_ADDRESS]="preferred_address",
+ [TLS_HANDSHAKE_QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT]="active_connection_id_limit",
+ [TLS_HANDSHAKE_QUIC_TP_INITIAL_SOURCE_CONNECTION_ID]="initial_source_connection_id",
+ [TLS_HANDSHAKE_QUIC_TP_RETRY_SOURCE_CONNECTION_ID]="retry_source_connection_id",
+ [TLS_HANDSHAKE_QUIC_TP_MAX_DATAGRAM_FRAME_SIZE]="max_datagram_frame_size",
+ [TLS_HANDSHAKE_QUIC_TP_CIBIR_ENCODING]="cibir_encoding",
+ [TLS_HANDSHAKE_QUIC_TP_LOSS_BITS]="loss_bits",
+ [TLS_HANDSHAKE_QUIC_TP_GREASE_QUIC_BIT]="grease_quic_bit",
+ [TLS_HANDSHAKE_QUIC_TP_ENABLE_TIME_STAMP]="enable_time_stamp",
+ [TLS_HANDSHAKE_QUIC_TP_ENABLE_TIME_STAMP_V2]="enable_time_stamp_v2",
+ [TLS_HANDSHAKE_QUIC_TP_VERSION_INFORMATION]="version_information",
+ [TLS_HANDSHAKE_QUIC_TP_VERSION_INFORMATION_DRAFT]="version_information_draft",
+ [TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY_OLD]="min_ack_delay",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_USER_AGENT]="google_user_agent",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_KEY_UPDATE_NOT_YET_SUPPORTED]="google_key_update_not_yet_supported",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_QUIC_VERSION]="google_quic_version",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_INITIAL_RTT]="google_initial_rtt",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_SUPPORT_HANDSHAKE_DONE]="google_support_handshake_done",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_QUIC_PARAMS]="google_quic_params",
+ [TLS_HANDSHAKE_QUIC_TP_GOOGLE_CONNECTION_OPTIONS]="google_connection_options",
+ [TLS_HANDSHAKE_QUIC_TP_FACEBOOK_PARTIAL_RELIABILITY]="facebook_partial_reliability",
+ [TLS_HANDSHAKE_QUIC_TP_ADDRESS_DISCOVERY]="address_discovery",
+ [TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY_DRAFT_V1]="min_ack_delay (draft-01)",
+ [TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY_DRAFT05]="min_ack_delay (draft-05)",
+ [TLS_HANDSHAKE_QUIC_TP_MIN_ACK_DELAY]="min_ack_delay"
+}
+
+
+-- tls record length without header
+function tls_record_data_len(tls, offset)
+	if not offset then offset=1 end
+	return u16(tls, offset+3)
+end
+-- true if tls has enough data to store the whole tls record
+function tls_record_full(tls, offset)
+	if not offset then offset=1 end
+	return tls_record_data_len(tls, offset) <= (#tls-offset+1-5)
+end
+function tls_record_type(tls, offset)
+	if not offset then offset=1 end
+	return u8(tls, offset)
+end
+function is_tls_record(tls, offset, ctype, partialOK)
+	if not tls then return false end
+	if not offset then offset=1 end
+
+	if (#tls-offset+1)<6 or (ctype and ctype~=tls_record_type(tls, offset)) then return false end
+	local f2 = u16(tls, offset+1)
+	return f2>=TLS_VER_SSL30 and f2<=TLS_VER_TLS12 and (partialOK or tls_record_full(tls, offset))
+
+end
+-- tls handshake record length without header
+function tls_handshake_data_len(tls, offset)
+	if not offset then offset=1 end
+	return u24(tls, offset+1)
+end
+-- tls handshake record length with header
+function tls_handshake_len(tls, offset)
+	return tls_handshake_data_len(tls, offset) + 4
+end
+-- true if tls has enough data to store the whole handshake
+function tls_handshake_full(tls, offset)
+	if not offset then offset=1 end
+	return tls_handshake_data_len(tls, offset) <= (#tls-offset+1-4)
+end
+function tls_handshake_type(tls, offset)
+	return u8(tls,offset)
+end
+function is_tls_handshake_type_hello(tls, offset)
+	if not tls then return false end
+	local typ = tls_handshake_type(tls, offset)
+	return typ == TLS_HANDSHAKE_TYPE_CLIENT or typ == TLS_HANDSHAKE_TYPE_SERVER
+end
+function is_tls_handshake(tls, offset, htype, partialOK)
+	if not tls then return false end
+	if not offset then offset=1 end
+
+	if (#tls-offset+1)<4 then return false end
+	local typ = tls_handshake_type(tls,offset)
+	-- requested handshake type
+	if htype and htype~=typ then return false end
+	-- valid handshake type
+	if not TLS_HANDSHAKE_TYPE_NAMES[typ] then return false end
+	if typ==TLS_HANDSHAKE_TYPE_CLIENT or typ==TLS_HANDSHAKE_TYPE_SERVER then
+		-- valid tls versions
+		local f2 = u16(tls,offset+4)
+		if f2<TLS_VER_SSL30 or f2>TLS_VER_TLS12 then return false end
+	end
+	-- length fits to data buffer
+	return partialOK or tls_handshake_full(tls, offset)
+
+end
+function is_tls_hello(tls, offset, partialOK)
+	return is_tls_handshake(tls, offset, TLS_HANDSHAKE_TYPE_CLIENT, partialOK) or is_tls_handshake(tls, offset, TLS_HANDSHAKE_TYPE_SERVER, partialOK)
+end
+-- quic-style tvb parse
+function quic_tvb(data, offset)
+	if not offset then offset=1 end
+	if offset>#data then return end
+	local size = bitrshift(u8(data,offset), 6)
+	if size==0 then
+		return u8(data,offset), 1
+	elseif size==1 then
+		if (offset+1)>#data then return end
+		return bitand(u16(data,offset),0x3FFF), 2
+	elseif size==2 then
+		if (offset+3)>#data then return end
+		return bitand(u32(data,offset),0x3FFFFFFF), 4
+	elseif size==3 then
+		if (offset+7)>#data then return end
+		-- only lua 5.3+ can handle this. others can't store 64-bit integers
+		return bitand(u32(data,offset),0x3FFFFFFF) * 0x100000000 + u32(data,offset+4), 8
+	end
+end
+-- quic-style tvb reconstruct
+function bquic_tvb(v)
+	if v<0x40 then
+		return bu8(v)
+	elseif v<0x4000 then
+		return bu16(v + 0x4000)
+	elseif v<0x40000000 then
+		return bu32(v + 0x80000000)
+	elseif v<0x4000000000000000 then
+		-- only lua 5.3+ can handle 64-bit int !
+		return bu32(divint(v, 0x100000000) + 0xC0000000) .. bu32(v % 0x100000000)
+	end
+end
+
+
+-- dissect tls extension
+-- create dis tables inside ext for supported exts. leave 'data' as is for unsupported exts
+function tls_dissect_ext(ext)
+	local function len16_header()
+		local left, len, off
+		left = #ext.data
+		if left<2 then return end
+		len = u16(ext.data)
+		left = left - 2
+		off = 3
+		if len>left then
+			return
+		else
+			left = len
+		end
+		return left, off
+	end
+	local function len8_header()
+		local left, len, off
+		left = #ext.data
+		if left<1 then return end
+		len = u8(ext.data)
+		left = left - 1
+		off = 2
+		if len>left then
+			return
+		else
+			left = len
+		end
+		return left, off
+	end
+
+	local dis={}, off, len, left
+
+	ext.dis = nil
+
+	if ext.type==TLS_EXT_SERVER_NAME then
+		left, off = len16_header()
+		if not left then return end
+		dis.list = {}
+		while left>=3 do
+			len = u16(ext.data, off+1)
+			if (len+3)>left then return end
+			dis.list[#dis.list+1] = { type = u8(ext.data, off), name = string.sub(ext.data, off+3, off+3+len-1) }
+			left = left - 3 - len
+			off = off + 3 + len
+		end
+	elseif ext.type==TLS_EXT_ALPN then
+		left, off = len16_header()
+		if not left then return end
+		dis.list = {}
+		while left>=1 do
+			len = u8(ext.data, off)
+			if (len+1)>left then return end
+			dis.list[#dis.list+1] = string.sub(ext.data, off+1, off+1+len-1)
+			left = left - 1 - len
+			off = off + 1 + len
+		end
+	elseif ext.type==TLS_EXT_SUPPORTED_VERSIONS or ext.type==TLS_EXT_COMPRESS_CERTIFICATE then
+		left, off = len8_header()
+		if not left then return end
+		dis.list = {}
+		for i=1,left/2 do
+			dis.list[#dis.list+1] = u16(ext.data,off)
+			left = left - 2
+			off = off + 2
+		end
+	elseif ext.type==TLS_EXT_SIGNATURE_ALGORITHMS or ext.type==TLS_EXT_DELEGATED_CREDENTIALS or ext.type==TLS_EXT_SUPPORTED_GROUPS then
+		left, off = len16_header()
+		if not left then return end
+		dis.list = {}
+		for i=1,left/2 do
+			dis.list[#dis.list+1] = u16(ext.data,off)
+			left = left - 2
+			off = off + 2
+		end
+	elseif ext.type==TLS_EXT_EC_POINT_FORMATS or ext.type==TLS_EXT_PSK_KEY_EXCHANGE_MODES then
+		left, off = len8_header()
+		if not left then return end
+		dis.list = {}
+		for i=1,left do
+			dis.list[#dis.list+1] = u8(ext.data,off)
+			left = left - 1
+			off = off + 1
+		end
+	elseif ext.type==TLS_EXT_KEY_SHARE then
+		left, off = len16_header()
+		if not left then return end
+		dis.list = {}
+		while left>=1 do
+			len = u16(ext.data, off + 2)
+			if (len+4)>left then return end
+			dis.list[#dis.list+1] = { group = u16(ext.data, off) , kex = string.sub(ext.data, off+4, off+4+len-1) }
+			left = left - 4 - len
+			off = off + 4 + len
+		end
+	elseif ext.type==TLS_EXT_QUIC_TRANSPORT_PARAMETERS then
+		left, off = len16_header()
+		if not left then return end
+		dis.list = {}
+		while left>=4 do
+			len = u16(ext.data, off + 2)
+			if (len+4)>left then return end
+			local typ = u16(ext.data, off)
+			dis.list[#dis.list+1] = { type = typ, name = TLS_HANDSHAKE_QUIC_TP_NAMES[typ], data = string.sub(ext.data, off+4, off+4+len-1) }
+			left = left - 4 - len
+			off = off + 4 + len
+		end
+	elseif ext.type==TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 then
+		left, off = #ext.data, 1
+		dis.list = {}
+		local typ, size
+		while left>=2 do
+			typ, size = quic_tvb(ext.data, off)
+			if not typ then return end
+			off = off + size
+			left = left - size
+			len, size = quic_tvb(ext.data, off)
+			if not len then return end
+			off = off + size
+			left = left - size
+			if len > left then return end
+			dis.list[#dis.list+1] = { type = typ, name = TLS_HANDSHAKE_QUIC_TP_NAMES[typ], data = string.sub(ext.data, off, off+len-1) }
+			left = left - len
+			off = off + len
+		end
+	else
+		dis = nil
+	end
+
+	ext.dis = dis
+end
+
+-- dissect client/server hello. leave 'data' as is for others
+function tls_dissect_handshake(handshake, partialOK)
+	if is_tls_hello(handshake.data, 1, partialOK) then
+		local hlen = tls_handshake_len(handshake.data, 1)
+		if hlen > #handshake.data then
+			if not partialOK then return false end
+			hlen = #handshake.data
+		end
+		local typ = tls_handshake_type(handshake.data, 1)
+		handshake.dis = { type = typ , ver = u16(handshake.data, 5), name = tostring(TLS_HANDSHAKE_TYPE_NAMES[typ]) }
+
+		-- random
+		if hlen<36 then return partialOK end
+		handshake.dis.random = string.sub(handshake.data, 7, 38)
+
+		-- session_id
+		if hlen<39 then return partialOK end
+		local len = u8(handshake.data, 39)
+		local left = hlen-39-len
+		if left<0 then return partialOK end
+		handshake.dis.session_id = string.sub(handshake.data, 40, 40+len-1)
+		local off = 40+len
+
+		-- cipher suite(s)
+		if left<2 then return partialOK end
+		if handshake.dis.type==TLS_HANDSHAKE_TYPE_CLIENT then
+			-- client hello - array
+			len = u16(handshake.data, off)
+			if left<(2+len) then return partialOK end
+			handshake.dis.cipher_suites={}
+			for i=1,(len/2) do
+				handshake.dis.cipher_suites[i] = u16(handshake.data, off + i*2)
+			end
+			off = off + 2 + len
+			left = left - 2 - len
+		else
+			-- server hello - single
+			handshake.dis.cipher_suite = u16(handshake.data, off)
+			off = off + 2
+			left = left - 2
+		end
+
+		-- compression method(s)
+		if left<1 then return partialOK end
+		if handshake.dis.type==1 then
+			-- client hello - array
+			len = u8(handshake.data, off)
+			if left<(1+len) then return partialOK end
+			handshake.dis.compression_methods={}
+			for i=1,len do
+				handshake.dis.compression_methods[i] = u8(handshake.data, off + i)
+			end
+			off = off + 1 + len
+			left = left - 1 - len
+		else
+			-- server hello - single
+			handshake.dis.compression_method = u8(handshake.data, off)
+			off = off + 1
+			left = left - 1
+		end
+
+		-- tls extensions
+		if left<2 then return partialOK end
+		local extlen = u16(handshake.data, off)
+		if left<(2+extlen) and not partialOK then return end
+		off = off + 2
+		left = left - 2
+		if left>extlen then left=extlen end
+
+		handshake.dis.ext = {}
+		while left>=4 do
+			len = u16(handshake.data, off + 2)
+			if len>(left-4) then
+				if partialOK then
+					break
+				else
+					return
+				end
+			end
+			local typ = u16(handshake.data, off)
+			handshake.dis.ext[#handshake.dis.ext+1] = { type = typ, name = tostring(TLS_HELLO_EXT_NAMES[typ]), data = string.sub(handshake.data, off+4, off+4+len-1) }
+			tls_dissect_ext(handshake.dis.ext[#handshake.dis.ext])
+			left = left - 4 - len
+			off = off + 4 + len
+		end
+
+		return true
+	end
+	return false
+end
+
+-- convert tls blob tls dissect
+-- auto detects record layer. can work with pure handshake message
+function tls_dissect(tls, offset, partialOK)
+	if not offset then offset=1 end
+
+	local tdis = {}
+	local off = offset
+	local encrypted = false
+	while is_tls_record(tls, off, nil, partialOK) do
+		if not tdis.rec then tdis.rec = {} end
+		local len = tls_record_data_len(tls, off)
+		local typ = tls_record_type(tls, off)
+		tdis.rec[#tdis.rec+1] = { type = typ, name = tostring(TLS_RECORD_TYPE_NAMES[typ]), len = len, ver = u16(tls, off+1), encrypted = encrypted, data = string.sub(tls, off+5, off+5+len-1) }
+		if typ==TLS_RECORD_TYPE_CHANGE_CIPHER_SPEC then
+			encrypted = true
+		elseif typ==TLS_RECORD_TYPE_HANDSHAKE and not encrypted then
+			local htyp = tls_handshake_type(tls, off + 5)
+			tdis.rec[#tdis.rec].htype = htyp
+			if not tdis.handshake then tdis.handshake = {} end
+			local hlen = tls_handshake_len(tls, off + 5)
+			tdis.handshake[htyp] = { type = htyp, name = TLS_HANDSHAKE_TYPE_NAMES[htyp], data = "" }
+			-- reasm handshake if required
+			while true do
+				tdis.handshake[htyp].data = tdis.handshake[htyp].data .. string.sub(tls, off + 5, off + 5 + len - 1)
+				if #tdis.handshake[htyp].data >= hlen then
+					-- reasm complete
+					break
+				end
+				-- next record
+				if not is_tls_record(tls, off + 5 + len, nil, partialOK) or tls_record_type(tls, off + 5 + len) ~= typ then
+					if not partialOK then return end
+					break
+				end
+				off = off + 5 + len
+				len = tls_record_data_len(tls, off)
+				tdis.rec[#tdis.rec+1] = { type = typ, htype = htyp, len=len, ver = u16(tls, off+1), encrypted = false, not_first = true, name = tostring(TLS_RECORD_TYPE_NAMES[typ]), data = string.sub(tls, off+5, off+5+len-1) }
+			end
+		end
+		-- next record
+		off = off + 5 + len
+	end
+
+	if tdis.handshake then
+		for htyp, handshake in pairs(tdis.handshake) do
+			if (handshake.type == TLS_HANDSHAKE_TYPE_CLIENT or handshake.type == TLS_HANDSHAKE_TYPE_SERVER) then
+				tls_dissect_handshake(handshake, 1, partialOK)
+			end
+		end
+	elseif is_tls_handshake(tls, offset, nil, partialOK) then
+		local htyp = tls_handshake_type(tls, offset)
+		tdis.handshake = { [htyp] = { type = htyp, name = TLS_HANDSHAKE_TYPE_NAMES[htyp], data = string.sub(tls, offset, #tls) } }
+		tls_dissect_handshake(tdis.handshake[htyp], partialOK)
+	end
+
+	return (tdis.rec or tdis.handshake) and tdis or nil
+end
+
+
+-- reconstruct tls extension dissects
+-- unsupported ext types must have their 'data' filled
+function tls_reconstruct_ext(ext)
+	if ext.dis then
+		if ext.type==TLS_EXT_SERVER_NAME then
+			ext.data = barray(ext.dis.list, function(a) return bu8(a.type or 0) .. bu16(#a.name) .. a.name end)
+			ext.data = bu16(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_ALPN then
+			ext.data = barray(ext.dis.list, function(a) return bu8(#a) .. a end)
+			ext.data = bu16(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_SUPPORTED_VERSIONS or ext.type==TLS_EXT_COMPRESS_CERTIFICATE then
+			ext.data = barray(ext.dis.list, bu16)
+			ext.data = bu8(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_SIGNATURE_ALGORITHMS or ext.type==TLS_EXT_DELEGATED_CREDENTIALS or ext.type==TLS_EXT_SUPPORTED_GROUPS then
+			ext.data = barray(ext.dis.list, bu16)
+			ext.data = bu16(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_EC_POINT_FORMATS or ext.type==TLS_EXT_PSK_KEY_EXCHANGE_MODES then
+			ext.data = barray(ext.dis.list, bu8)
+			ext.data = bu8(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_KEY_SHARE then
+			ext.data = barray(ext.dis.list, function(a) return bu16(a.group) .. bu16(#a.kex) .. a.kex end)
+			ext.data = bu16(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_QUIC_TRANSPORT_PARAMETERS then
+			ext.data = barray(ext.dis.list, function(a) return bu16(a.type) .. bu16(#a.data) .. a.data end)
+			ext.data = bu16(#ext.data) .. ext.data
+		elseif ext.type==TLS_EXT_QUIC_TRANSPORT_PARAMETERS_V1 then
+			ext.data = barray(ext.dis.list, function(a) return bquic_tvb(a.type) .. bquic_tvb(#a.data) .. a.data end)
+		else
+			ext.data=nil
+		end
+	end
+
+	return type(ext.data)=="string"
+end
+
+-- reconstruct handshake dissect to raw string
+-- deeper dissects are supported for client/server hello, others must have 'data' field
+function tls_reconstruct_handshake(handshake)
+	if handshake.dis then
+		if handshake.dis.type == TLS_HANDSHAKE_TYPE_CLIENT or handshake.dis.type == TLS_HANDSHAKE_TYPE_SERVER then
+			handshake.data = nil
+			local header =
+				bu16(handshake.dis.ver or TLS_VER_TLS12) ..
+				((handshake.dis.random and #handshake.dis.random==32) and handshake.dis.random or brandom(32)) ..
+				bu8(handshake.dis.session_id and #handshake.dis.session_id or 0) ..
+				(handshake.dis.session_id or "")
+			if handshake.dis.type == TLS_HANDSHAKE_TYPE_CLIENT then
+				header = header ..
+					bu16(handshake.dis.cipher_suites and 2*#handshake.dis.cipher_suites or 0) ..
+					(handshake.dis.cipher_suites and barray(handshake.dis.cipher_suites, bu16) or "") ..
+					bu8(handshake.dis.compression_methods and #handshake.dis.compression_methods or 0) ..
+					(handshake.dis.compression_methods and barray(handshake.dis.compression_methods, bu8) or "")
+			else
+				header = header ..
+					bu16(handshake.dis.cipher_suite) ..
+					bu8(handshake.dis.compression_method)
+			end
+			local exts=""
+			if handshake.dis.ext then
+				for i=1,#handshake.dis.ext do
+					if not tls_reconstruct_ext(handshake.dis.ext[i]) then
+						return nil
+					end
+					exts = exts .. bu16(handshake.dis.ext[i].type) .. bu16(#handshake.dis.ext[i].data) .. handshake.dis.ext[i].data
+				end
+			end
+			handshake.data = bu8(handshake.type) .. bu24(#header + 2 + #exts) .. header .. bu16(#exts) .. exts
+		end
+	end
+
+	return type(handshake.data)=="string"
+end
+
+-- recconstruct tls dissect to raw tls
+-- supports tls records with optional handshake dissects
+-- supports single handshake without tls records
+function tls_reconstruct(tdis)
+	if tdis.handshake then
+		for htyp, handshake in pairs(tdis.handshake) do
+			if not tls_reconstruct_handshake(handshake) then return nil end
+		end
+	end
+
+	local tls
+	if tdis.rec then
+		-- need to follow in order
+		local i=1
+		while i <= #tdis.rec do
+			local rec = tdis.rec[i]
+			if rec.type==TLS_RECORD_TYPE_HANDSHAKE and not rec.encrypted and rec.htype and tdis.handshake and tdis.handshake[rec.htype] and tdis.handshake[rec.htype].data then
+				rec.data = nil
+
+				local data = tdis.handshake[rec.htype].data
+				local htyp = rec.htype
+				local j = i + 1
+				while j <= #tdis.rec and tdis.rec[j].type==TLS_RECORD_TYPE_HANDSHAKE and not tdis.rec[j].encrypted and tdis.rec[j].htype == htyp do
+					j = j + 1
+				end
+				j = j - 1
+				local off = 1
+				for k=i,j do
+					local chunk_size = #data-off+1
+					-- last chunk takes all remaining data
+					if k~=j then
+						chunk_size = (chunk_size < tdis.rec[k].len) and chunk_size or tdis.rec[k].len
+					end
+					tdis.rec[k].data = string.sub(data, off, off + chunk_size - 1)
+					tdis.rec[k].len = chunk_size
+					off = off + chunk_size
+				end
+				i = j + 1
+			else
+				i = i + 1
+			end
+			if not rec.data then return nil end
+		end
+		tls = barray(tdis.rec, function(a) return (#a.data > 0) and (bu8(a.type) .. bu16(a.ver) .. bu16(#a.data) .. a.data) or "" end)
+	elseif tdis.handshake and #tdis.handshake==1 then
+		-- without record layer
+		for k,handshake in pairs(tdis.handshake) do
+			tls = handshake.data
+			break
+		end
+	end
+
+	return tls
 end

@@ -1,615 +1,422 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Руководство пользователя — GoodbyeZapret</title>
-  <style>
-    /* Basic Reset */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    /* Modern Color Palette */
-    :root {
-      --bg: #0f1117;
-      --surface: #1a1c22;
-      --surface-alt: #15171a;
-      --primary: #00b4d8;
-      --primary-light: #4dd0e1;
-      --accent-yellow: #ffb300;
-      --highlight-bg: #242424;
-      --highlight-text: #ffda8a;
-      --text: #e0e0e0;
-      --text-muted: #888;
-    }
-
-    body {
-      font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      line-height: 1.6;
-      color: var(--text);
-      background: var(--bg);
-      padding: 30px 20px;
-      scroll-behavior: smooth;
-    }
-
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      background: var(--surface);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 18px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-      padding: 1px 50px;
-    }
-
-    h1 {
-      color: #00b4d8;
-      margin-top: 1.1em;
-      margin-bottom: 0.7em;
-      font-weight: 600;
-    }
-
-    h2, h3, h4 {
-      color: #00b4d8;
-      margin-top: 1.4em;
-      margin-bottom: 0.7em;
-      font-weight: 600;
-    }
-
-    h1 {
-      font-size: 2.5em;
-      text-align: center;
-      margin-bottom: 1.2em;
-      position: relative;
-      padding-bottom: 15px;
-    }
-
-    h1::after {
-      content: "";
-      display: block;
-      width: 80px;
-      height: 4px;
-      background: linear-gradient(90deg, #00b4d8, #0077b6);
-      margin: 15px auto 0;
-      border-radius: 2px;
-    }
-
-    h2 { 
-      font-size: 1.9em; 
-      border-bottom: 1px solid #eaeaea;
-      padding-bottom: 8px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoodbyeZapret Manual</title>
     
-    h3 { 
-      font-size: 1.5em; 
-      color: #4dd0e1;
-    }
+    <!-- Подключение шрифтов -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
-    h4 { 
-      font-size: 1.2em; 
-      color: #4dd0e1;
-    }
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --card-bg: rgba(24, 24, 27, 0.7);
+            --card-hover: rgba(32, 32, 37, 0.9);
+            --accent-color: #00ff9d;
+            --accent-secondary: #00d2ff;
+            --accent-warn: #ffb300;
+            --accent-danger: #ff5252;
+            --text-main: #ededed;
+            --text-muted: #94949a;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
 
-    p { 
-      margin: 1em 0;
-      line-height: 1.7; 
-    }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    ul, ol { 
-      margin: 1em 0 1em 1.5em; 
-      line-height: 1.7;
-    }
-    
-    li { 
-      margin: 0.5em 0; 
-    }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 40px 20px;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+            scroll-behavior: smooth;
+        }
 
-    code {
-      background: #263238;
-      padding: 3px 6px;
-      border-radius: 4px;
-      font-family: "Consolas", monospace;
-      font-size: 0.95em;
-      color: #81c784;
-    }
+        /* --- BACKGROUND ANIMATION --- */
+        .cyber-grid {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -3; pointer-events: none;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+        .orb {
+            position: fixed; border-radius: 50%; filter: blur(100px); z-index: -2; opacity: 0.4;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .orb-1 { width: 400px; height: 400px; background: var(--accent-color); top: -100px; left: -100px; }
+        .orb-2 { width: 500px; height: 500px; background: var(--accent-secondary); bottom: -150px; right: -150px; animation-delay: -5s; }
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 50px) scale(1.1); }
+            100% { transform: translate(-30px, 20px) scale(0.9); }
+        }
 
-    code2 {
-      background: #242b35;
-      padding: 3px 6px;
-      border-radius: 4px;
-      font-family: "Consolas", monospace;
-      font-size: 0.95em;
-      color: #66b7c5;
-    }
+        .container {
+            max-width: 960px; margin: 0 auto; position: relative; z-index: 1;
+        }
 
-    /* Callout / заметки */
-    .highlight {
-      background: var(--highlight-bg);
-      border-left: 5px solid var(--accent-yellow);
-      padding: 12px 18px;
-      border-radius: 10px;
-      margin: 1.2em 0;
-      font-style: italic;
-      color: var(--highlight-text);
-      font-family: "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
-      font-weight: 500;
-    }
+        /* --- TYPOGRAPHY --- */
+        header { text-align: center; margin-bottom: 50px; }
+        h1 {
+            font-family: 'JetBrains Mono', monospace; font-size: 2.8rem; color: #fff;
+            margin-bottom: 15px; letter-spacing: -2px;
+            text-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
+        }
+        h1 span { color: var(--accent-secondary); }
+        
+        .subtitle {
+            font-family: 'Exo 2', sans-serif; color: var(--text-muted); font-size: 0.95rem;
+            text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+            background: rgba(0,0,0,0.3); display: inline-block; padding: 8px 20px;
+            border-radius: 4px; border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-color);
+        }
 
-    /* Сценарии */
-    .scenario {
-      background: var(--surface-alt);
-      border-left: 5px solid var(--primary);
-      padding: 25px 30px;
-      border-radius: 12px;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.05);
-      margin-bottom: 2.5em;
-      border-bottom: none;
-    }
-    .scenario h2 {
-      margin-top: 0;
-      border: none;
-      color: #00b4d8;
-    }
+        h2 {
+            font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; color: #fff; margin-bottom: 25px; margin-top: 0;
+            display: flex; align-items: center;
+        }
+        h2::before { content: '//'; color: var(--accent-secondary); margin-right: 12px; font-weight: 300; opacity: 0.7; }
 
-    nav {
-      margin-bottom: 2.5em;
-      background: rgba(13,27,42,0.8);
-      backdrop-filter: blur(8px);
-      color: #fff;
-      border-radius: 12px;
-      padding: 25px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    }
+        h3 { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; color: var(--accent-color); margin: 25px 0 15px 0; }
+        h4 { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: var(--text-main); margin: 20px 0 10px 0; font-weight: bold;}
 
-    nav h2 {
-      color: #fff;
-      margin-top: 0;
-      border-bottom: 1px solid rgba(255,255,255,0.2);
-      padding-bottom: 10px;
-    }
+        p, li { margin-bottom: 10px; color: var(--text-main); }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
 
-    nav ul {
-      list-style: none;
-      margin: 15px 0 0 0;
-      padding: 0;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 10px;
-    }
+        a { color: var(--accent-secondary); text-decoration: none; transition: 0.3s; border-bottom: 1px dashed transparent; }
+        a:hover { color: var(--accent-color); border-bottom-color: var(--accent-color); text-shadow: 0 0 10px rgba(0,255,157,0.4); }
 
-    nav li {
-      margin: 5px 0;
-    }
+        /* --- CARDS & SECTIONS --- */
+        section, nav {
+            background-color: var(--card-bg); backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 30px; margin-bottom: 30px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
 
-    nav a {
-      color: var(--primary);
-      text-decoration: none;
-      transition: color 0.3s, transform 0.3s;
-      display: block;
-      padding: 3px 10px;
-      border-radius: 6px;
-    }
+        /* --- NAVIGATION --- */
+        nav ul {
+            list-style: none; margin: 0; padding: 0;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;
+        }
+        nav li a {
+            display: block; padding: 12px 15px;
+            background: rgba(255,255,255,0.03); border-radius: 6px;
+            border: 1px solid transparent; font-family: 'JetBrains Mono', monospace; font-size: 0.9em;
+        }
+        nav li a:hover {
+            background: rgba(255,255,255,0.08); border-color: var(--accent-secondary);
+            transform: translateX(5px);
+        }
 
-    nav a:hover { 
-      background: rgba(255,255,255,0.08);
-      color: var(--primary-light); 
-      transform: translateX(6px);
-    }
+        /* --- STEPS TIMELINE --- */
+        .step { display: flex; margin-bottom: 20px; position: relative; }
+        .step::before {
+            content: ''; position: absolute; left: 14px; top: 35px; bottom: -30px;
+            width: 2px; background: linear-gradient(to bottom, var(--border-color), transparent); z-index: 0;
+        }
+        .step:last-child::before { display: none; }
+        .step-number {
+            background-color: #111; border: 1px solid var(--accent-secondary); color: var(--accent-secondary);
+            width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-family: 'JetBrains Mono'; flex-shrink: 0; margin-right: 20px; z-index: 1;
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+        }
 
-    section {
-      margin-bottom: 2.5em;
-      padding-bottom: 0.5em;
-      border-bottom: 1px solid #333;
-    }
+        /* --- ALERTS & HIGHLIGHTS --- */
+        .alert-box {
+            background: rgba(255, 179, 0, 0.05); border-left: 3px solid var(--accent-warn);
+            padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 0.95rem; color: #e0e0e0;
+        }
+        .alert-box strong { color: var(--accent-warn); }
 
-    section:last-of-type {
-      border-bottom: none;
-    }
+        .alert-box.danger {
+            background: rgba(255, 82, 82, 0.05); border-left-color: var(--accent-danger);
+        }
+        .alert-box.danger strong { color: var(--accent-danger); }
 
-    strong {
-      font-weight: 600;
-      color: var(--primary);
-    }
+        .alert-box.info {
+             background: rgba(0, 210, 255, 0.05); border-left-color: var(--accent-secondary);
+        }
+        .alert-box.info strong { color: var(--accent-secondary); }
 
-    .status-indicator {
-      font-weight: bold;
-    }
+        /* --- CODE & TERMINAL --- */
+        code {
+            background: #151518; padding: 2px 6px; border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: var(--accent-color);
+            border: 1px solid #333; cursor: pointer; transition: 0.2s;
+        }
+        code:hover { border-color: var(--accent-color); }
+        
+        .code-block {
+            background: #050505; border: 1px solid #333; border-radius: 8px;
+            padding: 15px; font-family: 'JetBrains Mono', monospace; color: #ccc;
+            margin: 10px 0; overflow-x: auto; font-size: 0.9rem;
+        }
 
-    .status-red {
-      color: #ff5252;
-    }
+        /* --- STATUS INDICATORS --- */
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+        .st-red { background: var(--accent-danger); box-shadow: 0 0 8px var(--accent-danger); }
+        .st-yellow { background: var(--accent-warn); box-shadow: 0 0 8px var(--accent-warn); }
+        .st-green { background: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); }
 
-    .status-yellow {
-      color: #ffeb3b;
-    }
+        /* --- FOOTER & BACK TO TOP --- */
+        footer { text-align: center; margin-top: 50px; font-size: 0.9em; color: var(--text-muted); opacity: 0.6; }
+        
+        #backToTop {
+            position: fixed; right: 30px; bottom: 30px; width: 45px; height: 45px;
+            border-radius: 8px; background: rgba(0, 255, 157, 0.1); border: 1px solid var(--accent-color);
+            color: var(--accent-color); font-size: 1.2em; display: none; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s; z-index: 100; backdrop-filter: blur(5px);
+        }
+        #backToTop:hover { background: var(--accent-color); color: #000; box-shadow: 0 0 20px var(--accent-color); }
 
-    .status-green {
-      color: #66bb6a;
-    }
-
-    footer {
-      margin-top: 3em;
-      text-align: center;
-      font-size: 0.9em;
-      color: #888;
-      padding-top: 20px;
-      border-top: 1px solid #333;
-    }
-
-    a {
-      color: var(--primary);
-      text-decoration: none;
-      transition: color 0.25s;
-    }
-
-    a:hover {
-      color: var(--primary-light);
-      text-decoration: underline;
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 30px 25px;
-      }
-      
-      nav ul {
-        grid-template-columns: 1fr;
-      }
-    }
-    /* === Added: improvements === */
-    :root[data-theme='light'] {
-      --bg: #f4f6fa;
-      --surface: #ffffff;
-      --surface-alt: #dce8ff;
-      --primary: #0081c7;
-      --primary-light: #00b4d8;
-      --accent-yellow: #ffb300;
-      --highlight-bg: #ede8e8;
-      --highlight-text: #795548;
-      --text: #212121;
-      --text-muted: #555;
-    }
-
-    nav {
-      position: static;
-    }
-
-    nav a.active {
-      background: rgba(255,255,255,0.12);
-      color: var(--primary-light);
-    }
-
-    .theme-toggle {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: transparent;
-      border: none;
-      font-size: 1.4em;
-      cursor: pointer;
-      color: var(--primary);
-      transition: transform 0.3s, color 0.3s;
-    }
-    .theme-toggle:hover {
-      color: var(--primary-light);
-      transform: scale(1.15);
-    }
-
-    #backToTop {
-      position: fixed;
-      right: 30px;
-      bottom: 30px;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      font-size: 1.6em;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      transition: background 0.3s;
-      z-index: 1000;
-    }
-    #backToTop:hover {
-      background: var(--primary-light);
-    }
-
-    code {
-      cursor: pointer;
-    }
-    /* === end improvements === */
-  </style>
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .container { padding: 0 10px; }
+            nav ul { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Руководство пользователя<br>GoodbyeZapret</h1>
+
+<div class="cyber-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+    <header>
+        <h1>GoodbyeZapret <span>Manual</span></h1>
+        <p class="subtitle">Руководство пользователя // 2025</p>
+    </header>
 
     <nav>
-      <h2>Оглавление</h2>
-      <button id="theme-toggle" class="theme-toggle" aria-label="Переключить тему">🌙</button>
-      <ul>
-        <li><a href="#intro">1. Введение</a></li>
-        <li><a href="#first-run">2. Запуск и поиск конфига</a></li>
-        <li><a href="#autostart">3. Автозапуск</a></li>
-        <li><a href="#update">4. Обновление программы</a></li>
-        <li><a href="#diagnostics">5. Быстрая диагностика</a></li>
-        <li><a href="#site-exclusions">6. Сайт перестал работать после включения обхода</a></li>
-        <li><a href="#cleanup">7. Удаление и сброс</a></li>
-        <li><a href="#faq">8. Часто задаваемые вопросы</a></li>
-        <li><a href="#disclaimer">9. Дисклеймер и контакты</a></li>
-      </ul>
+        <h2 style="font-size: 1.2rem; margin-bottom: 15px;">:: Оглавление</h2>
+        <ul>
+            <li><a href="#intro">1. Введение</a></li>
+            <li><a href="#first-run">2. Запуск и поиск конфига</a></li>
+            <li><a href="#autostart">3. Автозапуск</a></li>
+            <li><a href="#update">4. Обновление</a></li>
+            <li><a href="#diagnostics">5. Диагностика</a></li>
+            <li><a href="#site-exclusions">6. Исключения обхода</a></li>
+            <li><a href="#cleanup">7. Удаление и сброс</a></li>
+            <li><a href="#faq">8. FAQ (Вопрос-Ответ)</a></li>
+        </ul>
     </nav>
 
     <section id="intro">
-      <h2>1. Введение</h2>
-      <p><strong>GoodbyeZapret</strong> — утилита на базе WinDivert и Zapret для обхода глубокого анализа пакетов (DPI).
-      Программа перехватывает и модифицирует сетевые пакеты, делая ранее недоступные ресурсы доступными.</p>
-      <p><em>Все действия необходимо выполнять <strong>от имени администратора</strong>.</em></p>
-      
-      <div class="highlight">
-        <strong>⚠️ Важно:</strong> Перед использованием убедитесь, что IPv6 отключен в настройках вашего сетевого адаптера, 
-        так как большинство конфигов настроены для работы с IPv4.
-      </div>
+        <h2>1. Введение</h2>
+        <p><strong>GoodbyeZapret</strong> — утилита на базе WinDivert и Zapret для обхода глубокого анализа пакетов (DPI). Программа перехватывает и модифицирует сетевые пакеты, возвращая доступ к заблокированным ресурсам.</p>
+        <p><em>Все действия необходимо выполнять <strong>от имени администратора</strong>.</em></p>
+        
+        <div class="alert-box danger">
+            <strong>⚠️ Важно:</strong> Перед использованием убедитесь, что <strong>IPv6 отключен</strong> в настройках вашего сетевого адаптера, так как большинство конфигов настроены для работы с IPv4.
+        </div>
 
-      <div class="highlight">
-        <strong>📁 Важно:</strong> Путь к папке GoodbyeZapret не должен содержать пробелов, специальных или кириллических символов. 
-        Идеальное расположение — папка GoodbyeZapret на системном диске (например, C:\GoodbyeZapret).
-      </div>
+        <div class="alert-box">
+            <strong>📁 Путь к папке:</strong> Путь к папке GoodbyeZapret не должен содержать пробелов, специальных или кириллических символов. <br>
+            Идеальное расположение: <code>C:\GoodbyeZapret</code>
+        </div>
 
-      <h3>Индикация состояния службы</h3>
-      <p>В главном меню программы цвет крупной надписи <strong>GoodbyeZapret</strong> показывает состояние службы:</p>
-      <ul>
-        <li><span class="status-indicator status-red">Красный</span> — служба не установлена</li>
-        <li><span class="status-indicator status-yellow">Жёлтый</span> — есть проблемы</li>
-        <li><span class="status-indicator status-green">Зелёный</span> — служба работает</li>
-      </ul>
+        <h3>Индикация состояния службы</h3>
+        <p>В главном меню программы цвет крупной надписи показывает статус:</p>
+        <ul style="list-style: none; margin-left: 0;">
+            <li><span class="status-dot st-red"></span> <span style="color:#ff5252">Красный</span> — служба не установлена</li>
+            <li><span class="status-dot st-yellow"></span> <span style="color:#ffb300">Жёлтый</span> — есть проблемы</li>
+            <li><span class="status-dot st-green"></span> <span style="color:#00ff9d">Зелёный</span> — служба работает</li>
+        </ul>
 
-      <h3>Папки проекта</h3>
-      <ul>
-        <li><code>bin</code> — исполняемые файлы WinDivert/WinWS;</li>
-        <li><code>configs/preset</code> — готовые конфиги обхода;</li>
-        <li><code>configs/custom</code> — пользовательские конфиги обхода, которые не изменяются при обновлении;</li>
-        <li><code>configs/custom/Helpers</code> — вспомогательные сторонние утилиты, которые помогут в создании и редактировании конфигов (скачать их можно через <code>configs/custom/Helpers/download_helpers.bat</code>);</li>
-        <li><code>lists</code> — списки доменов/IP;
-          <ul>
-            <li><code2>ipset-cloudflare-min.txt</code2>, <code2>ipset-cloudflare-base.txt</code2>, <code2>ipset-cloudflare-full.txt</code2> — Каждый из них содержит разное количество IP-адресов </li>
-          </ul>
-        </li>
-        <li><code>tools</code> — вспомогательные утилиты (обновление, поиск, очистка).</li>
-      </ul>
-      <div class="highlight">«Конфиг» — это BAT-файл (скрипт Windows) из папки <code>configs/preset</code> или <code>configs/custom</code>. Он содержит набор команд для запуска обхода DPI и может быть запущен двойным кликом либо через <strong>Launcher.bat</strong>.</div>
+        <h3>Структура папок</h3>
+        <div class="code-block">
+bin/                  - Исполняемые файлы WinDivert/WinWS
+configs/preset/       - Готовые пресеты
+configs/custom/       - Пользовательские конфиги (не меняются при обновлении)
+lists/                - Списки доменов/IP (cloudflare-min, base, full)
+tools/                - Утилиты (обновление, очистка)
+        </div>
+        <p style="font-size: 0.9em; opacity: 0.8;">«Конфиг» — это BAT-файл. Его можно запустить двойным кликом из папки или через Launcher.</p>
     </section>
 
-    <section id="first-run" class="scenario">
-      <h2>2. Сценарий «Первый запуск и поиск рабочего конфига»</h2>
-      <p>Запускаем GoodbyeZapret и при необходимости активируем скрипт авто-подбора рабочего конфига.</p>
-      <ol>
-        <li>Перейдите в папку <code>GoodbyeZapret</code> и запустите <code>Launcher.bat</code>.</li>
-        <li>В меню будет отображен список доступных конфигов.</li>
-        <li>Введите нужный номер конфига, например <code>1</code> (<code>UltimateFix.bat</code>), и жмите Enter.</li>
-        <li>Оставьте окно открытым и проверьте доступ к ранее заблокированным сайтам и приложениям.</li>
-        <li>Если сайты открываются — настройка завершена. Если нет, выполните автоматический подбор:
-          <ol type="a">
-            <li>Запустите <code>tools\auto_find_working_config.bat</code>.</li>
-            <li>Скрипт протестирует все конфиги в <code>configs</code> и выделит полностью рабочим зелёным.</li>
-            <li>Когда auto_find_working_config.bat найдёт рабочий конфиг, он оставит его запущенным — проверьте доступ.</li>
-            <li>Если всё работает, запомните имя найденного файла (например, <code>UltimateFix_7.bat</code>), закройте окно конфига и запустите конфиг вручную или добавьте в автозапуск (см. сценарий&nbsp;3).</li>
-          </ol>
-        </li>
-      </ol>
-
-      <p>Любой конфиг можно запускать напрямую двойным кликом по файлу из папки <code>configs</code>.</p>
+    <section id="first-run">
+        <h2>2. Первый запуск и поиск конфига</h2>
+        <p>Сценарий: Запускаем GoodbyeZapret и ищем рабочий метод обхода.</p>
+        
+        <div class="step">
+            <div class="step-number">1</div>
+            <div>Перейдите в папку программы и запустите <code>Launcher.bat</code>.</div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div>В меню отобразится список конфигов. Введите номер (напр. <code>1</code> для UltimateFix) и нажмите Enter.</div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div>Не закрывая окно, проверьте доступ к сайтам (YouTube, Discord и т.д.).</div>
+        </div>
+        <div class="step">
+            <div class="step-number">?</div>
+            <div>
+                <strong>Если не работает:</strong> Запустите <code>tools\auto_find_working_config.bat</code>.<br>
+                Скрипт сам переберет варианты и выделит рабочий зеленым цветом.
+            </div>
+        </div>
     </section>
 
-    <section id="autostart" class="scenario">
-      <h2>3. Сценарий «Автозапуск»</h2>
-      <p>Позволяет запускать обход при старте Windows.</p>
-      <ol>
-        <li>Запустите <code>Launcher.bat</code>.</li>
-        <li>Выберите желаемый скрипт (прописав номер конфига) и нажмите Enter.
-          <ul>
-            <li>Программа запишет параметры в реестр и создаст службу.</li>
-          </ul>
-        </li>
-        <li>Перезагрузите ПК и проверьте, что сайты и приложения снова работают.</li>
-      </ol>
-
-      <h4>Удаление из автозапуска</h4>
-      <ol>
-        <li>Запустите <code>Launcher.bat</code>.</li>
-        <li>Введите <code>DS</code>.</li>
-      </ol>
+    <section id="autostart">
+        <h2>3. Автозапуск</h2>
+        <p>Чтобы обход включался сам при старте Windows:</p>
+        <div class="step">
+            <div class="step-number">1</div>
+            <div>Запустите <code>Launcher.bat</code>.</div>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div>Выберите рабочий конфиг (введите номер) и нажмите Enter.</div>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <div>Программа предложит установить службу. Соглашайтесь. Теперь можно перезагружать ПК.</div>
+        </div>
+        
+        <div class="alert-box info">
+            <strong>Как удалить из автозапуска?</strong><br>
+            В Launcher.bat введите команду <code>DS</code>.
+        </div>
     </section>
 
-    <section id="update" class="scenario">
-      <h2>4. Сценарий «Обновление программы»</h2>
-      <h3>Автоматическое обновление</h3>
-      <ol>
-        <li>Запустите <code>tools\Updater.exe</code>.
-          <ul>
-            <li>При успешном подключении к GitHub файлы заменятся автоматически.</li>
-          </ul>
-        </li>
-        <li>После обновления перезапустите активные скрипты.</li>
-      </ol>
+    <section id="update">
+        <h2>4. Обновление</h2>
+        <h3>Автоматически</h3>
+        <p>Запустите <code>tools\Updater.exe</code>. Если есть интернет, файлы обновятся сами.</p>
 
-      <h3>Ручное обновление</h3>
-      <ol>
-        <li>Скачайте свежий архив релиза и распакуйте поверх старой версии <em>с заменой файлов</em>.</li>
-        <li>Проверьте сохранность <code>configs</code> и собственных списков в <code>lists</code> (при необходимости сделайте резервную копию).</li>
-      </ol>
+        <h3>Вручную</h3>
+        <p>Скачайте архив новой версии и распакуйте поверх старой <em>с заменой файлов</em>. Ваши личные настройки в папке <code>custom</code> не пострадают.</p>
     </section>
 
-    <section id="diagnostics" class="scenario">
-      <h2>5. Сценарий «Быстрая диагностика»</h2>
-      <ol>
-        <li>Откройте <code>Launcher.bat</code>.</li>
-        <li>В меню введите <code>ST</code> — запустится встроенный алгоритм диагностики.</li>
-        <li>Следуйте подсказкам для устранения проблем.</li>
-      </ol>
+    <section id="diagnostics">
+        <h2>5. Быстрая диагностика</h2>
+        <p>Если что-то сломалось:</p>
+        <ol>
+            <li>Откройте <code>Launcher.bat</code>.</li>
+            <li>Введите команду <code>ST</code>.</li>
+            <li>Запустится встроенный алгоритм проверки системы и покажет ошибки.</li>
+        </ol>
     </section>
 
-    <section id="site-exclusions" class="scenario">
-      <h2>6. Сценарий «Сайт перестал работать после включения обхода»</h2>
-      <p>Если какой-то сайт, который ранее работал, перестал открываться после включения GoodbyeZapret, выполните следующие шаги:</p>
-      <ol>
-        <li><strong>Проверьте работоспособность сайта без обхода:</strong>
-          <ol type="a">
-            <li>Остановите все окна GoodbyeZapret (закройте консольные окна с конфигами).</li>
-            <li>Попробуйте открыть проблемный сайт в браузере.</li>
-            <li>Если сайт открывается — проблема в настройках обхода, переходите к следующему шагу.</li>
-            <li>Если сайт не открывается — проблема не в GoodbyeZapret, обход можно оставить включенным.</li>
-          </ol>
-        </li>
-        <li><strong>Определите домены для исключения:</strong>
-          <ol type="a">
-            <li>Установите расширение <strong>IPvFoo</strong> для вашего браузера:
-              <ul>
-                <li>Chrome/Edge: <a href="https://chrome.google.com/webstore/detail/ipvfoo/ecanpcehffngcegjmadlcijfolapggal" target="_blank" rel="noopener">IPvFoo в Chrome Web Store</a></li>
-                <li>Firefox: <a href="https://addons.mozilla.org/en-US/firefox/addon/ipvfoo/" target="_blank" rel="noopener">IPvFoo в Firefox Add-ons</a></li>
-              </ul>
-            </li>
-            <li>Откройте проблемный сайт и нажмите на иконку IPvFoo в панели браузера.</li>
-            <li>Скопируйте все домены, которые отображаются в расширении (обычно это основной домен сайта и его CDN).</li>
-          </ol>
-        </li>
-        <li><strong>Добавьте домены в исключения:</strong>
-          <p>Выберите один из способов:</p>
-          <ol type="a">
-            <li><strong>Через иконку в трее:</strong>
-              <ul>
-                <li>Найдите иконку GoodbyeZapret в системном трее (рядом с часами).</li>
-                <li>Правой кнопкой мыши нажмите на иконку.</li>
-                <li>Выберите <strong>«Добавить исключения обхода»</strong>.</li>
-                <li>Вставьте скопированные домены и нажмите ДОБАВИТЬ.</li>
-              </ul>
-            </li>
-            <li><strong>Вручную в файл:</strong>
-              <ul>
-                <li>Откройте файл <code>lists\netrogat.txt</code> в любом текстовом редакторе.</li>
-                <li>Добавьте каждый домен с новой строки (например: <code>example.com</code>).</li>
-                <li>Сохраните файл.</li>
-              </ul>
-            </li>
-          </ol>
-        </li>
-        <li><strong>Перезапустите обход:</strong>
-          <ol type="a">
-            <li>Запустите <code>Launcher.bat</code>.</li>
-            <li>Выберите тот же конфиг, который использовали ранее.</li>
-            <li>Проверьте, что проблемный сайт теперь открывается.</li>
-          </ol>
-        </li>
-      </ol>
-      
-      <div class="highlight">
-        <strong>💡 Подсказка:</strong> Если сайт использует множество поддоменов или CDN, может потребоваться добавить несколько доменов. 
-        IPvFoo покажет все активные соединения, что поможет определить, какие именно домены нужно исключить.
-      </div>
+    <section id="site-exclusions">
+        <h2>6. Сайт перестал работать?</h2>
+        <p>Если какой-то сайт (который раньше работал) перестал открываться при включенном GoodbyeZapret:</p>
+        
+        <div class="step">
+            <div class="step-number">1</div>
+            <div>
+                <strong>Проверьте без обхода.</strong> Закройте GoodbyeZapret. Если сайт открывается — проблема в конфиге. Идем дальше.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div>
+                <strong>Узнайте домены.</strong> Поставьте расширение <strong>IPvFoo</strong> в браузер. Зайдите на сайт и посмотрите список доменов в расширении (основной домен + CDN).
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div>
+                <strong>Добавьте в исключения.</strong><br>
+                <em>Способ А:</em> ПКМ по иконке GoodbyeZapret в трее -> «Добавить исключения».<br>
+                <em>Способ Б:</em> Впишите домены в файл <code>lists\netrogat.txt</code> (каждый с новой строки).
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <div>Перезапустите обход.</div>
+        </div>
     </section>
 
-    <section id="cleanup" class="scenario">
-      <h2>7. Сценарий «Удаление и сброс»</h2>
-      <ol>
-        <li>Остановите все окна GoodbyeZapret.</li>
-        <li>Запустите <code>tools\delete_services.bat</code> для очистки служб и процессов.</li>
-        <li>Удалите папку <code>GoodbyeZapret</code>.</li>
-        <li>(Опционально) удалите ключ <code>HKCU\Software\ALFiX inc.\GoodbyeZapret</code>.</li>
-      </ol>
+    <section id="cleanup">
+        <h2>7. Удаление и сброс</h2>
+        <p>Для полного удаления программы:</p>
+        <ol>
+            <li>Остановите все окна GoodbyeZapret.</li>
+            <li>Запустите <code>tools\delete_services.bat</code> (очистит службы и драйверы).</li>
+            <li>Удалите папку с программой.</li>
+        </ol>
     </section>
 
     <section id="faq">
-      <h2>8. Часто задаваемые вопросы (FAQ)</h2>
-      <ul>
-        <li><strong>Можно ли использовать вместе с VPN?</strong> — НЕТ.</li>
-        <li><strong>Как проверить, что конфиг мне подходит?</strong> — Откройте ранее недоступный сайт. Если загружается — конфиг подходит.</li>
-        <li><strong>Скрипт запустился, но сайты всё равно заблокированы.</strong>
-          <ol>
-            <li>Убедитесь, что IPv6 отключен в настройках сетевого адаптера.</li>
-            <li>Запустите другой конфиг.</li>
-            <li>Проверьте QUIC и TLS 1.3 в <code>chrome://flags</code> или <code>edge://flags</code> (должны быть <em>Default</em>).</li>
-            <li>Временно отключите встроенный VPN/прокси браузера.</li>
-          </ol>
-        </li>
-        <li><strong>Антивирус удаляет файлы.</strong> — Добавьте папку в исключения или скомпилируйте проект самостоятельно.</li>
-        <li><strong>Launcher закрывается сразу после запуска.</strong> — Проверьте, что в пути к папке GoodbyeZapret нет специальных символов в названиях папок и пробелов. Переместите программу в папку с латинскими символами без пробелов (например, C:\GoodbyeZapret).</li>
-      </ul>
+        <h2>8. FAQ (Частые вопросы)</h2>
+        
+        <h4>Можно ли использовать вместе с VPN?</h4>
+        <p>— <strong>НЕТ.</strong> Они будут конфликтовать.</p>
+
+        <h4>Скрипт запущен, но сайты не работают.</h4>
+        <p>1. Убедитесь, что IPv6 отключен.<br>
+           2. Проверьте в браузере <code>chrome://flags</code> (QUIC и TLS 1.3 должны быть Default).<br>
+           3. Выключите "Secure DNS" или встроенные прокси в браузере.</p>
+
+        <h4>Антивирус ругается.</h4>
+        <p>— Это ложное срабатывание на драйвер WinDivert. Добавьте папку в исключения.</p>
+
+        <h4>Launcher закрывается сразу.</h4>
+        <p>— Скорее всего, в пути к папке есть пробелы или русские буквы. Перенесите в корень диска, например <code>C:\GoodbyeZapret</code>.</p>
     </section>
 
-    <section id="disclaimer">
-      <h2>9. Дисклеймер и контакты</h2>
-      <p>GoodbyeZapret предоставляется «как есть». Авторы не несут ответственности за возможные последствия использования.</p>
-      <p>Поддержка и новости: Telegram-канал <a href="https://t.me/+QUADX-YqFUJhM2Fi" target="_blank" rel="noopener">https://t.me/+QUADX-YqFUJhM2Fi</a></p>
+    <section style="text-align: center; border: 1px dashed var(--border-color);">
+        <h2>Дисклеймер</h2>
+        <p style="font-size: 0.9em;">GoodbyeZapret предоставляется «как есть». Авторы не несут ответственности за использование.</p>
+        <p>Поддержка: <a href="https://t.me/+QUADX-YqFUJhM2Fi" target="_blank">Telegram Канал</a></p>
     </section>
 
     <footer>
-      GoodbyeZapret © 2025 ALFiX
-      <br><br>
+        GoodbyeZapret © 2025 ALFiX<br>
+        Documentation Design by You
     </footer>
-  </div>
+</div>
 
-  <button id="backToTop" aria-label="Наверх">↑</button>
-  <script>
-    (function () {
-      // Theme toggle
-      const root = document.documentElement;
-      const toggleBtn = document.getElementById('theme-toggle');
-      const systemPrefersLight = window.matchMedia('(prefers-color-scheme: light)');
-      const storedTheme = localStorage.getItem('theme');
+<button id="backToTop" aria-label="Наверх">↑</button>
 
-      function applyTheme(theme) {
-        if (theme === 'light') {
-          root.dataset.theme = 'light';
-          toggleBtn.textContent = '🌞';
-        } else {
-          root.dataset.theme = 'dark';
-          toggleBtn.textContent = '🌙';
-        }
-      }
-
-      applyTheme(storedTheme || (systemPrefersLight.matches ? 'light' : 'dark'));
-
-      toggleBtn.addEventListener('click', () => {
-        const newTheme = root.dataset.theme === 'light' ? 'dark' : 'light';
-        localStorage.setItem('theme', newTheme);
-        applyTheme(newTheme);
-      });
-
-      // Scroll-spy for nav links
-      const sections = document.querySelectorAll('section[id]');
-      const navLinks = document.querySelectorAll('nav a');
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            navLinks.forEach((link) => {
-              link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
-            });
-          }
-        });
-      }, { threshold: 0.35 });
-      sections.forEach((section) => observer.observe(section));
-
-      // Back-to-top button
-      const backBtn = document.getElementById('backToTop');
-      window.addEventListener('scroll', () => {
-        backBtn.style.display = window.scrollY > 500 ? 'flex' : 'none';
-      });
-      backBtn.addEventListener('click', () => {
+<script>
+    // Скрипт для кнопки "Наверх" и копирования кода
+    const backBtn = document.getElementById('backToTop');
+    
+    window.addEventListener('scroll', () => {
+        backBtn.style.display = window.scrollY > 400 ? 'flex' : 'none';
+    });
+    
+    backBtn.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+    });
 
-      // Click-to-copy for code blocks
-      document.querySelectorAll('code').forEach((codeEl) => {
+    // Копирование по клику на code
+    document.querySelectorAll('code').forEach((codeEl) => {
         codeEl.addEventListener('click', () => {
-          navigator.clipboard.writeText(codeEl.textContent.trim());
-          codeEl.style.outline = `2px solid var(--primary-light)`;
-          setTimeout(() => { codeEl.style.outline = ''; }, 1200);
+            navigator.clipboard.writeText(codeEl.textContent.trim());
+            
+            // Визуальный эффект
+            const originalColor = codeEl.style.borderColor;
+            codeEl.style.borderColor = '#00ff9d';
+            codeEl.style.backgroundColor = 'rgba(0, 255, 157, 0.1)';
+            
+            setTimeout(() => { 
+                codeEl.style.borderColor = '#333';
+                codeEl.style.backgroundColor = '#151518';
+            }, 500);
         });
-      });
-    })();
-  </script>
+    });
+</script>
+
 </body>
-</html> 
+</html>

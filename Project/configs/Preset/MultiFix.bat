@@ -42,7 +42,7 @@ REM set log=--debug=@%~dp0log_debug.txt
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,80,443,2053,2083,2087,2096,8443 --wf-udp=443,444-65535 ^
+--wf-tcp=80,443,2053,2083,2087,2096,8443 --wf-udp=443,444-65535 ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^
@@ -52,7 +52,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 --filter-tcp=443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld --dpi-desync-cutoff=n4 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
 
---filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist="%LISTS%list-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=multidisorder --dpi-desync-split-pos=1,midsld --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fake,fakedsplit --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fakedsplit-pattern=0x00 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^
 --filter-l7=discord,stun --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n4
 
 --filter-udp=443 --hostlist="%LISTS%list-quick_ttl.txt" --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%fake_quic_2.bin" --dpi-desync-repeats=4 --dpi-desync-ttl=5 --dpi-desync-cutoff=n3 --new ^

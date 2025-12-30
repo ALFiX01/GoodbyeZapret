@@ -40,7 +40,7 @@ REM set log=--debug=@%~dp0log_debug.txt
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,80,443,2053,2083,2087,2096,8443 --wf-udp=443,444-65535 ^
+--wf-tcp=80,443,2053,2083,2087,2096,8443 --wf-udp=443,444-65535 ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^

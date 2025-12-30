@@ -50,7 +50,8 @@ set "YTDB_TLS_MAIN=--dpi-desync=multisplit --dpi-desync-split-seqovl=1 --dpi-des
 REM set "YTDB_TLS_MAIN2=--dpi-desync=fakedsplit --dpi-desync-split-pos=2,host+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-repeats=2 --dpi-desync-fooling=md5sig%YTDB_AUTOTTL%%YTDB_TTL%"
 REM set "YTDB_TLS_MAIN2=--dpi-desync=fake,multisplit --dpi-desync-split-seqovl=225 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_1.bin""
 REM set "YTDB_TLS_MAIN2=--dpi-desync=fake,multidisorder --dpi-desync-split-pos=sld+1 --dpi-desync-fake-tls=0x0F0F0E0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_16.bin" --dpi-desync-fake-tls-mod=rnd,dupsid --dpi-desync-fooling=md5sig --dpi-desync-autottl --dup=2 --dup-fooling=md5sig --dup-autottl --dup-cutoff=n3"
-set "YTDB_TLS_MAIN2=--hostlist="%LISTS%list-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5"
+REM set "YTDB_TLS_MAIN2=--hostlist="%LISTS%list-discord.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n5"
+set "YTDB_TLS_MAIN2=--hostlist="%LISTS%list-discord.txt" --dpi-desync=fake,fakedsplit --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fakedsplit-pattern=0x00 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin""
 
 :: Сюда скопируйте стратегию для квика ютуба, которая у вас работает  ::
 REM set "YTDB_QUIC_MAIN=--dpi-desync=ipfrag2 --dpi-desync-repeats=3 --dpi-desync-ttl=5"
@@ -65,7 +66,7 @@ REM set log=--debug=@%~dp0log_debug.txt
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,80,443,2053,2083,2087,2096,8443 --wf-udp=443,444-65535 ^
+--wf-tcp=80,443,2053,2083,2087,2096,8443 --wf-udp=443,444-65535 ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^

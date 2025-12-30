@@ -53,7 +53,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 set "Current_GoodbyeZapret_version=3.0"
 set "Current_GoodbyeZapret_version_code=15DC01"
 set "branch=Beta"
-set "beta_code=1"
+set "beta_code=2"
 
 chcp 65001 >nul 2>&1
 
@@ -811,6 +811,7 @@ if "%UpdateNeedShowScreen%"=="1" (
 call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
+:MainMenu_without_ui_info
 call :ResizeMenuWindow
 REM Check for last working config in registry
 
@@ -838,11 +839,9 @@ if %errorlevel% equ 0 (
 )
 
 REM Check Winws process status
-tasklist | find /i "Winws" >nul
-if %errorlevel% equ 0 (
-    set "WinwsStart=Yes"
-) else (
-    set "WinwsStart=No"
+set "WinwsStart=No"
+for %%P in (winws.exe winws2.exe) do (
+    tasklist /FI "IMAGENAME eq %%P" 2>nul | find /I "%%P" >nul && set "WinwsStart=Yes"
 )
 
 REM Проверка запущенных служб WinDivert
@@ -985,6 +984,7 @@ goto MainMenu
 
 :ConfigSelectorMenu
 call :ui_info "Загружаю интерфейс..."
+set "PanelBack=ConfigSelectorMenu"
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
 :ConfigSelectorMenuUiInfo
@@ -1013,11 +1013,9 @@ if %errorlevel% equ 0 (
 )
 
 REM Check Winws process status
-tasklist | find /i "Winws" >nul
-if %errorlevel% equ 0 (
-    set "WinwsStart=Yes"
-) else (
-    set "WinwsStart=No"
+set "WinwsStart=No"
+for %%P in (winws.exe winws2.exe) do (
+    tasklist /FI "IMAGENAME eq %%P" 2>nul | find /I "%%P" >nul && set "WinwsStart=Yes"
 )
 
 REM Проверка запущенных служб WinDivert
@@ -1403,7 +1401,7 @@ if not "!batfile!"=="smart-config.bat" (
 )
 
 if /I not "!batfile!"=="smart-config.bat" (
-    if /I not "!batfile!"=="Configurator_fix.bat" (
+    if /I not "!batfile!"=="ConfiguratorFix.bat" (
 
         tasklist | find /I "Winws.exe" >nul
         if errorlevel 1 (
@@ -1543,8 +1541,7 @@ if !ErrorCount! equ 0 (
         REM Если переменная не найдена, установите значение по умолчанию
         set "GoodbyeZapret_Config=Не выбран"
     )
-
-    goto ConfigSelectorMenuUiInfo
+    if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenuUiInfo )
 ) else (
     echo  Нажмите любую клавишу чтобы продолжить...
     pause >nul 2>&1
@@ -1560,7 +1557,7 @@ if !ErrorCount! equ 0 (
     ) else (
         set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
     )
-    goto ConfigSelectorMenuUiInfo
+    if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenuUiInfo )
 )
 
 :CurrentStatus
@@ -2296,33 +2293,23 @@ goto :eof
 
 
 :OpenInstructions
-    if exist "%ParentDirPath%\instructions.html" (
-        start "" "%ParentDirPath%\instructions.html"
-    ) else (
-        echo Файл инструкции не найден: %ParentDirPath%\instructions.html
-        timeout /t 3 >nul
-    )
-    goto CurrentStatus
+if exist "%ParentDirPath%\instructions.html" (
+    start "" "%ParentDirPath%\instructions.html"
+) else (
+    echo Файл инструкции не найден: %ParentDirPath%\instructions.html
+    timeout /t 3 >nul
+)
+goto MainMenu
 
-if /i "%choice%"=="N" (
-    set /a Page+=1
-    goto MainMenu
-)
-if /i "%choice%"=="т" (
-    set /a Page+=1
-    goto MainMenu
-)
-if /i "%choice%"=="B" (
-    if %Page% gtr 1 set /a Page-=1
-    goto MainMenu
-)
-if /i "%choice%"=="и" (
-    if %Page% gtr 1 set /a Page-=1
-    goto MainMenu
-)
 
-REM Return to main menu if no input provided
-if "%choice%"=="" goto MainMenu
+:OpenConfiguratorInstructions
+if exist "%ParentDirPath%\tools\config_builder\Configurator-Instructions.html" (
+    start "" "%ParentDirPath%\tools\config_builder\Configurator-Instructions.html"
+) else (
+    echo Файл инструкции не найден: %ParentDirPath%\tools\config_builder\Configurator-Instructions.html
+    timeout /t 3 >nul
+)
+goto MainMenu
 
 
 :: Функция: чтение значения
@@ -2479,15 +2466,11 @@ goto :eof
 :CDN_BypassLevelSelector
 REM Проверяем текущее значение и переключаем на следующее по циклу
 if /i "%CDN_BypassLevel%"=="off" (
-    set "CDN_BypassLevel=min"
-) else if /i "%CDN_BypassLevel%"=="min" (
     set "CDN_BypassLevel=base"
 ) else if /i "%CDN_BypassLevel%"=="base" (
     set "CDN_BypassLevel=full"
-) else if /i "%CDN_BypassLevel%"=="full" (
-    set "CDN_BypassLevel=full_ext"
 ) else (
-    REM Если значение full_ext или переменная пуста/неизвестна — сбрасываем в off
+    REM Если значение max или переменная пуста/неизвестна — сбрасываем в off
     set "CDN_BypassLevel=off"
 )
 
@@ -2500,14 +2483,22 @@ if defined CDN_BypassLevel (
     echo ^[ERROR^] CDN_BypassLevel не определен
 )
 
-goto :MainMenu
+goto :MainMenu_without_ui_info
 
 
 :ConfiguratorMenu
 title Zapret Configurator
 
-set "ENGN=1"
-call :ReadConfig ENGN 1
+REM Check GoodbyeZapret service status
+sc query "GoodbyeZapret" >nul 2>&1
+if %errorlevel% equ 0 (
+    set "GoodbyeZapretStart=Yes"
+) else (
+    set "GoodbyeZapretStart=No"
+)
+
+set "ENGN=2"
+call :ReadConfig ENGN 2
 
 :UpdateLimits
 :: Получаем количество стратегий в зависимости от движка
@@ -2526,9 +2517,9 @@ if exist _limits.bat (
 set "YT=1"
 set "YTGV=1"
 set "YTQ=1"
-set "DS=1"
 set "DSUPD=1"
-set "BL=1"
+set "DS=1"
+set "BL=0"
 set "STUN=1"
 set "CDN=1"
 set "CDN_LVL=base"
@@ -2536,9 +2527,9 @@ set "CDN_LVL=base"
 call :ReadConfig YT 1
 call :ReadConfig YTGV 1
 call :ReadConfig YTQ 1
-call :ReadConfig DS 1
 call :ReadConfig DSUPD 1
-call :ReadConfig BL 1
+call :ReadConfig DS 1
+call :ReadConfig BL 0
 call :ReadConfig STUN 1
 call :ReadConfig CDN 1
 call :ReadConfig CDN_LVL base
@@ -2554,8 +2545,8 @@ echo    ^│
 echo    ^│ %COL%[96m^[ 1 ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  (Доступны: 0-!MAX_YouTube!) %COL%[36m
 echo    ^│ %COL%[96m^[ 2 ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  (Доступны: 0-!MAX_YouTubeGoogleVideo!) %COL%[36m
 echo    ^│ %COL%[96m^[ 3 ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%COL%[37m  (Доступны: 0-!MAX_YouTubeQuic!) %COL%[36m
-echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
-echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
+echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
+echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
 echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
 echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
 echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
@@ -2566,7 +2557,16 @@ echo    ^│
 echo    └───────────────────────────────────────────────────────────────────────────────────
 echo      %COL%[92m^[ S ^]%COL%[37m Запустить обход
 echo      %COL%[91m^[ K ^]%COL%[37m Завершить процесс обхода
-echo      %COL%[96m^[ B ^]%COL%[37m Вернуться в главное меню
+if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+    if "%GoodbyeZapretStart%"=="Yes" (
+        echo      %COL%[91m^[ D ^]%COL%[37m Удалить конфиг из автозапуска
+    ) else (
+        echo      %COL%[92m^[ U ^]%COL%[37m Установить этот конфиг в автозапуск
+    )
+)
+echo.
+echo      %COL%[90m^[ I ^]%COL%[90m Открыть инструкцию по всему этому
+echo      %COL%[90m^[ B ^]%COL%[90m Вернуться в главное меню
 echo.
 set /p "opt=%DEL%   %COL%[90m:> "
 
@@ -2574,8 +2574,39 @@ if /i "%opt%"=="S" goto START
 if /i "%opt%"=="ы" goto START
 if /i "%opt%"=="K" goto KILL
 if /i "%opt%"=="л" goto KILL
+if /i "%opt%"=="I" goto OpenConfiguratorInstructions
+if /i "%opt%"=="ш" goto OpenConfiguratorInstructions
 if /i "%opt%"=="B" goto MainMenu
 if /i "%opt%"=="И" goto MainMenu
+if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+    if /i "%opt%"=="U" ( 
+        set "batFile=ConfiguratorFix.bat"
+        set "batRel=Custom\ConfiguratorFix.bat"
+        set "batPath=Custom"
+        set "PanelBack=Configurator"
+        call :remove_service_before_installing
+        call :install_GZ_service
+    )
+if /i "%opt%"=="г" (
+        set "batFile=ConfiguratorFix.bat"
+        set "batRel=Custom\ConfiguratorFix.bat"
+        set "batPath=Custom"
+        set "PanelBack=Configurator"
+        call :remove_service_before_installing
+        call :install_GZ_service
+    )
+)
+
+if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+    if /i "%opt%"=="D" ( 
+        set "PanelBack=Configurator"
+        call :remove_service
+    )
+if /i "%opt%"=="в" (
+        set "PanelBack=Configurator"
+        call :remove_service
+    )
+)
 
 :: Проверки ввода с использованием полученных лимитов
 if "%opt%"=="1" (
@@ -2615,23 +2646,23 @@ if "%opt%"=="3" (
 )
 
 if "%opt%"=="4" (
-    set /p val="  Введите Discord стратегию (0-!MAX_Discord!): "
-    if !val! gtr !MAX_Discord! (
-        echo  Неверное значение. Максимум - !MAX_Discord!
-        pause
-    ) else (
-        set "DS=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="5" (
     set /p val="  Введите Discord Update стратегию (0-!MAX_DiscordUpdate!): "
     if !val! gtr !MAX_DiscordUpdate! (
         echo  Неверное значение. Максимум - !MAX_DiscordUpdate!
         pause
     ) else (
         set "DSUPD=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="5" (
+    set /p val="  Введите Discord стратегию (0-!MAX_Discord!): "
+    if !val! gtr !MAX_Discord! (
+        echo  Неверное значение. Максимум - !MAX_Discord!
+        pause
+    ) else (
+        set "DS=!val!"
     )
     goto MENU
 )
@@ -2686,10 +2717,10 @@ echo.
 echo  [*] Настройка сборки для Zapret!ENGN!...
 "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
 
-if exist %ParentDirPath%\Configs\Custom\Configurator_fix.bat (
+if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
     echo  [*] Запуск...
-explorer "%ParentDirPath%\Configs\Custom\Configurator_fix.bat"
+explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
 )
 echo  [*] Проверяем процесс обхода...
 timeout /t 2 >nul 2>&1

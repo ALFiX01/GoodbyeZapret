@@ -22,7 +22,7 @@ cd /d "%BIN%"
 
 set "CDN_BypassLevel=full"
 
-set "CONFIG_NAME=Configurator_fix"
+set "CONFIG_NAME=ConfiguratorFix"
 echo Config: %CONFIG_NAME%
 title GoodbyeZapret:  %CONFIG_NAME%
 echo.
@@ -38,28 +38,23 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws2.exe" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.wireguard.txt" ^
 --blob=fake_default_udp:0x00000000000000000000000000000000 ^
 --blob=fake_tls_2:@"%FAKE%fake_tls_2.bin" ^
---blob=fake_tls_4:@"%FAKE%fake_tls_4.bin" ^
+--blob=tls4:@"%FAKE%fake_tls_4.bin" ^
 --blob=quic_google:@"%FAKE%quic_initial_www_google_com.bin" ^
---blob=tls7:@"%FAKE%tls_clienthello_7.bin" ^
---blob=quic2:@"%FAKE%quic_2.bin" ^
---blob=fake_tls_3:@"%FAKE%fake_tls_3.bin" ^
---blob=tls5:@"%FAKE%fake_tls_5.bin" ^
---blob=tls_www_google:@"%FAKE%tls_clienthello_www_google_com.bin" ^
+--blob=tls_google:@"%FAKE%tls_clienthello_www_google_com.bin" ^
 --filter-l7=discord,wireguard,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp --new ^
 --filter-tcp=443 --filter-l7=unknown --hostlist="%LISTS%russia-youtube-rtmps.txt" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228 --new ^
---filter-tcp=80,443 --out-range=-d10 --hostlist="%LISTS%list-youtube.txt" --payload=tls_client_hello --lua-desync=multisplit:pos=midsld-1:seqovl=1 --new ^
---filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=fake_tls_4 --new ^
+--filter-tcp=80,443 --out-range=-d10 --hostlist="%LISTS%list-youtube.txt" --filter-l7=tls --payload=tls_client_hello --lua-desync=multisplit:pos=midsld-1:seqovl=1 --new ^
+--filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls4 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --out-range=-n2 --payload=unknown --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
---filter-tcp=443 --hostlist-domains=updates.discord.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=fake_default_tls:repeats=6:ip_ttl=1:ip6_ttl=1:tcp_ack=-66000:tls_mod=rnd,dupsid,sni=www.google.com --lua-desync=tls_multisplit_sni:seqovl=211 --new ^
---filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls7 --new ^
---filter-udp=443 --hostlist="%LISTS%list-discord-no-update.txt" --payload=dht --out-range=-d10 --lua-desync=fake:blob=fake_default_quic:repeats=11:ip_autottl=2,3-20:ip6_autottl=2,3-20 --lua-desync=dht_dn:dn=2 --new ^
---filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-n5 --payload=tls_client_hello --lua-desync=fake:blob=0x1603:tls_mod=rnd,dupsid,sni=fonts.google.com --lua-desync=fake:blob=tls_www_google:tls_mod=rnd,dupsid,sni=fonts.google.com --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1:seqovl=314 --new ^
---filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-n5 --payload=http_req --lua-desync=fake:blob=0x1603:blob=!+2:tls_mod=rnd,dupsid,sni=fonts.google.com:ip_id=seq --lua-desync=fakedsplit:pos=method+2:tcp_ack=-66000:tcp_ts_up --lua-desync=multisplit:seqovl_pattern=fake_tls_4:pos=1 --new ^
---filter-tcp=80,443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-n5 --payload=tls_client_hello --lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up --lua-desync=fake:blob=fake_tls_3:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,rndsni,sni=fonts.google.com --lua-desync=multidisorder:pos=1,sld+1 --new ^
---filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-n5 --payload=quic_initial --lua-desync=fake:blob=quic_google:repeats=6 --new ^
+--filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
+--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld --new ^
+--filter-udp=443 --hostlist="%LISTS%list-discord.txt" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
+--filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
+--filter-tcp=80,443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --payload=dht --out-range=-d10 --lua-desync=fake:blob=quic_google:repeats=11 --lua-desync=dht_dn:dn=2 --new ^
 --filter-tcp=2053,2083,2087,2096,8443 --filter-l7=tls --out-range=-n5 --payload=tls_client_hello --lua-desync=rst:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 --lua-desync=multidisorder:pos=3:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 --new ^
 --filter-udp=5056,27002 --out-range=-n15 --payload=quic_initial --lua-desync=fake:blob=quic_google:repeats=6 --new ^
---filter-tcp=80,443,6568 --ipset="%LISTS%ipset-anydesk.txt" --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls5
+--filter-tcp=80,443,6568 --ipset="%LISTS%ipset-anydesk.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack
 
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
