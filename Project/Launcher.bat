@@ -53,7 +53,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 set "Current_GoodbyeZapret_version=3.0"
 set "Current_GoodbyeZapret_version_code=15DC01"
 set "branch=Beta"
-set "beta_code=2"
+set "beta_code=3"
 
 chcp 65001 >nul 2>&1
 
@@ -824,6 +824,13 @@ if not errorlevel 1 (
     set "FinlandDiscordHost=Off"
 )
 
+findstr /c:"### Twitch Servers BEGIN" "%hostspath%" >nul
+if not errorlevel 1 (
+    set "TwitchHost=On"
+) else (
+    set "TwitchHost=Off"
+)
+
 call :ReadConfig GoodbyeZapret_Config
 if "%GoodbyeZapret_Config%"=="NotFound" (
     REM Если переменная не найдена, установите значение по умолчанию
@@ -960,9 +967,9 @@ echo.
 echo.
 echo.
 echo.
-echo.
 echo                             %COL%[96m^[ 6 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
 echo                             %COL%[96m^[ 7 ^]%COL%[37m Обход Финских ip Discord ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
+echo                             %COL%[96m^[ 8 ^]%COL%[37m Обход twitch ^(%COL%[96m%TwitchHost%%COL%[37m^)
 echo.
 
 REM Display separator line
@@ -979,6 +986,7 @@ if /i "%choice%"=="5" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
 
 if /i "%choice%"=="6" goto CDN_BypassLevelSelector
 if /i "%choice%"=="7" goto FinlandDiscordHostSelector
+if /i "%choice%"=="8" goto TwitchHostSelector
 goto MainMenu
 
 
@@ -2509,7 +2517,7 @@ if exist _limits.bat (
     del _limits.bat
 ) else (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0"
 )
 
 
@@ -2517,6 +2525,7 @@ if exist _limits.bat (
 set "YT=1"
 set "YTGV=1"
 set "YTQ=1"
+set "TW=0"
 set "DSUPD=1"
 set "DS=1"
 set "BL=0"
@@ -2527,6 +2536,7 @@ set "CDN_LVL=base"
 call :ReadConfig YT 1
 call :ReadConfig YTGV 1
 call :ReadConfig YTQ 1
+call :ReadConfig TW 0
 call :ReadConfig DSUPD 1
 call :ReadConfig DS 1
 call :ReadConfig BL 0
@@ -2545,11 +2555,12 @@ echo    ^│
 echo    ^│ %COL%[96m^[ 1 ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  (Доступны: 0-!MAX_YouTube!) %COL%[36m
 echo    ^│ %COL%[96m^[ 2 ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  (Доступны: 0-!MAX_YouTubeGoogleVideo!) %COL%[36m
 echo    ^│ %COL%[96m^[ 3 ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%COL%[37m  (Доступны: 0-!MAX_YouTubeQuic!) %COL%[36m
-echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
-echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
-echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
-echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
-echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
+echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Twitch:                 %COL%[92m!TW!%COL%[37m  (Доступны: 0-!MAX_Twitch!) %COL%[36m
+echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
+echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
+echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
+echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
+echo    ^│ %COL%[96m^[ 9 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
 echo    ^│ 
 echo    ^│ %COL%[96m^[ L ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
 echo    ^│ %COL%[96m^[ E ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
@@ -2610,7 +2621,7 @@ if /i "%opt%"=="в" (
 
 :: Проверки ввода с использованием полученных лимитов
 if "%opt%"=="1" (
-    set /p val="  Введите YouTube стратегию (0-!MAX_YouTube!): "
+    set /p val="%DEL%   Введите стратегию для YouTube (0-!MAX_YouTube!): "
     :: Простая проверка: если введено больше макс, сбрасываем (опционально)
     if !val! gtr !MAX_YouTube! (
         echo  Неверное значение. Максимум - !MAX_YouTube!
@@ -2622,7 +2633,7 @@ if "%opt%"=="1" (
 )
 
 if "%opt%"=="2" (
-    set /p val="  Введите YouTube GoogleVideo стратегию (0-!MAX_YouTubeGoogleVideo!): "
+    set /p val="%DEL%   Введите стратегию для YouTube GoogleVideo (0-!MAX_YouTubeGoogleVideo!): "
     :: Простая проверка: если введено больше макс, сбрасываем (опционально)
     if !val! gtr !MAX_YouTubeGoogleVideo! (
         echo  Неверное значение. Максимум - !MAX_YouTubeGoogleVideo!
@@ -2634,7 +2645,7 @@ if "%opt%"=="2" (
 )
 
 if "%opt%"=="3" (
-    set /p val="  Введите YouTube Quic стратегию (0-!MAX_YouTubeQuic!): "
+    set /p val="%DEL%   Введите стратегию для YouTube Quic (0-!MAX_YouTubeQuic!): "
     :: Простая проверка: если введено больше макс, сбрасываем (опционально)
     if !val! gtr !MAX_YouTubeQuic! (
         echo  Неверное значение. Максимум - !MAX_YouTubeQuic!
@@ -2646,7 +2657,19 @@ if "%opt%"=="3" (
 )
 
 if "%opt%"=="4" (
-    set /p val="  Введите Discord Update стратегию (0-!MAX_DiscordUpdate!): "
+    set /p val="%DEL%   Введите стратегию для Twitch (0-!MAX_Twitch!): "
+    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
+    if !val! gtr !MAX_Twitch! (
+        echo  Неверное значение. Максимум - !MAX_Twitch!
+        pause
+    ) else (
+        set "TW=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="5" (
+    set /p val="%DEL%   Введите стратегию для Discord Update (0-!MAX_DiscordUpdate!): "
     if !val! gtr !MAX_DiscordUpdate! (
         echo  Неверное значение. Максимум - !MAX_DiscordUpdate!
         pause
@@ -2656,8 +2679,8 @@ if "%opt%"=="4" (
     goto MENU
 )
 
-if "%opt%"=="5" (
-    set /p val="  Введите Discord стратегию (0-!MAX_Discord!): "
+if "%opt%"=="6" (
+    set /p val="%DEL%   Введите стратегию для Discord (0-!MAX_Discord!): "
     if !val! gtr !MAX_Discord! (
         echo  Неверное значение. Максимум - !MAX_Discord!
         pause
@@ -2667,8 +2690,8 @@ if "%opt%"=="5" (
     goto MENU
 )
 
-if "%opt%"=="6" (
-    set /p val="  Введите Russia-Blacklist стратегию (0-!MAX_blacklist!): "
+if "%opt%"=="7" (
+    set /p val="%DEL%   Введите стратегию для Blacklist (0-!MAX_blacklist!): "
     if !val! gtr !MAX_blacklist! (
         echo  Неверное значение. Максимум - !MAX_blacklist!
         pause
@@ -2678,8 +2701,8 @@ if "%opt%"=="6" (
     goto MENU
 )
 
-if "%opt%"=="7" (
-    set /p val="  Введите STUN стратегию (0-!MAX_STUN!): "
+if "%opt%"=="8" (
+    set /p val="%DEL%   Введите стратегию для STUN (0-!MAX_STUN!): "
     if !val! gtr !MAX_STUN! (
         echo  Неверное значение. Максимум - !MAX_STUN!
         pause
@@ -2689,8 +2712,8 @@ if "%opt%"=="7" (
     goto MENU
 )
 
-if "%opt%"=="8" (
-    set /p val="  Введите CDN стратегию (0-!MAX_CDN!): "
+if "%opt%"=="9" (
+    set /p val="%DEL%   Введите стратегию для CDN (0-!MAX_CDN!): "
     if !val! gtr !MAX_CDN! (
         echo  Неверное значение. Максимум - !MAX_CDN!
         pause
@@ -2700,12 +2723,12 @@ if "%opt%"=="8" (
     goto MENU
 )
 
-if "%opt%"=="L" (set /p CDN_LVL="  Задайте CDN (off/base/full): " & goto MENU)
+if "%opt%"=="L" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full): " & goto MENU)
 
 if "%opt%"=="E" (
     if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
     :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1"
+    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1"
     goto UpdateLimits
 )
 
@@ -2715,7 +2738,7 @@ goto MENU
 echo.
 
 echo  [*] Настройка сборки для Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
@@ -2789,10 +2812,46 @@ goto :eof
 
 :RemoveFinlandDiscordHosts
 chcp 850 >nul 2>&1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%HOSTS%'; if(-not (Test-Path -LiteralPath $p)) { exit }; $t=Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue; if($null -eq $t){$t=''}; $re='(?ms)^\s*### Discord Finland Media Servers BEGIN\s*$.*?^\s*### Discord Finland Media Servers END\s*$\r?\n?'; $t=[regex]::Replace($t,$re,''); Set-Content -LiteralPath $p -Value $t -Encoding ASCII"
+powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; (Get-Content $path) | Where-Object { $_ -notmatch 'Discord Finland Media Servers' -and $_ -notmatch 'finland.*\.discord\.media' } | Set-Content $path -Force"
 chcp 65001 >nul 2>&1
 goto :eof
 
+
+:TwitchHostSelector
+set "HOSTS=%hostspath%"
+
+if /i "%TwitchHost%"=="off" (
+    rem На всякий случай сначала чистим старый блок, потом добавляем свежий
+    call :ui_info "Добавляю записи в файл hosts..."
+    call :AddTwitchHosts
+
+    timeout /t 2 >nul
+    ipconfig /flushdns >nul
+
+) else (
+    call :ui_info "Удаляю записи из файла hosts..."
+    call :RemoveTwitchHosts
+
+    timeout /t 2 >nul
+    ipconfig /flushdns >nul
+)
+
+goto MainMenu
+
+
+:AddTwitchHosts
+>>"%HOSTS%" echo ### Twitch Servers BEGIN
+>>"%HOSTS%" echo 185.68.247.42 usher.ttvnw.net
+>>"%HOSTS%" echo 185.68.247.42 gql.twitch.tv
+>>"%HOSTS%" echo ### Twitch Servers END
+goto :eof
+
+
+:RemoveTwitchHosts
+chcp 850 >nul 2>&1
+powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; (Get-Content $path) | Where-Object { $_ -notmatch 'Twitch Servers' -and $_ -notmatch '185.68.247.42' } | Set-Content $path -Force"
+chcp 65001 >nul 2>&1
+goto :eof
 
 :timer_start
 set start_time=%time%
