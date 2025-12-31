@@ -51,9 +51,9 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 :: Version information Stable Beta Alpha
 set "Current_GoodbyeZapret_version=3.0"
-set "Current_GoodbyeZapret_version_code=15DC01"
-set "branch=Beta"
-set "beta_code=3"
+set "Current_GoodbyeZapret_version_code=01YA01"
+set "branch=Stable"
+set "beta_code=0"
 
 chcp 65001 >nul 2>&1
 
@@ -812,24 +812,9 @@ call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
 :MainMenu_without_ui_info
-call :ResizeMenuWindow
+REM call :ResizeMenuWindow
+mode con: cols=92 lines=41
 REM Check for last working config in registry
-
-set "hostspath=%SystemRoot%\System32\drivers\etc\hosts"
-set "tempfile=%temp%\hosts.tmp"
-findstr /c:"### Discord Finland Media Servers BEGIN" "%hostspath%" >nul
-if not errorlevel 1 (
-    set "FinlandDiscordHost=On"
-) else (
-    set "FinlandDiscordHost=Off"
-)
-
-findstr /c:"### Twitch Servers BEGIN" "%hostspath%" >nul
-if not errorlevel 1 (
-    set "TwitchHost=On"
-) else (
-    set "TwitchHost=Off"
-)
 
 call :ReadConfig GoodbyeZapret_Config
 if "%GoodbyeZapret_Config%"=="NotFound" (
@@ -942,8 +927,11 @@ if /i "%WiFi%"=="Off" (
 REM ------ New: warn user if system problems detected ------
 if "%TotalCheck%"=="Problem" (
     echo                         %COL%[90mВозможна нестабильная работа GoodbyeZapret
+    echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+) else (
+    echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+    echo.
 )
-echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 echo.
 echo.
 echo.
@@ -954,40 +942,145 @@ echo                               %COL%[96m^[ 1 ^]%COL%[37m Состояние 
 echo.
 echo                               %COL%[96m^[ 2 ^]%COL%[37m Выбор готового конфига
 echo.
-echo                               %COL%[96m^[ 3 ^]%COL%[37m Конфигуратор конфига
+echo                               %COL%[96m^[ 3 ^]%COL%[37m Конфигуратор стратегий
 echo.
-echo                               %COL%[96m^[ 4 ^]%COL%[37m Открыть инструкцию
+echo                               %COL%[96m^[ 4 ^]%COL%[37m Доп. настройки обхода
 echo.
-echo                               %COL%[96m^[ 5 ^]%COL%[37m Проверить обход
+echo                               %COL%[96m^[ 5 ^]%COL%[37m Открыть инструкцию
 echo.
-echo.
-echo.
-echo.
+echo                               %COL%[96m^[ 6 ^]%COL%[37m Проверить обход
 echo.
 echo.
 echo.
 echo.
-echo                             %COL%[96m^[ 6 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
-echo                             %COL%[96m^[ 7 ^]%COL%[37m Обход Финских ip Discord ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
-echo                             %COL%[96m^[ 8 ^]%COL%[37m Обход twitch ^(%COL%[96m%TwitchHost%%COL%[37m^)
+echo.
+echo.
+echo.
+echo.
 echo.
 
 REM Display separator line
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
-echo                                %COL%[90mВведите номер или действие
+echo                             %COL%[90mВведите %COL%[96m^[ номер ^]%COL%[90m и нажмите %COL%[96mEnter%COL%[90m 
+echo.
 set /p "choice=%DEL%                                           %COL%[90m:> "
 
 REM Handle user input with case-insensitive matching
 if /i "%choice%"=="1" goto CurrentStatus 
 if /i "%choice%"=="2" goto ConfigSelectorMenu
 if /i "%choice%"=="3" goto ConfiguratorMenu
-if /i "%choice%"=="4" goto OpenInstructions
-if /i "%choice%"=="5" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
-
-if /i "%choice%"=="6" goto CDN_BypassLevelSelector
-if /i "%choice%"=="7" goto FinlandDiscordHostSelector
-if /i "%choice%"=="8" goto TwitchHostSelector
+if /i "%choice%"=="4" goto MenuBypassSettings_without_ui_info
+if /i "%choice%"=="5" goto OpenInstructions
+if /i "%choice%"=="6" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
 goto MainMenu
+
+:MenuBypassSettings
+call :ui_info "Загружаю интерфейс..."
+REM ------ New: run quick problem check silently ------
+REM ----------------------------------------------------
+:MenuBypassSettings_without_ui_info
+REM call :ResizeMenuWindow
+title GoodbyeZapret - Дополнительные настройки обхода
+mode con: cols=92 lines=41
+REM Check for last working config in registry
+
+set "hostspath=%SystemRoot%\System32\drivers\etc\hosts"
+set "tempfile=%temp%\hosts.tmp"
+findstr /c:"### Discord Finland Media Servers BEGIN" "%hostspath%" >nul
+if not errorlevel 1 (
+    set "FinlandDiscordHost=On"
+) else (
+    set "FinlandDiscordHost=Off"
+)
+
+findstr /c:"### Twitch Servers BEGIN" "%hostspath%" >nul
+if not errorlevel 1 (
+    set "TwitchHost=On"
+) else (
+    set "TwitchHost=Off"
+)
+
+
+REM Display status based on running count
+if %YesCount% equ 3 (
+    REM запущены все сервисы
+    cls
+    echo.
+    echo           %COL%[92m  ______                ____            _____                         __ 
+) else if %YesCount% equ 2 (
+    REM запущены Winws и WinDivert
+    cls
+    echo.
+    echo           %COL%[33m  ______                ____            _____                         __ 
+) else (
+    REM запущен только GoodbyeZapret
+    cls
+    echo.
+    echo           %COL%[90m  ______                ____            _____                         __ 
+)
+
+
+echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_
+echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/
+
+if /i "%branch%"=="beta" (
+    echo                                        /____/  бета версия  /_/
+    echo.
+) else if /i "%branch%"=="alpha" (
+    echo                                        /____/ альфа версия  /_/
+    echo.
+) else (
+    echo                                        /____/              /_/
+    echo.
+)
+
+
+echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+echo.
+echo.
+echo                             %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
+echo.
+echo                             %COL%[96m^[ 2 ^]%COL%[37m Обход Финских ip Discord ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
+echo.
+echo                             %COL%[96m^[ 3 ^]%COL%[37m Обход twitch ^(%COL%[96m%TwitchHost%%COL%[37m^)
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+echo.
+
+REM Display separator line
+REM echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+echo                    %COL%[90mВведите %COL%[96m^[ номер ^]%COL%[90m или %COL%[96m^[ B ^]%COL%[90m для выхода в главное меню
+echo.
+set /p "choice=%DEL%                                           %COL%[90m:> "
+
+REM Handle user input with case-insensitive matching
+if /i "%choice%"=="1" goto CDN_BypassLevelSelector
+if /i "%choice%"=="2" goto FinlandDiscordHostSelector
+if /i "%choice%"=="3" goto TwitchHostSelector
+
+if /i "%choice%"=="B" goto MainMenu_without_ui_info
+if /i "%choice%"=="и" goto MainMenu_without_ui_info
+goto MenuBypassSettings
 
 
 :ConfigSelectorMenu
@@ -995,7 +1088,7 @@ call :ui_info "Загружаю интерфейс..."
 set "PanelBack=ConfigSelectorMenu"
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
-:ConfigSelectorMenuUiInfo
+:ConfigSelectorMenu_without_ui_info
 call :ResizeMenuWindow
 REM Check for last working config in registry
 call :ReadConfig GoodbyeZapret_LastWorkConfig
@@ -1214,13 +1307,15 @@ if %TotalPages% gtr 1 (
     echo.
     if %Page% lss %TotalPages% echo                  %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
     if %Page% gtr 1 echo                  %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
-
+    if %Page% equ 1 echo                  %COL%[36m^[ B ^] %COL%[37mВернуться в главное меню
+) else (
+    echo                  %COL%[36m^[ B ^] %COL%[37mВернуться в главное меню
 )
 REM ----------------------------
-echo                  %COL%[36m^[ X ^] %COL%[37mВернуться в меню
 echo.
 echo.
-echo                                %COL%[90mВведите номер или действие
+echo                              %COL%[90mВведите %COL%[96m^[ номер ^]%COL%[90m или %COL%[96m^[ букву ^]%COL%[90m
+echo.
 set /p "choice=%DEL%                                           %COL%[90m:> "
 
 REM Handle user input with case-insensitive matching
@@ -1236,27 +1331,26 @@ if /i "%choice%"=="фс" goto ConfigAutoFinder
 if /i "%choice%"=="RC" goto QuickRestart
 if /i "%choice%"=="кы" goto QuickRestart
 
-if /i "%choice%"=="X" goto MainMenu
-if /i "%choice%"=="ч" goto MainMenu
-
 if /i "%choice%"=="R" goto RR
 
 REM --- Pagination input handling ---
 if /i "%choice%"=="N" (
     set /a Page+=1
-    goto MainMenu
+    goto ConfigSelectorMenu
 )
 if /i "%choice%"=="т" (
     set /a Page+=1
-    goto MainMenu
+    goto ConfigSelectorMenu
 )
 if /i "%choice%"=="B" (
+    if %Page% equ 1 goto MainMenu
     if %Page% gtr 1 set /a Page-=1
-    goto MainMenu
+    goto ConfigSelectorMenu
 )
 if /i "%choice%"=="и" (
+    if %Page% equ 1 goto MainMenu
     if %Page% gtr 1 set /a Page-=1
-    goto MainMenu
+    goto ConfigSelectorMenu
 )
 REM ---------------------------------
 
@@ -1549,7 +1643,7 @@ if !ErrorCount! equ 0 (
         REM Если переменная не найдена, установите значение по умолчанию
         set "GoodbyeZapret_Config=Не выбран"
     )
-    if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenuUiInfo )
+    if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenu_without_ui_info )
 ) else (
     echo  Нажмите любую клавишу чтобы продолжить...
     pause >nul 2>&1
@@ -1565,7 +1659,7 @@ if !ErrorCount! equ 0 (
     ) else (
         set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
     )
-    if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenuUiInfo )
+    if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenu_without_ui_info )
 )
 
 :CurrentStatus
@@ -1860,7 +1954,7 @@ echo    ^│ %COL%[90m───────────────────�
 if "%UpdateNeed%"=="Yes" (
     echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%Current_GoodbyeZapret_version% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                                    %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%Current_GoodbyeZapret_version%                                                              %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%Current_GoodbyeZapret_version%                                                                %COL%[36m^│
 )
 
 REM     echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                                                 %COL%[36m^│
@@ -1869,7 +1963,7 @@ echo.
 :: Вывод результатов
 
 if "%TotalCheck%"=="Problem" (
-    echo     %COL%[91mВозможны проблемы в работе GoodbyeZapret%COL%[37m
+    echo     %COL%[91mЕсть замечания по использованию GoodbyeZapret%COL%[37m
     echo     └ 
     for %%V in (BaseFilteringEngine Adguard Killer Checkpoint SmartByte VPN DNS) do (
         set "CheckResult=!%%VCheckResult!"
@@ -1888,14 +1982,11 @@ echo.
 echo    %COL%[90m─────────────────────────────────────────────────────────────────────────────────────
 echo.
 echo    %COL%[90m^[ %COL%[32mF %COL%[90m^] %COL%[32mПоддержать разработку проекта
+echo    %COL%[90m^[ %COL%[32mT %COL%[90m^] %COL%[32mОткрыть telegram канал
 echo.
-echo    %COL%[90m^[ %COL%[36mC %COL%[90m^] %COL%[93mУровень обхода CDN ^( %COL%[96m%CDN_BypassLevel%%COL%[93m ^)
-echo    %COL%[90mОтличаются количеством обрабатываемых IP-адресов ^(чем выше уровень, тем шире список^) %COL%[93m
-echo.
-echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[93mВернуться в меню
-echo    %COL%[90m^[ %COL%[36mT %COL%[90m^] %COL%[93mОткрыть telegram канал
-echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mПереустановить GoodbyeZapret
-echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[93mБыстрый перезапуск и очистка WinDivert
+echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[90mПереустановить GoodbyeZapret
+echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[90mБыстрый перезапуск и очистка WinDivert
+echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[90mВернуться в главное меню
 if "%UpdateNeed%"=="Yes" (
     echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mОбновить до актуальной версии
 )
@@ -2217,7 +2308,7 @@ set /a BatCount=PresetCount+CustomCount
 
 REM === Пагинация ===
 if not defined Page set "Page=1"
-if not defined PageSize set "PageSize=20"
+if not defined PageSize set "PageSize=21"
 set /a TotalPages=(BatCount+PageSize-1)/PageSize
 if %TotalPages% lss 1 set /a TotalPages=1
 if %Page% lss 1 set /a Page=1
@@ -2233,7 +2324,7 @@ if %Remaining% gtr %PageSize% set /a Remaining=%PageSize%
 set /a VisibleOnPage=Remaining
 
 REM === Базовое количество строк интерфейса ===
-set /a BaseLines=23
+set /a BaseLines=24
 set /a ListBatCount=BaseLines+VisibleOnPage
 
 REM === Пагинация: если страниц больше одной, добавляем 2 строки ===
@@ -2279,7 +2370,7 @@ if /I "%TotalCheck%"=="Problem" (
 
 REM === Ограничения по высоте ===
 set /a MaxWinLines=52
-set /a MinWinLines=27
+set /a MinWinLines=28
 if %ListBatCount% gtr %MaxWinLines% set /a ListBatCount=%MaxWinLines%
 if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
 
@@ -2546,9 +2637,9 @@ call :ReadConfig CDN_LVL base
 
 :MENU
 cls
-title GoodbyeZapret - Конфигуратор
+title GoodbyeZapret - Конфигуратор стратегий
 echo.
-echo    %COL%[36m┌────────────────────────────── Конфигуратор конфига ──────────────────────────────%COL%[36m
+echo    %COL%[36m┌───────────────────────────── Конфигуратор стратегий ──────────────────────────────%COL%[36m
 echo    ^│ %COL%[37mПараметры, доступные для изменения: %COL%[36m
 echo    ^│ %COL%[90m─────────────────────────────────────────────────────────────────────────────────%COL%[36m
 echo    ^│                                                                                 
@@ -2587,8 +2678,8 @@ if /i "%opt%"=="K" goto KILL
 if /i "%opt%"=="л" goto KILL
 if /i "%opt%"=="I" goto OpenConfiguratorInstructions
 if /i "%opt%"=="ш" goto OpenConfiguratorInstructions
-if /i "%opt%"=="B" goto MainMenu
-if /i "%opt%"=="И" goto MainMenu
+if /i "%opt%"=="B" goto MainMenu_without_ui_info
+if /i "%opt%"=="И" goto MainMenu_without_ui_info
 if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
     if /i "%opt%"=="U" ( 
         set "batFile=ConfiguratorFix.bat"
