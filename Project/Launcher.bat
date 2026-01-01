@@ -50,8 +50,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.0"
-set "Current_GoodbyeZapret_version_code=01YA01"
+set "Current_GoodbyeZapret_version=3.0.1"
+set "Current_GoodbyeZapret_version_code=02YA01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1000,6 +1000,13 @@ if not errorlevel 1 (
     set "TwitchHost=Off"
 )
 
+findstr /c:"### YouTube TCP Servers BEGIN" "%hostspath%" >nul
+if not errorlevel 1 (
+    set "YoutubeHost=On"
+) else (
+    set "YoutubeHost=Off"
+)
+
 
 REM Display status based on running count
 if %YesCount% equ 3 (
@@ -1042,11 +1049,11 @@ echo.
 echo.
 echo                             %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
 echo.
-echo                             %COL%[96m^[ 2 ^]%COL%[37m Обход Финских ip Discord ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
+echo                             %COL%[96m^[ 2 ^]%COL%[37m Обход Discord TCP + Finland Voice ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
 echo.
 echo                             %COL%[96m^[ 3 ^]%COL%[37m Обход twitch ^(%COL%[96m%TwitchHost%%COL%[37m^)
 echo.
-echo.
+echo                             %COL%[96m^[ 4 ^]%COL%[37m Обход YouTube ^(%COL%[96m%YoutubeHost%%COL%[37m^)
 echo.
 echo.
 echo.
@@ -1077,6 +1084,7 @@ REM Handle user input with case-insensitive matching
 if /i "%choice%"=="1" goto CDN_BypassLevelSelector
 if /i "%choice%"=="2" goto FinlandDiscordHostSelector
 if /i "%choice%"=="3" goto TwitchHostSelector
+if /i "%choice%"=="4" goto YoutubeHostsSelector
 
 if /i "%choice%"=="B" goto MainMenu_without_ui_info
 if /i "%choice%"=="и" goto MainMenu_without_ui_info
@@ -1954,7 +1962,7 @@ echo    ^│ %COL%[90m───────────────────�
 if "%UpdateNeed%"=="Yes" (
     echo    ^│ %COL%[37mGoodbyeZapret: %COL%[91m%Current_GoodbyeZapret_version% %COL%[92m^(→ %Actual_GoodbyeZapret_version%^)                                                    %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%Current_GoodbyeZapret_version%                                                                %COL%[36m^│
+    echo    ^│ %COL%[37mGoodbyeZapret: %COL%[92m%Current_GoodbyeZapret_version%                                                              %COL%[36m^│
 )
 
 REM     echo    ^│ %COL%[37mWinws:         %COL%[92m%Current_Winws_version%                                                                 %COL%[36m^│
@@ -2876,7 +2884,7 @@ set "HOSTS=%hostspath%"
 if /i "%FinlandDiscordHost%"=="off" (
     rem На всякий случай сначала чистим старый блок, потом добавляем свежий
     call :ui_info "Добавляю записи в файл hosts..."
-    call :AddFinlandDiscordHosts
+    call :AddFinlandDiscordHost
 
     timeout /t 2 >nul
     ipconfig /flushdns >nul
@@ -2889,11 +2897,20 @@ if /i "%FinlandDiscordHost%"=="off" (
     ipconfig /flushdns >nul
 )
 
-goto MainMenu
+goto MenuBypassSettings_without_ui_info
 
 
-:AddFinlandDiscordHosts
+:AddFinlandDiscordHost
 >>"%HOSTS%" echo ### Discord Finland Media Servers BEGIN
+rem Добавляем основные домены через прокси
+>>"%HOSTS%" echo 23.227.38.74 discord.com
+>>"%HOSTS%" echo 23.227.38.74 gateway.discord.gg
+>>"%HOSTS%" echo 23.227.38.74 updates.discord.com
+>>"%HOSTS%" echo 23.227.38.74 cdn.discordapp.com
+>>"%HOSTS%" echo 23.227.38.74 status.discord.com
+>>"%HOSTS%" echo 23.227.38.74 cdn.prod.website-files.com
+
+rem Добавляем голосовые сервера (finland)
 for /l %%N in (10001,1,10199) do (
     >>"%HOSTS%" echo 104.25.158.178 finland%%N.discord.media
 )
@@ -2903,10 +2920,14 @@ goto :eof
 
 :RemoveFinlandDiscordHosts
 chcp 850 >nul 2>&1
-powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; (Get-Content $path) | Where-Object { $_ -notmatch 'Discord Finland Media Servers' -and $_ -notmatch 'finland.*\.discord\.media' } | Set-Content $path -Force"
+rem Снимаем атрибут "Только чтение" для надежности
+attrib -r "%HOSTS%"
+
+rem Исправленная версия: читаем в переменную $txt, затем фильтруем и записываем
+powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; $txt = Get-Content $path; $txt | Where-Object { $_ -notmatch 'Discord Finland Media Servers' -and $_ -notmatch 'finland.*\.discord\.media' -and $_ -notmatch '23\.227\.38\.74' } | Set-Content $path -Force"
+
 chcp 65001 >nul 2>&1
 goto :eof
-
 
 :TwitchHostSelector
 set "HOSTS=%hostspath%"
@@ -2927,7 +2948,7 @@ if /i "%TwitchHost%"=="off" (
     ipconfig /flushdns >nul
 )
 
-goto MainMenu
+goto MenuBypassSettings_without_ui_info
 
 
 :AddTwitchHosts
@@ -2940,7 +2961,52 @@ goto :eof
 
 :RemoveTwitchHosts
 chcp 850 >nul 2>&1
-powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; (Get-Content $path) | Where-Object { $_ -notmatch 'Twitch Servers' -and $_ -notmatch '185.68.247.42' } | Set-Content $path -Force"
+rem Сначала снимаем атрибут "Только чтение", если он есть, чтобы избежать ошибок доступа
+attrib -r "%HOSTS%"
+
+rem Исправленная команда: читаем в переменную $txt, затем фильтруем и сохраняем.
+rem Это разрывает одновременное чтение и запись.
+powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; $txt = Get-Content $path; $txt | Where-Object { $_ -notmatch 'Twitch Servers' -and $_ -notmatch '185.68.247.42' } | Set-Content $path -Force"
+
+chcp 65001 >nul 2>&1
+goto :eof
+
+
+:YoutubeHostsSelector
+set "HOSTS=%hostspath%"
+
+if /i "%YoutubeHost%"=="off" (
+    rem На всякий случай сначала чистим старый блок, потом добавляем свежий
+    call :ui_info "Добавляю записи в файл hosts..."
+    call :AddYoutubeHosts
+
+    timeout /t 2 >nul
+    ipconfig /flushdns >nul
+
+) else (
+    call :ui_info "Удаляю записи из файла hosts..."
+    call :RemoveYoutubeHosts
+
+    timeout /t 2 >nul
+    ipconfig /flushdns >nul
+)
+
+goto MenuBypassSettings_without_ui_info
+
+:AddYoutubeHosts
+>>"%HOSTS%" echo ### YouTube TCP Servers BEGIN
+>>"%HOSTS%" echo 142.250.117.93 www.youtube.com
+>>"%HOSTS%" echo ### YouTube TCP Servers END
+goto :eof
+
+:RemoveYoutubeHosts
+chcp 850 >nul 2>&1
+rem Снимаем атрибут "Только чтение" для надежности
+attrib -r "%HOSTS%"
+
+rem Исправленная логика: читаем в $txt, потом пишем
+powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; $txt = Get-Content $path; $txt | Where-Object { $_ -notmatch 'YouTube TCP Servers' -and $_ -notmatch '142\.250\.117\.93' } | Set-Content $path -Force"
+
 chcp 65001 >nul 2>&1
 goto :eof
 
