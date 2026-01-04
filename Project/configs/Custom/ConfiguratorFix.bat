@@ -42,15 +42,15 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws2.exe" ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" ^
 --blob=fake_default_udp:0x00000000000000000000000000000000 ^
 --blob=tls_google:@"%FAKE%tls_clienthello_www_google_com.bin" ^
---blob=quic3:@"%FAKE%quic_3.bin" ^
+--blob=tls7:@"%FAKE%fake_tls_7.bin" ^
 --blob=quic_google:@"%FAKE%quic_initial_www_google_com.bin" ^
 --blob=tls_max:@"%FAKE%tls_clienthello_max_ru.bin" ^
 --filter-l7=discord,wireguard,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp --new ^
 --filter-tcp=80,443 --filter-l7=tls --ipset="%LISTS%ipset-youtube.txt" --out-range=-d4 --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google --new ^
---filter-tcp=80,443 --filter-l7=tls --ipset="%LISTS%ipset-googlevideo.txt" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000 --new ^
---filter-udp=443 --hostlist="%LISTS%list-youtube.txt" --payload=all --out-range=-n3 --lua-desync=fake:blob=quic3:repeats=2:payload=all --lua-desync=send:ipfrag:ipfrag_pos_udp=8 --lua-desync=drop --new ^
+--filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls7 --new ^
+--filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --out-range=-n2 --payload=unknown --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
 --filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
---filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld --new ^
+--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld --new ^
 --filter-udp=443 --hostlist="%LISTS%list-discord.txt" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
 --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld --new ^
 --filter-tcp=80,443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld --new ^

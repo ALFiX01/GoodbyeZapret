@@ -107,87 +107,87 @@
         "--filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls4"
       ],
       "3": [
-        "--filter-tcp=80,443 --filter-l7=tls --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=6:tls_mod=rnd,dupsid:tcp_ts_up"
+        "--filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=6:tls_mod=rnd,dupsid:tcp_ts_up"
       ],
       "4": [
-        "--filter-tcp=80,443 --filter-l7=tls --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d4 --lua-desync=multisplit_tls:payload=tls_client_hello:seqovl=680:sni=www.google.com:tls_rnd:tls_dupsid:pos=2"
+        "--filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d4 --lua-desync=multisplit_tls:payload=tls_client_hello:seqovl=680:sni=www.google.com:tls_rnd:tls_dupsid:pos=2"
       ],
       "5": [
-        "--filter-tcp=80,443 --filter-l7=tls --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=0x00000000:tcp_flags_unset=ack --lua-desync=fakeddisorder:pos=midsld:tcp_flags_unset=ack"
+        "--filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=0x00000000:tcp_flags_unset=ack --lua-desync=fakeddisorder:pos=midsld:tcp_flags_unset=ack"
       ],
       "6": [
         "--blob=tls5:@\"%FAKE%fake_tls_5.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multidisorder:seqovl=211:seqovl_pattern=tls5"
+        "--filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multidisorder:seqovl=211:seqovl_pattern=tls5"
       ],
       "7": [
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=multidisorder_legacy:pos=sniext+1,midsld:seqovl=652"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=multidisorder_legacy:pos=sniext+1,midsld:seqovl=652"
       ],
       "8": [
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=syndata --lua-desync=multidisorder_legacy:pos=1,midsld"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=syndata --lua-desync=multidisorder_legacy:pos=1,midsld"
       ],
       "9": [
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_md5 --lua-desync=multidisorder_legacy:pos=1,midsld:tcp_md5"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_md5 --lua-desync=multidisorder_legacy:pos=1,midsld:tcp_md5"
       ],
       "10": [
         "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld"
       ],
       "11": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld"
       ],
       "12": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
       ],
       "13": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google"
       ],
       "14": [
         "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=multidisorder:pos=1,host+2,sld+2,sld+5,sniext+1,sniext+2,endhost-2:seqovl=1"
       ],
       "15": [
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=wssize:wsize=1:scale=6 --lua-desync=fake:blob=fake_default_tls:tcp_flags_unset=ack:tls_mod=rnd,dupsid,rndsni,padencap --lua-desync=multisplit:pos=midsld:tcp_flags_unset=ack"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=wssize:wsize=1:scale=6 --lua-desync=fake:blob=fake_default_tls:tcp_flags_unset=ack:tls_mod=rnd,dupsid,rndsni,padencap --lua-desync=multisplit:pos=midsld:tcp_flags_unset=ack"
       ],
       "16": [
         "--blob=tls7:@\"%FAKE%fake_tls_7.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls7"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls7"
       ],
       "17": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=tls_google:tcp_ts=1:repeats=6 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:payload=tls_client_hello"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=tls_google:tcp_ts=1:repeats=6 --lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:payload=tls_client_hello"
       ],
       "18": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
       ],
       "19": [
         "--blob=tls5:@\"%FAKE%fake_tls_5.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls5"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls5"
       ],
       "20": [
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --payload=tls_client_hello --lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_ack=-66000 --lua-desync=multidisorder_legacy:pos=1,midsld:tcp_ack=-66000"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --payload=tls_client_hello --lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_ack=-66000 --lua-desync=multidisorder_legacy:pos=1,midsld:tcp_ack=-66000"
       ],
       "21": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
       ],
       "22": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
       ],
       "23": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000"
       ],
       "24": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google"
       ],
       "25": [
         "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\"",
-        "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max"
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max"
       ]
     },
     "YouTubeQuic": {
@@ -321,111 +321,111 @@
       "1": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--blob=quic2:@\"%FAKE%quic_2.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --payload=tls_client_hello --lua-desync=send:repeats=5 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=800:seqovl_pattern=tls_google",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --payload=tls_client_hello --lua-desync=send:repeats=5 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=800:seqovl_pattern=tls_google",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord-no-update.txt\" --payload=unknown,quic_initial --out-range=-n2 --lua-desync=fake:blob=quic2:repeats=8 --lua-desync=udplen:increment=10:pattern=0xDEADBEEF"
       ],
       "2": [
         "--blob=tls7:@\"%FAKE%tls_clienthello_7.bin\"",
         "--blob=quic2:@\"%FAKE%quic_2.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls7",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls7",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord-no-update.txt\" --payload=dht --out-range=-d10 --lua-desync=fake:blob=fake_default_quic:repeats=11:ip_autottl=2,3-20:ip6_autottl=2,3-20 --lua-desync=dht_dn:dn=2"
       ],
       "3": [
         "--blob=fake_tls_2:@\"%FAKE%fake_tls_2.bin\"",
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "4": [
         "--blob=tls5:@\"%FAKE%fake_tls_5.bin\"",
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-d10 --payload=tls_client_hello --lua-desync=multisplit:seqovl=286:seqovl_pattern=tls5",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-d10 --payload=tls_client_hello --lua-desync=multisplit:seqovl=286:seqovl_pattern=tls5",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=9:ip_autottl=2,3-20:ip6_autottl=2,3-20:payload=unknown"
       ],
       "5": [
         "--blob=fake_tls_2:@\"%FAKE%fake_tls_2.bin\"",
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=9:ip_autottl=2,3-20:ip6_autottl=2,3-20:payload=unknown"
       ],
       "6": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload tls_client_hello --lua-desync=multidisorder:pos=1,midsld,1220",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-n3 --payload tls_client_hello --lua-desync=multidisorder:pos=1,midsld,1220",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "7": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-n3 --payload tls_client_hello --lua-desync=multidisorder:pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-n3 --payload tls_client_hello --lua-desync=multidisorder:pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "8": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\"  --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\"  --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "9": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "10": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "11": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "12": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls5:@\"%FAKE%fake_tls_5.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:seqovl=211:seqovl_pattern=tls5",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:seqovl=211:seqovl_pattern=tls5",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "13": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:pos=1,midsld:ip_autottl=-1,3-20:ip6_autottl=-1,3-20",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:pos=1,midsld:ip_autottl=-1,3-20:ip6_autottl=-1,3-20",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "14": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:pos=sniext+1,midsld:seqovl=652",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --payload=tls_client_hello --lua-desync=multidisorder_legacy:pos=sniext+1,midsld:seqovl=652",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "15": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:ip_ttl=-1,3-20:ip6_ttl=-1,3-20",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:ip_ttl=-1,3-20:ip6_ttl=-1,3-20",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "16": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "17": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "18": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ],
       "19": [
         "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
         "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\"",
-        "--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max",
         "--filter-udp=443 --hostlist=\"%LISTS%list-discord.txt\" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown"
       ]
     },
