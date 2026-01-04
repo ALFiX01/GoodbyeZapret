@@ -2276,8 +2276,12 @@ echo.
 echo                      %COL%[92m ^[U^]%COL%[37m Обновить  / %COL%[91m ^[B^]%COL%[37m Пропустить
 echo.
 set /p "choice=%DEL%   %COL%[90m:> "
-if /i "%choice%"=="B" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && set "UpdateNeed=Yes" && goto MainMenu
-if /i "%choice%"=="и" mode con: cols=92 lines=%ListBatCount% >nul 2>&1 && set "UpdateNeed=Yes" && goto MainMenu
+if /i "%choice%"=="B" ( mode con: cols=92 lines=%ListBatCount%
+set "UpdateNeed=Yes"
+goto MainMenu )
+if /i "%choice%"=="и" ( mode con: cols=92 lines=%ListBatCount%
+set "UpdateNeed=Yes"
+goto MainMenu )
 if /i "%choice%"=="U" ( goto FullUpdate )
 if /i "%choice%"=="г" ( goto FullUpdate )
 goto Update_Need_screen
