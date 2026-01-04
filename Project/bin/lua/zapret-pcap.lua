@@ -6,7 +6,6 @@ function pcap_write_packet(file, raw)
 	local sec, nsec = clock_gettime();
 	file:write(bu32(sec)..bu32(nsec)..bu32(#raw)..bu32(#raw))
 	file:write(raw)
-	file:close()
 end
 function pcap_write(file, raw)
 	local pos = file:seek()
@@ -16,7 +15,7 @@ function pcap_write(file, raw)
 	pcap_write_packet(file, raw)
 end
 
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-lib.lua --lua-init=@zapret-pcap.lua --writeable=zdir --in-range=a --lua-desync=pcap:file=test.pcap
+-- test case : --writeable=zdir --in-range=a --lua-desync=pcap:file=test.pcap
 -- arg : file=<filename> - file for storing pcap data. if --writeable is specified and filename is relative - append filename to writeable path
 -- arg : keep - do not overwrite file, append packets to existing
 function pcap(ctx, desync)
@@ -36,4 +35,5 @@ function pcap(ctx, desync)
 		error("pcap: could not write to '".._G[fn_cache_name].."'")
 	end
 	pcap_write(f, raw_packet(ctx))
+	f:close()
 end

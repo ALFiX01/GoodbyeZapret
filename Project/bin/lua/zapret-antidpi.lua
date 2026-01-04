@@ -339,7 +339,7 @@ function tls_client_hello_clone(ctx, desync)
 	direction_cutoff_opposite(ctx, desync)
 	if direction_check(desync) then
 		if not desync.arg.blob then
-			error("fake: 'blob' arg required")
+			error("tls_client_hello_clone: 'blob' arg required")
 		end
 		if desync.l7payload=="tls_client_hello" then
 			desync[desync.arg.blob] = tls_client_hello_mod(desync.reasm_data or desync.dis.payload, desync.arg)

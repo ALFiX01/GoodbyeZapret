@@ -1,4 +1,4 @@
--- test case : nfqws2 --qnum 200 --debug --lua-init=@zapret-wgobfs.lua --in-range=a --out-range=a --lua-desync=wgobfs:secret=mycoolpassword
+-- test case : --in-range=a --out-range=a --lua-desync=wgobfs:secret=mycoolpassword
 -- encrypt standard wireguard messages - initiation, response, cookie - and change udp packet size
 -- do not encrypt data messages and keepalives
 -- wgobfs adds maximum of 30+padmax bytes to udp size

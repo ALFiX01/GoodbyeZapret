@@ -304,6 +304,39 @@ function test_bit()
 	end
 end
 
+function test_swap()
+	local v1, v2, v3
+
+	v1 = math.random(0,0xFFFF)
+	v2 = swap16(v1)
+	v3 = divint(v1,0x100) + v1%0x100*0x100
+	print("swap16: "..(v2==v3 and "OK" or "FAIL"))
+	test_assert(v2==v3)
+
+	v1 = math.random(0,0xFFFFFF)
+	v2 = swap24(v1)
+	v3 = divint(v1,0x10000) + divint(v1,0x100)%0x100*0x100 + v1%0x100*0x10000
+	print("swap24: "..(v2==v3 and "OK" or "FAIL"))
+	test_assert(v2==v3)
+
+	v1 = math.random(0,0xFFFFFFFF)
+	v2 = swap32(v1)
+	v3 = divint(v1,0x1000000) + divint(v1,0x10000)%0x100*0x100 + divint(v1,0x100)%0x100*0x10000 + v1%0x100*0x1000000
+	print("swap32: "..(v2==v3 and "OK" or "FAIL"))
+	test_assert(v2==v3)
+
+	v1 = math.random(0,0xFFFFFFFFFFFF)
+	v2 = swap48(v1)
+	v3 =    divint(v1,0x10000000000) +
+		divint(v1,0x100000000)%0x100*0x100 +
+		divint(v1,0x1000000)%0x100*0x10000 +
+		divint(v1,0x10000)%0x100*0x1000000 +
+		divint(v1,0x100)%0x100*0x100000000 +
+		v1%0x100*0x10000000000
+	print("swap48: "..(v2==v3 and "OK" or "FAIL"))
+	test_assert(v2==v3)
+end
+
 function test_ux()
 	local v1, v2, v3, usum, sum
 	for k,test in pairs({
@@ -330,7 +363,7 @@ function test_ux()
 end
 
 function test_bin(...)
-	test_run({test_ub, test_bit, test_ux},...)
+	test_run({test_ub, test_bit, test_swap, test_ux},...)
 end
 
 

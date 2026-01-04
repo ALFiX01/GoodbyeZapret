@@ -1,3 +1,9 @@
+NFQWS2_COMPAT_VER_REQUIRED=4
+
+if NFQWS2_COMPAT_VER~=NFQWS2_COMPAT_VER_REQUIRED then
+	error("Incompatible NFQWS2_COMPAT_VER. Use pktws and lua scripts from the same release !")
+end
+
 HEXDUMP_DLOG_MAX = HEXDUMP_DLOG_MAX or 32
 NOT3=bitnot(3)
 NOT7=bitnot(7)
