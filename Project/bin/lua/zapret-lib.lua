@@ -304,12 +304,22 @@ function pos_str(desync, pos)
 	return pos.mode..pos_get(desync, pos.mode)
 end
 
--- convert array a to packed string using 'packer' function
+-- convert array a to packed string using 'packer' function. only numeric indexes starting from 1, order preserved
 function barray(a, packer)
 	if a then
 		local s=""
 		for i=1,#a do
 			s = s .. packer(a[i])
+		end
+		return s
+	end
+end
+-- convert table a to packed string using 'packer' function. any indexes, any order
+function btable(a, packer)
+	if a then
+		local s=""
+		for k,v in pairs(a) do
+			s = s .. packer(v)
 		end
 		return s
 	end
@@ -1423,19 +1433,22 @@ function http_dissect_header(header)
 end
 -- make table with structured http header representation
 function http_dissect_headers(http, pos)
-	local eol,pnext,header,value,idx,headers,pos_endheader,pos_startvalue
+	local eol,pnext,header,value,idx,headers,pos_endheader,pos_startvalue,pos_headers_next
 	headers={}
 	while pos do
 		eol,pnext = find_next_line(http,pos)
 		header = string.sub(http,pos,eol)
-		if #header == 0 then break end
+		if #header == 0 then
+			pos_headers_end = pnext
+			break
+		end
 		header,value,pos_endheader,pos_startvalue = http_dissect_header(header)
 		if header then
 			headers[string.lower(header)] = { header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
 		end
 		pos=pnext
 	end
-	return headers
+	return headers, pos_headers_end
 end
 -- make table with structured http request representation
 function http_dissect_req(http)
@@ -1457,9 +1470,21 @@ function http_dissect_req(http)
 	pos = string.find(req,"[^ \t]",pos+1)
 	if not pos then return nil end
 	pnext = string.find(req,"[ \t]",pos+1)
-	if not pnext then pnext = #http + 1 end
+	if not pnext then pnext = #req + 1 end
 	local uri = string.sub(req,pos,pnext-1)
-	return { method = method, uri = uri, headers = http_dissect_headers(http,hdrpos) }
+	pos = string.find(req,"[^ \t]",pnext)
+	local http_ver
+	if pos then
+		pnext = string.find(req,"[\r\n]",pos)
+		if not pnext then pnext = #req + 1 end
+		http_ver = string.sub(req,pos,pnext-1)
+	end
+	local hdis = { method = method, uri = uri, http_ver = http_ver }
+	hdis.headers, hdis.pos_headers_end = http_dissect_headers(http,hdrpos)
+	if hdis.pos_headers_end then
+		hdis.body = string.sub(http, hdis.pos_headers_end)
+	end
+	return hdis
 end
 function http_dissect_reply(http)
 	if not http then return nil; end
@@ -1471,6 +1496,14 @@ function http_dissect_reply(http)
 	if not code then return nil end
 	pos = find_next_line(http,pos)
 	return { code = code, headers = http_dissect_headers(http,pos) }
+end
+function http_reconstruct_headers(headers, unixeol)
+	local eol = unixeol and "\n" or "\r\n"
+	return headers and btable(headers, function(a) return a.header..": "..a.value..eol end) or ""
+end
+function http_reconstruct_req(hdis, unixeol)
+	local eol = unixeol and "\n" or "\r\n"
+	return hdis.method.." "..hdis.uri..(hdis.http_ver and (" "..hdis.http_ver) or "")..eol..http_reconstruct_headers(hdis.headers, unixeol)..eol..(hdis.body or "")
 end
 
 function dissect_url(url)

@@ -43,20 +43,21 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws2.exe" ^
 --blob=tls4:@"%FAKE%fake_tls_4.bin" ^
 --blob=quic_google:@"%FAKE%quic_initial_www_google_com.bin" ^
 --blob=tls_google:@"%FAKE%tls_clienthello_www_google_com.bin" ^
+--blob=tls_max:@"%FAKE%tls_clienthello_max_ru.bin" ^
 --filter-l7=discord,wireguard,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp --new ^
 --filter-tcp=443 --filter-l7=unknown --hostlist="%LISTS%russia-youtube-rtmps.txt" --out-range=-n3 --payload=tls_client_hello --lua-desync=multisplit:seqovl_pattern=fake_tls_2:seqovl=228 --new ^
---filter-tcp=80,443 --out-range=-d10 --hostlist="%LISTS%list-youtube.txt" --filter-l7=tls --payload=tls_client_hello --lua-desync=multisplit:pos=midsld-1:seqovl=1 --new ^
+--filter-tcp=80,443 --filter-l7=tls --hostlist="%LISTS%list-youtube.txt" --out-range=-d10 --payload=tls_client_hello --lua-desync=multisplit:pos=midsld-1:seqovl=1 --new ^
 --filter-tcp=80,443 --hostlist-domains=googlevideo.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls4 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --out-range=-n2 --payload=unknown --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
 --filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
 --filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld --new ^
 --filter-udp=443 --hostlist="%LISTS%list-discord.txt" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
---filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
---filter-tcp=80,443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
---filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --payload=dht --out-range=-d10 --lua-desync=fake:blob=quic_google:repeats=11 --lua-desync=dht_dn:dn=2 --new ^
+--filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld --new ^
+--filter-tcp=80,443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld --new ^
+--filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --payload=all --out-range=-n2 --lua-desync=fake:repeats=6 --new ^
 --filter-tcp=2053,2083,2087,2096,8443 --filter-l7=tls --out-range=-n5 --payload=tls_client_hello --lua-desync=rst:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 --lua-desync=multidisorder:pos=3:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 --new ^
 --filter-udp=5056,27002 --out-range=-n15 --payload=quic_initial --lua-desync=fake:blob=quic_google:repeats=6 --new ^
---filter-tcp=80,443,6568 --ipset="%LISTS%ipset-anydesk.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack
+--filter-tcp=80,443,6568 --ipset="%LISTS%ipset-anydesk.txt" --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_max --lua-desync=multisplit:pos=midsld
 
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском

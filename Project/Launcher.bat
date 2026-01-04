@@ -50,8 +50,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.0.1"
-set "Current_GoodbyeZapret_version_code=02YA01"
+set "Current_GoodbyeZapret_version=3.0.2"
+set "Current_GoodbyeZapret_version_code=04YA01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1043,17 +1043,16 @@ if /i "%branch%"=="beta" (
     echo.
 )
 
-
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
 echo.
 echo.
-echo                             %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
+echo                          %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN          ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
 echo.
-echo                             %COL%[96m^[ 2 ^]%COL%[37m Обход Discord TCP + Finland Voice ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
+echo                          %COL%[96m^[ 2 ^]%COL%[37m Обход Discord + Fin. Voice   ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
 echo.
-echo                             %COL%[96m^[ 3 ^]%COL%[37m Обход twitch ^(%COL%[96m%TwitchHost%%COL%[37m^)
+echo                          %COL%[96m^[ 3 ^]%COL%[37m Обход twitch                 ^(%COL%[96m%TwitchHost%%COL%[37m^)
 echo.
-echo                             %COL%[96m^[ 4 ^]%COL%[37m Обход YouTube ^(%COL%[96m%YoutubeHost%%COL%[37m^)
+echo                          %COL%[96m^[ 4 ^]%COL%[37m Обход YouTube                ^(%COL%[96m%YoutubeHost%%COL%[37m^)
 echo.
 echo.
 echo.
@@ -1510,29 +1509,18 @@ if not "!batfile!"=="smart-config.bat" (
     )
 )
 
-if /I not "!batfile!"=="smart-config.bat" (
-    if /I not "!batfile!"=="ConfiguratorFix.bat" (
-
-        tasklist | find /I "Winws.exe" >nul
+if /I not "!batfile!"=="smart-config.bat" if /I not "!batfile!"=="ConfiguratorFix.bat" (
+    tasklist | find /I "Winws.exe" >nul
+    if errorlevel 1 (
+        tasklist | find /I "Winws2.exe" >nul
         if errorlevel 1 (
-            timeout /t 1 >nul 2>&1
             echo.
-            echo ОШИБКА: Процесс обхода ^(Winws.exe^) не запущен.
+            echo ОШИБКА: Процес обхода ^(Winws.exe или Winws2.exe^) не запущен.
             echo.
             timeout /t 2 >nul 2>&1
-        ) else (
-            tasklist | find /I "Winws2.exe" >nul
-            if errorlevel 1 (
-                echo.
-                echo ОШИБКА: Процесс обхода ^(Winws2.exe^) не запущен.
-                echo.
-                timeout /t 2 >nul 2>&1
-            )  
         )
-
     )
 )
-
 goto :end
 
 :remove_service
@@ -2696,6 +2684,8 @@ if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
         set "PanelBack=Configurator"
         call :remove_service_before_installing
         call :install_GZ_service
+        call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
+        call :WriteConfig GoodbyeZapret_OldConfig "ConfiguratorFix"
     )
 if /i "%opt%"=="г" (
         set "batFile=ConfiguratorFix.bat"
@@ -2704,6 +2694,8 @@ if /i "%opt%"=="г" (
         set "PanelBack=Configurator"
         call :remove_service_before_installing
         call :install_GZ_service
+        call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
+        call :WriteConfig GoodbyeZapret_OldConfig "ConfiguratorFix"
     )
 )
 

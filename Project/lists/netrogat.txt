@@ -27,7 +27,6 @@ nnmclub.to
 nnmstatic.win
 nvidia.com
 geforce.com
-nvidiagrid.net
 xbox-dns.ru
 forum.ru-board.com
 okcdn.ru
@@ -74,6 +73,8 @@ digicert.com
 windowsupdate.com
 adblockplus.org
 microsoft.com
+login.microsoftonline.com
+login.live.com
 tanksblitz.ru
 lencr.org
 tanki.su
@@ -94,3 +95,27 @@ thefinals.com
 msi.com
 # rockstar
 rockstargames.com
+# GZ-vpn
+goodbyezapret.mooo.com
+# Other
+aadcdn.msftauth.net
+rbc.ru
+rbk.ru
+oaistatic.com
+zaonce.net
+www.gstatic.com
+aliexpress.ru
+alicdn.com
+plaync.com
+7tv.io
+boosty.to
+ixbt.com
+ixbt.online
+ixbt.site
+nvidiagrid.net
+^www.google.com
+donationalerts.com
+ea.com
+tnt-ea.com
+eaavatarservice.akamaized.net
+vk.com

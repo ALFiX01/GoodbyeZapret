@@ -185,6 +185,40 @@ function http_methodeol(ctx, desync)
 	end
 end
 
+-- nfqws1 : not available
+-- tpws : --unixeol
+-- standard args : direction
+function http_unixeol(ctx, desync)
+	if not desync.dis.tcp then
+		instance_cutoff_shim(ctx, desync)
+		return
+	end
+	direction_cutoff_opposite(ctx, desync)
+	if desync.l7payload=="http_req" and direction_check(desync) then
+		local hdis = http_dissect_req(desync.dis.payload)
+		if hdis then
+			if hdis.headers["user-agent"] then
+				local http = http_reconstruct_req(hdis, true)
+				if #http < #desync.dis.payload then
+					hdis.headers["user-agent"].value = hdis.headers["user-agent"].value .. string.rep(" ", #desync.dis.payload - #http)
+				end
+				local http = http_reconstruct_req(hdis, true)
+				if #http==#desync.dis.payload then
+					desync.dis.payload = http
+					DLOG("http_unixeol: applied")
+					return VERDICT_MODIFY
+				else
+					DLOG("http_unixeol: reconstruct differs in size from original: "..#http.."!="..#desync.dis.payload)
+				end
+			else
+				DLOG("http_unixeol: user-agent header absent")
+			end
+		else
+			DLOG("http_unixeol: could not dissect http")
+		end
+	end
+end
+
 -- nfqws1 : "--synack-split"
 -- standard args : rawsend, reconstruct, ipfrag
 -- arg : mode=syn|synack|acksyn . "synack" by default

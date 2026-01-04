@@ -251,12 +251,12 @@ function test_aes_ctr()
 end
 
 function test_ub()
-	for k,f in pairs({{u8,bu8,0xFF,8}, {u16,bu16,0xFFFF,16}, {u24,bu24,0xFFFFFF,24}, {u32,bu32,0xFFFFFFFF,32}}) do
+	for k,f in pairs({{u8,bu8,0xFF,8}, {u16,bu16,0xFFFF,16}, {u24,bu24,0xFFFFFF,24}, {u32,bu32,0xFFFFFFFF,32}, {u48,bu48,0xFFFFFFFFFFFF,48}}) do
 		local v = math.random(0,f[3])
 		local pos = math.random(1,20)
 		local s = brandom(pos-1)..f[2](v)..brandom(20)
 		local v2 = f[1](s,pos)
-		print("u"..tostring(f[4]).." pos="..tostring(pos).." "..tostring(v).." "..tostring(v2))
+		print(string.format("u%u pos=%u %016X %016X",f[4],pos,v,v2))
 		test_assert(v==v2)
 	end
 end
@@ -264,39 +264,44 @@ end
 function test_bit()
 	local v, v2, v3, v4, b1, b2, pow
 
-	v = math.random(0,0xFFFFFFFF)
-	b1 = math.random(1,16)
+	for i=1,100 do
+		v = math.random(0,0xFFFFFFFFFFFF)
+		b1 = math.random(1,16)
 
-	v2 = bitrshift(v, b1)
-	pow = 2^b1
-	v3 = divint(v, pow)
-	print(string.format("rshift(0x%X,%u) = 0x%X  0x%X/%u = 0x%X", v,b1,v2, v,pow,v3))
-	test_assert(v2==v3)
+		v2 = bitrshift(v, b1)
+		pow = 2^b1
+		v3 = divint(v, pow)
+		print(string.format("rshift(0x%X,%u) = 0x%X  0x%X/%u = 0x%X", v,b1,v2, v,pow,v3))
+		test_assert(v2==v3)
 
-	v2 = bitlshift(v, b1)
-	pow = 2^b1
-	v3 = (v * pow) % 0x100000000
-	print(string.format("lshift(0x%X,%u) = 0x%X  0x%X*%u %% 0x10000000 = 0x%X", v,b1,v2, v,pow,v3))
-	test_assert(v2==v3)
+		v = math.random(0,0xFFFFFFFFF)
+		b1 = math.random(1,12)
+		v2 = bitlshift(v, b1)
+		pow = 2^b1
+		v3 = (v * pow) % 0x1000000000000
+		print(string.format("lshift(0x%X,%u) = 0x%X  0x%X*%u %% 0x100000000000 = 0x%X", v,b1,v2, v,pow,v3))
+		test_assert(v2==v3)
 
-	v2 = math.random(0,0xFFFFFFFF)
-	v3 = bitxor(v, v2)
-	v4 = bitor(v, v2) - bitand(v, v2)
-	print(string.format("xor(0x%X,0x%X) = %X  or/and/minus = %X", v, v2, v3, v4))
-	test_assert(v3==v4)
+		v2 = math.random(0,0xFFFFFFFFFFFF)
+		v3 = bitxor(v, v2)
+		v4 = bitor(v, v2) - bitand(v, v2)
+		print(string.format("xor(0x%X,0x%X) = %X  or/and/minus = %X", v, v2, v3, v4))
+		test_assert(v3==v4)
 
-	b2 = b1 + math.random(1,15)
-	v2 = bitget(v, b1, b2)
-	pow = 2^(b2-b1+1) - 1
-	v3 = bitand(bitrshift(v,b1), pow)
-	print(string.format("bitget(0x%X,%u,%u) = 0x%X  bitand/bitrshift/pow = 0x%X", v, b1, b2, v2, v3))
-	test_assert(v2==v3)
+		b1 = math.random(1,31)
+		b2 = b1 + math.random(1,16)
+		v2 = bitget(v, b1, b2)
+		pow = 2^(b2-b1+1) - 1
+		v3 = bitand(bitrshift(v,b1), pow)
+		print(string.format("bitget(0x%X,%u,%u) = 0x%X  bitand/bitrshift/pow = 0x%X", v, b1, b2, v2, v3))
+		test_assert(v2==v3)
 
-	v4 = math.random(0,pow)
-	v2 = bitset(v, b1, b2, v4)
-	v3 = bitor(bitlshift(v4, b1), bitand(v, bitnot(bitlshift(pow, b1))))
-	print(string.format("bitset(0x%X,%u,%u,0x%X) = 0x%X  bitand/bitnot/bitlshift/pow = 0x%X", v, b1, b2, v4, v2, v3))
-	test_assert(v2==v3)
+		v4 = math.random(0,pow)
+		v2 = bitset(v, b1, b2, v4)
+		v3 = bitor(bitlshift(v4, b1), bitand(v, bitnot(bitlshift(pow, b1))))
+		print(string.format("bitset(0x%X,%u,%u,0x%X) = 0x%X  bitand/bitnot/bitlshift/pow = 0x%X", v, b1, b2, v4, v2, v3))
+		test_assert(v2==v3)
+	end
 end
 
 function test_ux()
@@ -305,7 +310,8 @@ function test_ux()
 		{ add=u8add, fname="u8add", max = 0xFF },
 		{ add=u16add, fname="u16add", max = 0xFFFF },
 		{ add=u24add, fname="u24add", max = 0xFFFFFF },
-		{ add=u32add, fname="u32add", max = 0xFFFFFFFF }
+		{ add=u32add, fname="u32add", max = 0xFFFFFFFF },
+		{ add=u48add, fname="u48add", max = 0xFFFFFFFFFFFF }
 	}) do
 		io.write(test.fname.." : ")
 		for i=1,1000 do
@@ -315,7 +321,7 @@ function test_ux()
 			usum = test.add(v1,v2,v3)
 			sum = bitand((v1+v2+v3)%(test.max+1),test.max)
 			if sum~=usum then
-				print("FAIL")
+				print(string.format("FAIL: 0x%012X + 0x%012X + 0x%012X = 0x%012X 0x%012X",v1,v2,v3,usum,sum))
 			end
 			test_assert(sum==usum)
 		end

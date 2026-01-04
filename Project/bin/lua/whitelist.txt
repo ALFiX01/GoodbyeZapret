@@ -2,7 +2,39 @@
 # System domains (built-in) + User domains (from registry)
 
 127.0.0.1
+192.168
 144.31.29.132
+1.1.1.1
+1.0.0.1
+162.159.61.8
+169.254
+100.64
+172.64.41.8
+172.16
+8.8.8.8
+83.220.169.155
+212.109.195.93
+8.8.4.4
+9.9.9.9
+9.9.9.11
+9.9.9.10
+10.0
+77.88.8.8
+77.88.8.1
+77.88.8.88
+77.88.8.2
+77.88.8.7
+77.88.8.3
+127.0
+141.105.71.21
+149.112.112.10
+149.112.112.11
+149.112.112.112
+18.244.96
+18.244.128
+52.168.112.66
+104.18.42.105
+104.18.43.105
 # War Thunder Servers
 155.133
 35.217
@@ -30,6 +62,8 @@ localhost
 mail.ru
 max.ru
 microsoft.com
+login.microsoftonline.com
+login.live.com
 mos.ru
 mycdn.me
 nalog.ru
@@ -149,3 +183,24 @@ thefinals.com
 msi.com
 # rockstar
 rockstargames.com
+# Other
+aadcdn.msftauth.net
+rbc.ru
+rbk.ru
+oaistatic.com
+zaonce.net
+www.gstatic.com
+aliexpress.ru
+alicdn.com
+plaync.com
+7tv.io
+boosty.to
+ixbt.com
+ixbt.online
+ixbt.site
+nvidiagrid.net
+donationalerts.com
+ea.com
+tnt-ea.com
+eaavatarservice.akamaized.net
+vk.com
