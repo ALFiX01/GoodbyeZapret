@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.7.3"
+set "UpdaterVersion=2.8"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -201,6 +201,24 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         mkdir "%ParentDirPath%\tools\curl" >nul 2>&1
         robocopy "!ExtractRoot!\tools\curl" "%ParentDirPath%\tools\curl" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
         call :log INFO "Copied curl"
+    )
+
+    if exist "!ExtractRoot!\tools\config_builder" (
+        mkdir "%ParentDirPath%\tools\config_builder" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\config_builder" "%ParentDirPath%\tools\config_builder" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied config_builder"
+    )
+
+    if exist "!ExtractRoot!\tools\config_check" (
+        mkdir "%ParentDirPath%\tools\config_check" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\config_check" "%ParentDirPath%\tools\config_check" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied config_check"
+    )
+
+    if exist "!ExtractRoot!\tools\update_components" (
+        mkdir "%ParentDirPath%\tools\update_components" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\update_components" "%ParentDirPath%\tools\update_components" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied update_components"
     )
 
 if exist "!ExtractRoot!\lists" (
