@@ -40,11 +40,11 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws2.exe" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.wireguard.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" ^
---blob=quic_test:@"%FAKE%quic_test_00.bin" ^
+--blob=quic6:@"%FAKE%quic_6.bin" ^
 --blob=tls_google:@"%FAKE%tls_clienthello_www_google_com.bin" ^
 --blob=quic_google:@"%FAKE%quic_initial_www_google_com.bin" ^
 --blob=tls_max:@"%FAKE%tls_clienthello_max_ru.bin" ^
---filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=quic_test:repeats=2 --new ^
+--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n3 --lua-desync=fake:blob=quic6:repeats=2:ip_autottl=-1,3-20:ip6_autottl=-1,3-20 --lua-desync=udplen:increment=8:pattern=0x0F0F0E0F --new ^
 --filter-tcp=80,443 --filter-l7=tls --ipset="%LISTS%ipset-youtube.txt" --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google --new ^
 --filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --out-range=-n2 --payload=unknown --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
