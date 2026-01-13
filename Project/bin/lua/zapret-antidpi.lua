@@ -149,12 +149,17 @@ function http_hostcase(ctx, desync)
 			error("http_hostcase: invalid host spelling '"..spell.."'")
 		else
 			local hdis = http_dissect_req(desync.dis.payload)
-			if hdis.headers.host then
-				DLOG("http_hostcase: 'Host:' => '"..spell.."'")
-				desync.dis.payload = string.sub(desync.dis.payload,1,hdis.headers.host.pos_start-1)..spell..string.sub(desync.dis.payload,hdis.headers.host.pos_header_end+1)
-				return VERDICT_MODIFY
+			if hdis then
+				local idx_host = array_field_search(hdis.headers, "header_low", "host")
+				if idx_host then
+					DLOG("http_hostcase: 'Host:' => '"..spell.."'")
+					desync.dis.payload = string.sub(desync.dis.payload,1,hdis.headers[idx_host].pos_start-1)..spell..string.sub(desync.dis.payload,hdis.headers[idx_host].pos_header_end+1)
+					return VERDICT_MODIFY
+				else
+					DLOG("http_hostcase: 'Host:' header not found")
+				end
 			else
-				DLOG("http_hostcase: 'Host:' header not found")
+				DLOG("http_hostcase: http dissect error")
 			end
 		end
 	end
@@ -162,6 +167,7 @@ end
 
 -- nfqws1 : "--methodeol"
 -- standard args : direction
+-- NOTE : if using with other http tampering methodeol should be the last !
 function http_methodeol(ctx, desync)
 	if not desync.dis.tcp then
 		instance_cutoff_shim(ctx, desync)
@@ -170,17 +176,22 @@ function http_methodeol(ctx, desync)
 	direction_cutoff_opposite(ctx, desync)
 	if desync.l7payload=="http_req" and direction_check(desync) then
 		local hdis = http_dissect_req(desync.dis.payload)
-		local ua = hdis.headers["user-agent"]
-		if ua then
-			if (ua.pos_end - ua.pos_value_start) < 2 then
-				DLOG("http_methodeol: 'User-Agent:' header is too short")
+		if hdis then
+			local idx_ua = array_field_search(hdis.headers, "header_low", "user-agent")
+			if idx_ua then
+				local ua = hdis.headers[idx_ua]
+				if (ua.pos_end - ua.pos_value_start) < 2 then
+					DLOG("http_methodeol: 'User-Agent:' header is too short")
+				else
+					DLOG("http_methodeol: applied")
+					desync.dis.payload="\r\n"..string.sub(desync.dis.payload,1,ua.pos_end-2)..(string.sub(desync.dis.payload,ua.pos_end+1) or "");
+					return VERDICT_MODIFY
+				end
 			else
-				DLOG("http_methodeol: applied")
-				desync.dis.payload="\r\n"..string.sub(desync.dis.payload,1,ua.pos_end-2)..(string.sub(desync.dis.payload,ua.pos_end+1) or "");
-				return VERDICT_MODIFY
+				DLOG("http_methodeol: 'User-Agent:' header not found")
 			end
 		else
-			DLOG("http_methodeol: 'User-Agent:' header not found")
+			DLOG("http_methodeol: http dissect error")
 		end
 	end
 end
@@ -197,10 +208,11 @@ function http_unixeol(ctx, desync)
 	if desync.l7payload=="http_req" and direction_check(desync) then
 		local hdis = http_dissect_req(desync.dis.payload)
 		if hdis then
-			if hdis.headers["user-agent"] then
+			local idx_ua = array_field_search(hdis.headers, "header_low", "user-agent")
+			if idx_ua then
 				local http = http_reconstruct_req(hdis, true)
 				if #http < #desync.dis.payload then
-					hdis.headers["user-agent"].value = hdis.headers["user-agent"].value .. string.rep(" ", #desync.dis.payload - #http)
+					hdis.headers[idx_ua].value = hdis.headers[idx_ua].value .. string.rep(" ", #desync.dis.payload - #http)
 				end
 				local http = http_reconstruct_req(hdis, true)
 				if #http==#desync.dis.payload then
@@ -211,7 +223,7 @@ function http_unixeol(ctx, desync)
 					DLOG("http_unixeol: reconstruct differs in size from original: "..#http.."!="..#desync.dis.payload)
 				end
 			else
-				DLOG("http_unixeol: user-agent header absent")
+				DLOG("http_unixeol: 'User-Agent:' header absent")
 			end
 		else
 			DLOG("http_unixeol: could not dissect http")

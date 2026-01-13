@@ -1,0 +1,2 @@
+2026-01-13 17:24:11,463 - [INFO] - MainThread - Tray running.
+2026-01-13 17:47:19,502 - [INFO] - Thread-3 (worker) - Отправлен terminate() процессу winws2.exe (PID: 15196)

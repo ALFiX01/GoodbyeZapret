@@ -569,7 +569,6 @@ function array_search(a, v)
 			return k
 		end
 	end
-	return nil
 end
 -- linear search array a for a[index].f==v. return index
 function array_field_search(a, f, v)
@@ -578,7 +577,6 @@ function array_field_search(a, f, v)
 			return k
 		end
 	end
-	return nil
 end
 
 -- find pos of the next eol and pos of the next non-eol character after eol
@@ -1426,6 +1424,114 @@ function tls_client_hello_mod(tls, options)
 	return tls
 end
 
+-- checks if filename is gzip compressed
+function is_gzip_file(filename)
+	local f, err = io.open(filename, "r")
+	if not f then
+		error("is_gzip_file: "..err)
+	end
+	local hdr = f:read(2)
+	f:close()
+	return hdr and hdr=="\x1F\x8B"
+end
+-- ungzip file to raw string
+-- expected_ratio = uncompressed_size/compressed_size (default 4)
+function gunzip_file(filename, expected_ratio, read_block_size)
+	local f, err = io.open(filename, "r")
+	if not f then
+		error("gunzip_file: "..err)
+	end
+	if not read_block_size then read_block_size=16384 end
+	if not expected_ratio then expected_ratio=4 end
+
+	local decompressed=""
+	gz = gunzip_init()
+	if not gz then
+		error("gunzip_file: stream init error")
+	end
+	repeat
+		local compressed, err = f:read(read_block_size)
+		if not compressed then
+			f:close()
+			gunzip_end(gz)
+			if err then
+				error("gunzip_file: file read error : "..err)
+			else
+				return nil
+			end
+		end
+		local decomp, eof = gunzip_inflate(gz, compressed, #compressed * expected_ratio)
+		if not decomp then
+			f:close()
+			gunzip_end(gz)
+			return nil
+		end
+		decompressed = decompressed .. decomp
+	until eof
+	f:close()
+	gunzip_end(gz)
+	return decompressed
+end
+-- zip file to raw string
+-- expected_ratio = uncompressed_size/compressed_size (default 2)
+-- level : 1..9 (default 9)
+-- memlevel : 1..8 (default 8)
+function gzip_file(filename, data, expected_ratio, level, memlevel, compress_block_size)
+	local f, err = io.open(filename, "w")
+	if not f then
+		error("gzip_file: "..err)
+	end
+	if not write_block_size then compress_block_size=16384 end
+	if not expected_ratio then expected_ratio=2 end
+
+	gz = gzip_init(nil, level, memlevel)
+	if not gz then
+		error("gzip_file: stream init error")
+	end
+	local off=1, block_size
+	repeat
+		block_size = #data-off+1
+		if block_size>compress_block_size then block_size=compress_block_size end
+		local comp, eof = gzip_deflate(gz, string.sub(data,off,off+block_size-1), block_size / expected_ratio)
+		if not comp then
+			f:close()
+			gzip_end(gz)
+			return nil
+		end
+		f:write(comp)
+		off = off + block_size
+	until eof
+	f:close()
+	gzip_end(gz)
+end
+-- reads the whole file
+function readfile(filename)
+	local f, err = io.open(filename, "r")
+	if not f then
+		error("readfile: "..err)
+	end
+	local s,err = f:read("*a")
+	f:close()
+	if err then
+		error("readfile: "..err)
+	end
+	return s
+end
+-- reads plain or gzipped file with transparent decompression
+-- expected_ratio = uncompressed_size/compressed_size (default 4)
+function z_readfile(filename, expected_ratio)
+	return is_gzip_file(filename) and gunzip_file(filename, expected_ratio) or readfile(filename)
+end
+-- write data to filename
+function writefile(filename, data)
+	local f, err = io.open(filename, "w")
+	if not f then
+		error("writefile: "..err)
+	end
+	local s,err = f:write(data)
+	f:close()
+end
+
 -- DISSECTORS
 
 function http_dissect_header(header)
@@ -1450,7 +1556,7 @@ function http_dissect_headers(http, pos)
 		end
 		header,value,pos_endheader,pos_startvalue = http_dissect_header(header)
 		if header then
-			headers[string.lower(header)] = { header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
+			headers[#headers+1] = { header_low = string.lower(header), header = header, value = value, pos_start = pos, pos_end = eol, pos_header_end = pos+pos_endheader-1, pos_value_start = pos+pos_startvalue-1 }
 		end
 		pos=pnext
 	end
@@ -1501,11 +1607,16 @@ function http_dissect_reply(http)
 	code = tonumber(string.sub(http,10,pos-1))
 	if not code then return nil end
 	pos = find_next_line(http,pos)
-	return { code = code, headers = http_dissect_headers(http,pos) }
+	local hdis = { code = code }
+	hdis.headers, hdis.pos_headers_end = http_dissect_headers(http,pos)
+	if hdis.pos_headers_end then
+		hdis.body = string.sub(http, hdis.pos_headers_end)
+	end
+	return hdis
 end
 function http_reconstruct_headers(headers, unixeol)
 	local eol = unixeol and "\n" or "\r\n"
-	return headers and btable(headers, function(a) return a.header..": "..a.value..eol end) or ""
+	return headers and barray(headers, function(a) return a.header..": "..a.value..eol end) or ""
 end
 function http_reconstruct_req(hdis, unixeol)
 	local eol = unixeol and "\n" or "\r\n"

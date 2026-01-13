@@ -50,8 +50,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.0.3"
-set "Current_GoodbyeZapret_version_code=05YA01"
+set "Current_GoodbyeZapret_version=3.1"
+set "Current_GoodbyeZapret_version_code=13YA01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -940,9 +940,9 @@ echo.
 echo.
 echo                               %COL%[96m^[ 1 ^]%COL%[37m Состояние GoodbyeZapret
 echo.
-echo                               %COL%[96m^[ 2 ^]%COL%[37m Выбор готового конфига
+echo                               %COL%[96m^[ 2 ^]%COL%[37m Конфигуратор стратегий
 echo.
-echo                               %COL%[96m^[ 3 ^]%COL%[37m Конфигуратор стратегий
+echo                               %COL%[96m^[ 3 ^]%COL%[37m Выбор готового конфига
 echo.
 echo                               %COL%[96m^[ 4 ^]%COL%[37m Доп. настройки обхода
 echo.
@@ -967,8 +967,8 @@ set /p "choice=%DEL%                                           %COL%[90m:> "
 
 REM Handle user input with case-insensitive matching
 if /i "%choice%"=="1" goto CurrentStatus 
-if /i "%choice%"=="2" goto ConfigSelectorMenu
-if /i "%choice%"=="3" goto ConfiguratorMenu
+if /i "%choice%"=="2" goto ConfiguratorMenu
+if /i "%choice%"=="3" goto ConfigSelectorMenu
 if /i "%choice%"=="4" goto MenuBypassSettings_without_ui_info
 if /i "%choice%"=="5" goto OpenInstructions
 if /i "%choice%"=="6" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
@@ -1185,21 +1185,15 @@ echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  
 echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/ 
 
 if /i "%branch%"=="beta" (
-    echo                                       /____/  бета версия  /_/
-    echo.   
+    echo                                       /____/  бета версия  /_/ 
+    echo.
 ) else (
     echo                                       /____/               /_/
-    echo.
+    echo             %COL%[90mГотовые конфиги менее эффективны. Используйте конфигуратор стратегий %COL%[37m
 )
 
 
 REM call :timer_end
-
-
-REM Check internet connection and file status
-if /i "%WiFi%"=="Off" (
-    echo                            %COL%[90mОшибка: Нет подключения к интернету%COL%[37m
-)
 
 REM ---------------------------------------------------------
 
@@ -2408,7 +2402,7 @@ if exist "%ParentDirPath%\tools\config_builder\Configurator-Instructions.html" (
     echo Файл инструкции не найден: %ParentDirPath%\tools\config_builder\Configurator-Instructions.html
     timeout /t 3 >nul
 )
-goto MainMenu
+goto ConfiguratorMenu
 
 
 :: Функция: чтение значения
@@ -2601,16 +2595,15 @@ call :ReadConfig ENGN 2
 
 :UpdateLimits
 :: Получаем количество стратегий в зависимости от движка
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --get-limits > _limits.bat
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --get-limits > "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
 
-if exist _limits.bat (
-    call _limits.bat
-    del _limits.bat
+if exist "%ParentDirPath%\tools\config_builder\config_builder_limits.bat" (
+    call "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
+    del "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
 ) else (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
 )
-
 
 :: Значения по умолчанию для выбора пользователя
 set "YT=1"
@@ -2622,6 +2615,9 @@ set "DS=1"
 set "BL=0"
 set "STUN=1"
 set "CDN=1"
+set "AMZTCP=1"
+set "AMZUDP=1"
+set "Custom=0"
 set "CDN_LVL=base"
 
 call :ReadConfig YT 1
@@ -2633,6 +2629,9 @@ call :ReadConfig DS 1
 call :ReadConfig BL 0
 call :ReadConfig STUN 1
 call :ReadConfig CDN 1
+call :ReadConfig AMZTCP 1
+call :ReadConfig AMZUDP 1
+call :ReadConfig CUSTOM 0
 call :ReadConfig CDN_LVL base
 
 :MENU
@@ -2643,15 +2642,18 @@ echo    %COL%[36m┌────────────────────
 echo    ^│ %COL%[37mПараметры, доступные для изменения: %COL%[36m
 echo    ^│ %COL%[90m─────────────────────────────────────────────────────────────────────────────────%COL%[36m
 echo    ^│                                                                                 
-echo    ^│ %COL%[96m^[ 1 ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  (Доступны: 0-!MAX_YouTube!) %COL%[36m
-echo    ^│ %COL%[96m^[ 2 ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  (Доступны: 0-!MAX_YouTubeGoogleVideo!) %COL%[36m
-echo    ^│ %COL%[96m^[ 3 ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%COL%[37m  (Доступны: 0-!MAX_YouTubeQuic!) %COL%[36m
-echo    ^│ %COL%[96m^[ 4 ^]%COL%[37m Twitch:                 %COL%[92m!TW!%COL%[37m  (Доступны: 0-!MAX_Twitch!) %COL%[36m
-echo    ^│ %COL%[96m^[ 5 ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  (Доступны: 0-!MAX_DiscordUpdate!) %COL%[36m
-echo    ^│ %COL%[96m^[ 6 ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  (Доступны: 0-!MAX_Discord!) %COL%[36m
-echo    ^│ %COL%[96m^[ 7 ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  (Доступны: 0-!MAX_blacklist!) %COL%[36m
-echo    ^│ %COL%[96m^[ 8 ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  (Доступны: 0-!MAX_STUN!) %COL%[36m
-echo    ^│ %COL%[96m^[ 9 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  (Доступны: 0-!MAX_CDN!) %COL%[36m
+echo    ^│ %COL%[96m^[ 1  ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  ^(Доступны: 0-!MAX_YouTube!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 2  ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  ^(Доступны: 0-!MAX_YouTubeGoogleVideo!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 3  ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%COL%[37m  ^(Доступны: 0-!MAX_YouTubeQuic!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 4  ^]%COL%[37m Twitch:                 %COL%[92m!TW!%COL%[37m  ^(Доступны: 0-!MAX_Twitch!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 5  ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  ^(Доступны: 0-!MAX_DiscordUpdate!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 6  ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  ^(Доступны: 0-!MAX_Discord!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 7  ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  ^(Доступны: 0-!MAX_blacklist!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 8  ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  ^(Доступны: 0-!MAX_STUN!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 9  ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  ^(Доступны: 0-!MAX_CDN!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 10 ^]%COL%[37m CDN Amazon TCP:         %COL%[92m!AMZTCP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonTCP!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 11 ^]%COL%[37m CDN Amazon UDP:         %COL%[92m!AMZUDP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonUDP!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 12 ^]%COL%[37m Личные списки:          %COL%[92m!CUSTOM!%COL%[37m  ^(Доступны: 0-!MAX_custom!^) %COL%[36m
 echo    ^│ 
 echo    ^│ %COL%[96m^[ L ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
 echo    ^│ %COL%[96m^[ E ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
@@ -2818,12 +2820,52 @@ if "%opt%"=="9" (
     goto MENU
 )
 
-if "%opt%"=="L" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full): " & goto MENU)
+if "%opt%"=="10" (
+    set /p val="%DEL%   Введите стратегию для CDN Amazon TCP (0-!MAX_AmazonTCP!): "
+    if !val! gtr !MAX_AmazonTCP! (
+        echo  Неверное значение. Максимум - !MAX_AmazonTCP!
+        pause
+    ) else (
+        set "AMZTCP=!val!"
+    )
+    goto MENU
+)
 
-if "%opt%"=="E" (
+if "%opt%"=="11" (
+    set /p val="%DEL%   Введите стратегию для CDN Amazon UDP (0-!MAX_AmazonUDP!): "
+    if !val! gtr !MAX_AmazonUDP! (
+        echo  Неверное значение. Максимум - !MAX_AmazonUDP!
+        pause
+    ) else (
+        set "AMZUDP=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="12" (
+    set /p val="%DEL%   Введите стратегию для личных списков (0-!MAX_Custom!): "
+    if !val! gtr !MAX_Custom! (
+        echo  Неверное значение. Максимум - !MAX_Custom!
+        pause
+    ) else (
+        set "CUSTOM=!val!"
+    )
+    goto MENU
+)
+
+if /i "%opt%"=="L" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full): " & goto MENU)
+if /i "%opt%"=="д" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full): " & goto MENU)
+
+if /i "%opt%"=="E" (
     if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
     :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1"
+    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
+    goto UpdateLimits
+)
+if /i "%opt%"=="у" (
+    if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
+    :: Сбрасываем значения, так как в другом движке другие лимиты
+    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
     goto UpdateLimits
 )
 
@@ -2833,7 +2875,7 @@ goto MENU
 echo.
 
 echo  [*] Настройка сборки для Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
@@ -2841,7 +2883,7 @@ if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
 )
 echo  [*] Проверяем процесс обхода...
-timeout /t 2 >nul 2>&1
+timeout /t 3 >nul 2>&1
 if !ENGN! equ 1 (
     tasklist | find /i "Winws.exe" >nul
         if errorlevel 1 (
@@ -3001,7 +3043,7 @@ rem Снимаем атрибут "Только чтение" для надеж�
 attrib -r "%HOSTS%"
 
 rem Исправленная логика: читаем в $txt, потом пишем
-powershell -Command "$path = $env:windir + '\System32\drivers\etc\hosts'; $txt = Get-Content $path; $txt | Where-Object { $_ -notmatch 'YouTube TCP Servers' -and $_ -notmatch '142\.250\.117\.93' } | Set-Content $path -Force"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%HOSTS%'; if(-not (Test-Path -LiteralPath $p)) { exit }; $t=Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue; if($null -eq $t){$t=''}; $re='(?ms)^\s*### YouTube TCP Servers BEGIN\s*$.*?^\s*### YouTube TCP Servers END\s*$\r?\n?'; $t=[regex]::Replace($t,$re,''); Set-Content -LiteralPath $p -Value $t -Force"
 
 chcp 65001 >nul 2>&1
 goto :eof
