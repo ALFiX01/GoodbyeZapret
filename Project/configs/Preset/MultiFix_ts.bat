@@ -50,7 +50,8 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 --filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fakedsplit --dpi-desync-fakedsplit-mod=altorder=2 --dpi-desync-fooling=ts --dpi-desync-split-pos=1 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
 
---filter-tcp=80,443,2053,2083,2087,2096,8443 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fakedsplit --dpi-desync-fakedsplit-mod=altorder=3 --dpi-desync-fooling=ts --dpi-desync-repeats=4 --new ^
+--filter-tcp=80,443,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls="%FAKE%tls_clienthello_max_ru.bin" --new ^
+--filter-tcp=443 --hostlist-domains=updates.discord.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls="%FAKE%tls_clienthello_max_ru.bin" --new ^
 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-fooling=ts
 
 --filter-udp=443 --hostlist="%LISTS%list-quick_ttl.txt" --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%fake_quic_2.bin" --dpi-desync-repeats=4 --dpi-desync-ttl=5 --dpi-desync-cutoff=n3 --new ^

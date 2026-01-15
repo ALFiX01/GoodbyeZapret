@@ -50,8 +50,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.1"
-set "Current_GoodbyeZapret_version_code=13YA01"
+set "Current_GoodbyeZapret_version=3.1.1"
+set "Current_GoodbyeZapret_version_code=15YA01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -946,9 +946,9 @@ echo                               %COL%[96m^[ 3 ^]%COL%[37m Выбор гото
 echo.
 echo                               %COL%[96m^[ 4 ^]%COL%[37m Доп. настройки обхода
 echo.
-echo                               %COL%[96m^[ 5 ^]%COL%[37m Открыть инструкцию
+echo                               %COL%[96m^[ 5 ^]%COL%[37m Проверить доступ к CDN 
 echo.
-echo                               %COL%[96m^[ 6 ^]%COL%[37m Проверить обход
+echo                               %COL%[96m^[ 6 ^]%COL%[37m Открыть инструкцию
 echo.
 echo.
 echo.
@@ -970,8 +970,8 @@ if /i "%choice%"=="1" goto CurrentStatus
 if /i "%choice%"=="2" goto ConfiguratorMenu
 if /i "%choice%"=="3" goto ConfigSelectorMenu
 if /i "%choice%"=="4" goto MenuBypassSettings_without_ui_info
-if /i "%choice%"=="5" goto OpenInstructions
-if /i "%choice%"=="6" Start "" "%ParentDirPath%\tools\config_check\DPI-TEST.exe"
+if /i "%choice%"=="5" Start https://hyperion-cs.github.io/dpi-checkers/ru/tcp-16-20
+if /i "%choice%"=="6" goto OpenInstructions
 goto MainMenu
 
 :MenuBypassSettings
@@ -2602,7 +2602,7 @@ if exist "%ParentDirPath%\tools\config_builder\config_builder_limits.bat" (
     del "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
 ) else (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
 )
 
 :: Значения по умолчанию для выбора пользователя
@@ -2612,6 +2612,7 @@ set "YTQ=1"
 set "TW=0"
 set "DSUPD=1"
 set "DS=1"
+set "DSQ=1"
 set "BL=0"
 set "STUN=1"
 set "CDN=1"
@@ -2626,6 +2627,7 @@ call :ReadConfig YTQ 1
 call :ReadConfig TW 0
 call :ReadConfig DSUPD 1
 call :ReadConfig DS 1
+call :ReadConfig DSQ 1
 call :ReadConfig BL 0
 call :ReadConfig STUN 1
 call :ReadConfig CDN 1
@@ -2648,12 +2650,13 @@ echo    ^│ %COL%[96m^[ 3  ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%C
 echo    ^│ %COL%[96m^[ 4  ^]%COL%[37m Twitch:                 %COL%[92m!TW!%COL%[37m  ^(Доступны: 0-!MAX_Twitch!^) %COL%[36m
 echo    ^│ %COL%[96m^[ 5  ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  ^(Доступны: 0-!MAX_DiscordUpdate!^) %COL%[36m
 echo    ^│ %COL%[96m^[ 6  ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  ^(Доступны: 0-!MAX_Discord!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 7  ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  ^(Доступны: 0-!MAX_blacklist!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 8  ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  ^(Доступны: 0-!MAX_STUN!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 9  ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  ^(Доступны: 0-!MAX_CDN!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 10 ^]%COL%[37m CDN Amazon TCP:         %COL%[92m!AMZTCP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonTCP!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 11 ^]%COL%[37m CDN Amazon UDP:         %COL%[92m!AMZUDP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonUDP!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 12 ^]%COL%[37m Личные списки:          %COL%[92m!CUSTOM!%COL%[37m  ^(Доступны: 0-!MAX_custom!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 7  ^]%COL%[37m Discord Quic:           %COL%[92m!DSQ!%COL%[37m  ^(Доступны: 0-!MAX_DiscordQuic!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 8  ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  ^(Доступны: 0-!MAX_blacklist!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 9  ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  ^(Доступны: 0-!MAX_STUN!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 10 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  ^(Доступны: 0-!MAX_CDN!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 11 ^]%COL%[37m CDN Amazon TCP:         %COL%[92m!AMZTCP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonTCP!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 12 ^]%COL%[37m CDN Amazon UDP:         %COL%[92m!AMZUDP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonUDP!^) %COL%[36m
+echo    ^│ %COL%[96m^[ 13 ^]%COL%[37m Личные списки:          %COL%[92m!CUSTOM!%COL%[37m  ^(Доступны: 0-!MAX_custom!^) %COL%[36m
 echo    ^│ 
 echo    ^│ %COL%[96m^[ L ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
 echo    ^│ %COL%[96m^[ E ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
@@ -2788,6 +2791,17 @@ if "%opt%"=="6" (
 )
 
 if "%opt%"=="7" (
+    set /p val="%DEL%   Введите стратегию для Discord Quic (0-!MAX_DiscordQuic!): "
+    if !val! gtr !MAX_DiscordQuic! (
+        echo  Неверное значение. Максимум - !MAX_DiscordQuic!
+        pause
+    ) else (
+        set "DSQ=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="8" (
     set /p val="%DEL%   Введите стратегию для Blacklist (0-!MAX_blacklist!): "
     if !val! gtr !MAX_blacklist! (
         echo  Неверное значение. Максимум - !MAX_blacklist!
@@ -2798,7 +2812,7 @@ if "%opt%"=="7" (
     goto MENU
 )
 
-if "%opt%"=="8" (
+if "%opt%"=="9" (
     set /p val="%DEL%   Введите стратегию для STUN (0-!MAX_STUN!): "
     if !val! gtr !MAX_STUN! (
         echo  Неверное значение. Максимум - !MAX_STUN!
@@ -2809,7 +2823,7 @@ if "%opt%"=="8" (
     goto MENU
 )
 
-if "%opt%"=="9" (
+if "%opt%"=="10" (
     set /p val="%DEL%   Введите стратегию для CDN (0-!MAX_CDN!): "
     if !val! gtr !MAX_CDN! (
         echo  Неверное значение. Максимум - !MAX_CDN!
@@ -2820,7 +2834,7 @@ if "%opt%"=="9" (
     goto MENU
 )
 
-if "%opt%"=="10" (
+if "%opt%"=="11" (
     set /p val="%DEL%   Введите стратегию для CDN Amazon TCP (0-!MAX_AmazonTCP!): "
     if !val! gtr !MAX_AmazonTCP! (
         echo  Неверное значение. Максимум - !MAX_AmazonTCP!
@@ -2831,7 +2845,7 @@ if "%opt%"=="10" (
     goto MENU
 )
 
-if "%opt%"=="11" (
+if "%opt%"=="12" (
     set /p val="%DEL%   Введите стратегию для CDN Amazon UDP (0-!MAX_AmazonUDP!): "
     if !val! gtr !MAX_AmazonUDP! (
         echo  Неверное значение. Максимум - !MAX_AmazonUDP!
@@ -2842,7 +2856,7 @@ if "%opt%"=="11" (
     goto MENU
 )
 
-if "%opt%"=="12" (
+if "%opt%"=="13" (
     set /p val="%DEL%   Введите стратегию для личных списков (0-!MAX_Custom!): "
     if !val! gtr !MAX_Custom! (
         echo  Неверное значение. Максимум - !MAX_Custom!
@@ -2875,7 +2889,7 @@ goto MENU
 echo.
 
 echo  [*] Настройка сборки для Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discord !DS! --discordupdate !DSUPD! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
