@@ -50,7 +50,7 @@ REM --dpi-desync-any-protocol=1 --filter-l7=discord,stun --dpi-desync=fake --dpi
 REM --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x00FF00FF --dpi-desync-fooling=ts,md5sig --dpi-desync-cutoff=n4 --new ^
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,2053,2083,2087,2096,8443,6568 --wf-udp=443,1024-65535 ^
---wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
+--wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --filter-l7=stun --dpi-desync=fake --new ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
