@@ -584,7 +584,7 @@
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --payload=tls_client_hello --out-range=-d10 --lua-desync=multisplit:seqovl=211:seqovl_pattern=fake_tls_5"
       ],
       "3": [
-        "--filter-l7=tls --hostlist-domains=updates.discord.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=6:tls_mod=rnd,dupsid:tcp_ts_up"
+        "--filter-tcp=443 --filter-l7=tls --hostlist-domains=updates.discord.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=6:tls_mod=rnd,dupsid:tcp_ts_up"
       ],
       "4": [
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --payload=tls_client_hello --out-range=-d10 --lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_ack=-66000:tcp_ts_up:ip6_hopbyhop2"
