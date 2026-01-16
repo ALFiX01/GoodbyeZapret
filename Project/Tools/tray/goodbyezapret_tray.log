@@ -1,8 +1,1 @@
-2026-01-16 17:22:31,412 - [INFO] - MainThread - Tray running.
-2026-01-16 17:22:41,067 - [INFO] - MainThread - App already running.
-2026-01-16 17:27:09,817 - [INFO] - Thread-2 (worker) - Отправлен terminate() процессу winws.exe (PID: 14044)
-2026-01-16 18:57:07,935 - [INFO] - Thread-4 (worker) - Отправлен terminate() процессу winws.exe (PID: 6624)
-2026-01-16 19:45:42,017 - [INFO] - Thread-6 (worker) - Отправлен terminate() процессу winws.exe (PID: 12532)
-2026-01-16 20:15:37,469 - [INFO] - Thread-8 (worker) - Отправлен terminate() процессу winws.exe (PID: 12556)
-2026-01-16 21:34:11,734 - [INFO] - Thread-10 (worker) - Отправлен terminate() процессу winws.exe (PID: 4764)
-2026-01-16 22:07:14,741 - [INFO] - MainThread - Tray running.
+2026-01-16 22:08:30,417 - [INFO] - MainThread - Tray running.
