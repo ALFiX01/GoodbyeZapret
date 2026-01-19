@@ -50,8 +50,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.1.3"
-set "Current_GoodbyeZapret_version_code=16YA02"
+set "Current_GoodbyeZapret_version=3.2.0"
+set "Current_GoodbyeZapret_version_code=20YA02"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1306,11 +1306,11 @@ if "%GoodbyeZapret_Config%"=="Не выбран" (
 REM ---- Pagination options ----
 if %TotalPages% gtr 1 (
     echo.
-    if %Page% lss %TotalPages% echo                  %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
-    if %Page% gtr 1 echo                  %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
-    if %Page% equ 1 echo                  %COL%[36m^[ B ^] %COL%[37mВернуться в главное меню
+    if %Page% lss %TotalPages% echo                  %COL%[36m^[ N  ^] %COL%[37mСледующая страница с конфигами
+    if %Page% gtr 1 echo                  %COL%[36m^[ B  ^] %COL%[37mПредыдущая страница
+    if %Page% equ 1 echo                  %COL%[36m^[ B  ^] %COL%[37mВернуться в главное меню
 ) else (
-    echo                  %COL%[36m^[ B ^] %COL%[37mВернуться в главное меню
+    echo                  %COL%[36m^[ B  ^] %COL%[37mВернуться в главное меню
 )
 REM ----------------------------
 echo.
@@ -1344,12 +1344,12 @@ if /i "%choice%"=="т" (
     goto ConfigSelectorMenu
 )
 if /i "%choice%"=="B" (
-    if %Page% equ 1 goto MainMenu
+    if %Page% equ 1 goto MainMenu_without_ui_info
     if %Page% gtr 1 set /a Page-=1
     goto ConfigSelectorMenu
 )
 if /i "%choice%"=="и" (
-    if %Page% equ 1 goto MainMenu
+    if %Page% equ 1 goto MainMenu_without_ui_info
     if %Page% gtr 1 set /a Page-=1
     goto ConfigSelectorMenu
 )
@@ -1858,13 +1858,33 @@ if !dns_configured!==0 (
     set "DNSCheckResult=Ok"
 )
 
+REM === Проверка IPv6 (должен быть выключен) ===
+set "IPv6CheckResult=Ok"
+set "IPv6CheckTips="
+set "IPv6EnabledStatus=False"
+
+REM Проверяем статус IPv6 на всех АКТИВНЫХ (Status=Up) адаптерах.
+REM Если хотя бы на одном адаптере галочка стоит, возвращаем True.
+chcp 850 >nul 2>&1
+for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -Command "if (@(Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Get-NetAdapterBinding -ComponentID ms_tcpip6 | Where-Object { $_.Enabled -eq $true }).Count -gt 0) { Write-Output 'True' } else { Write-Output 'False' }"`) do (
+    chcp 65001 >nul 2>&1
+    set "IPv6EnabledStatus=%%A"
+)
+
+if "!IPv6EnabledStatus!"=="True" (
+    set "IPv6CheckResult=Problem"
+    set "IPv6CheckTips=IPv6 включен. Уберите галочку 'IP версии 6' в свойствах сетевого адаптера."
+) else (
+    set "IPv6CheckResult=Ok"
+)
+
 REM === Итоговая проверка ===
 set "TotalCheck=Ok"
 set "ProblemDetails="
 set "ProblemTips="
 
-REM Проверяем все результаты проверок
-for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult IntelCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult) do (
+REM Проверяем все результаты проверок (Добавлен IPv6CheckResult)
+for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult IntelCheckResult CheckpointCheckResult SmartByteCheckResult VPNCheckResult DNSCheckResult IPv6CheckResult) do (
     if "!%%V!"=="Problem" (
         set "TotalCheck=Problem"
         if defined ProblemDetails (
@@ -1872,13 +1892,31 @@ for %%V in (BaseFilteringEngineCheckResult AdguardCheckResult KillerCheckResult 
         ) else (
             set "ProblemDetails=%%V"
         )
-        REM Находим соответствующие советы
-        for %%T in (BaseFilteringEngineCheckTips AdguardCheckTips KillerCheckTips IntelCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips) do (
-            if "%%V"=="%%~nT" (
-                if defined ProblemTips (
+        REM Находим соответствующие советы (Добавлен IPv6CheckTips)
+        REM Обратите внимание: имя переменной совета должно совпадать с проверкой (CheckResult -> CheckTips) для логики ниже, 
+        REM но в вашем скрипте имена уже сопоставлены вручную, поэтому просто добавляем в список.
+        for %%T in (BaseFilteringEngineCheckTips AdguardCheckTips KillerCheckTips IntelCheckTips CheckpointCheckTips SmartByteCheckTips VPNCheckTips DNSCheckTips IPv6CheckTips) do (
+            REM Хитрость вашего скрипта: он ищет соответствие имен переменных. 
+            REM Чтобы это сработало для IPv6, имя переменной результата и совета должны иметь схожий префикс.
+            REM В данном случае: IPv6CheckResult и IPv6CheckTips.
+            
+            REM Логика сопоставления (упрощенно, так как %%V содержит полное имя переменной результата):
+            if "%%V"=="IPv6CheckResult" if "%%T"=="IPv6CheckTips" (
+                 if defined ProblemTips (
                     set "ProblemTips=!ProblemTips! !%%T!"
                 ) else (
                     set "ProblemTips=!%%T!"
+                )
+            )
+            
+            REM Ваш оригинальный блок сопоставления для остальных переменных:
+            if "%%V"=="%%~nT" ( 
+                if not "%%V"=="IPv6CheckResult" (
+                    if defined ProblemTips (
+                        set "ProblemTips=!ProblemTips! !%%T!"
+                    ) else (
+                        set "ProblemTips=!%%T!"
+                    )
                 )
             )
         )
@@ -2408,15 +2446,18 @@ goto ConfiguratorMenu
 :: Функция: чтение значения
 :: Использование: call :ReadConfig НАЗВАНИЕ_КЛЮЧА [ЗНАЧЕНИЕ_ПО_УМОЛЧАНИЮ]
 :ReadConfig
-setlocal
-set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
+if "%Configurator%"=="1" (
+    set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt" 
+) else (
+    set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt" 
+)
 REM echo [LOG] Старт функции :ReadConfig для %~1, файл: %CONFIG_FILE%
 
 set "RES="
 set "FOUND=0"
 
 if not exist "%CONFIG_FILE%" (
-    echo [LOG][ОШИБКА] Файл конфигурации не найден!
+    echo [LOG][ОШИБКА] Файл конфигурации не найден
     REM Если конфига нет, сразу пробуем применить дефолтное значение
     goto :CheckDefault
 )
@@ -2461,6 +2502,7 @@ if not "%RES%"=="NotFound" if defined RES (
 :: Финальное присвоение результата переменной с именем ключа
 set "%~1=%RES%"
 
+set "Configurator=0"
 goto :eof
 
 
@@ -2591,7 +2633,7 @@ if %errorlevel% equ 0 (
 )
 
 set "ENGN=2"
-call :ReadConfig ENGN 2
+set "Configurator=1" & call :ReadConfig ENGN 2
 
 :UpdateLimits
 :: Получаем количество стратегий в зависимости от движка
@@ -2605,82 +2647,89 @@ if exist "%ParentDirPath%\tools\config_builder\config_builder_limits.bat" (
     set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
 )
 
-:: Значения по умолчанию для выбора пользователя
-set "YT=1"
-set "YTGV=1"
-set "YTQ=1"
-set "TW=0"
-set "DSUPD=1"
-set "DS=1"
-set "DSQ=1"
-set "BL=0"
-set "STUN=1"
-set "CDN=1"
-set "AMZTCP=1"
-set "AMZUDP=1"
-set "Custom=0"
-set "CDN_LVL=base"
-
-call :ReadConfig YT 1
-call :ReadConfig YTGV 1
-call :ReadConfig YTQ 1
-call :ReadConfig TW 0
-call :ReadConfig DSUPD 1
-call :ReadConfig DS 1
-call :ReadConfig DSQ 1
-call :ReadConfig BL 0
-call :ReadConfig STUN 1
-call :ReadConfig CDN 1
-call :ReadConfig AMZTCP 1
-call :ReadConfig AMZUDP 1
-call :ReadConfig CUSTOM 0
-call :ReadConfig CDN_LVL base
+set "Configurator=1" & call :ReadConfig YT 1
+set "Configurator=1" & call :ReadConfig YTGV 1
+set "Configurator=1" & call :ReadConfig YTQ 1
+set "Configurator=1" & call :ReadConfig TW 0
+set "Configurator=1" & call :ReadConfig DSUPD 1
+set "Configurator=1" & call :ReadConfig DS 1
+set "Configurator=1" & call :ReadConfig DSQ 1
+set "Configurator=1" & call :ReadConfig BL 0
+set "Configurator=1" & call :ReadConfig STUN 1
+set "Configurator=1" & call :ReadConfig CDN 1
+set "Configurator=1" & call :ReadConfig AMZTCP 1
+set "Configurator=1" & call :ReadConfig AMZUDP 1
+set "Configurator=1" & call :ReadConfig CUSTOM 0
+set "Configurator=1" & call :ReadConfig CDN_LVL base
 
 :MENU
 cls
-title GoodbyeZapret - Конфигуратор стратегий
-echo.
-echo    %COL%[36m┌───────────────────────────── Конфигуратор стратегий ──────────────────────────────%COL%[36m
-echo    ^│ %COL%[37mПараметры, доступные для изменения: %COL%[36m
-echo    ^│ %COL%[90m─────────────────────────────────────────────────────────────────────────────────%COL%[36m
-echo    ^│                                                                                 
-echo    ^│ %COL%[96m^[ 1  ^]%COL%[37m YouTube:                %COL%[92m!YT!%COL%[37m  ^(Доступны: 0-!MAX_YouTube!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 2  ^]%COL%[37m YouTube GoogleVideo:    %COL%[92m!YTGV!%COL%[37m  ^(Доступны: 0-!MAX_YouTubeGoogleVideo!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 3  ^]%COL%[37m YouTube Quic:           %COL%[92m!YTQ!%COL%[37m  ^(Доступны: 0-!MAX_YouTubeQuic!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 4  ^]%COL%[37m Twitch:                 %COL%[92m!TW!%COL%[37m  ^(Доступны: 0-!MAX_Twitch!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 5  ^]%COL%[37m Discord Update:         %COL%[92m!DSUPD!%COL%[37m  ^(Доступны: 0-!MAX_DiscordUpdate!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 6  ^]%COL%[37m Discord:                %COL%[92m!DS!%COL%[37m  ^(Доступны: 0-!MAX_Discord!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 7  ^]%COL%[37m Discord Quic:           %COL%[92m!DSQ!%COL%[37m  ^(Доступны: 0-!MAX_DiscordQuic!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 8  ^]%COL%[37m Blacklist:              %COL%[92m!BL!%COL%[37m  ^(Доступны: 0-!MAX_blacklist!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 9  ^]%COL%[37m STUN:                   %COL%[92m!STUN!%COL%[37m  ^(Доступны: 0-!MAX_STUN!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 10 ^]%COL%[37m CDN:                    %COL%[92m!CDN!%COL%[37m  ^(Доступны: 0-!MAX_CDN!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 11 ^]%COL%[37m CDN Amazon TCP:         %COL%[92m!AMZTCP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonTCP!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 12 ^]%COL%[37m CDN Amazon UDP:         %COL%[92m!AMZUDP!%COL%[37m  ^(Доступны: 0-!MAX_AmazonUDP!^) %COL%[36m
-echo    ^│ %COL%[96m^[ 13 ^]%COL%[37m Личные списки:          %COL%[92m!CUSTOM!%COL%[37m  ^(Доступны: 0-!MAX_custom!^) %COL%[36m
-echo    ^│ 
-echo    ^│ %COL%[96m^[ L ^]%COL%[37m Уровень CDN:            %COL%[92m!CDN_LVL! %COL%[36m
-echo    ^│ %COL%[96m^[ E ^]%COL%[37m Движок                  %COL%[92mZapret!ENGN! %COL%[36m
-echo    ^│                                                                                        
-echo    └───────────────────────────────────────────────────────────────────────────────────
-echo      %COL%[92m^[ S ^]%COL%[37m Запустить обход
-echo      %COL%[91m^[ K ^]%COL%[37m Завершить процесс обхода
-if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
-    if "%GoodbyeZapretStart%"=="Yes" (
-        echo      %COL%[91m^[ D ^]%COL%[37m Удалить конфиг из автозапуска
+title GoodbyeZapret — Конфигуратор стратегий
+
+:: Список всех переменных для проверки
+set "CHECK_LIST=YT YTGV YTQ TW DSUPD DS DSQ BL STUN CDN AMZTCP AMZUDP CUSTOM"
+
+:: Цикл по каждой переменной из списка
+for %%V in (%CHECK_LIST%) do (
+    :: Если значение переменной меньше 10
+    if !%%V! LSS 10 (
+        set "%%V_sp=  "
     ) else (
-        echo      %COL%[92m^[ U ^]%COL%[37m Установить этот конфиг в автозапуск
+        set "%%V_sp= "
     )
 )
+
 echo.
-echo      %COL%[90m^[ I ^]%COL%[90m Открыть инструкцию по всему этому
-echo      %COL%[90m^[ B ^]%COL%[90m Вернуться в главное меню
+echo    %COL%[36m╔════════════════════════════════════════════════════════════════════════════════════╗
+echo    %COL%[36m║%COL%[90m [КЛАВИША]   Модуль               Текущее      ^(доступно^)                           %COL%[36m║
+echo    %COL%[36m╠════════════════════════════════════════════════════════════════════════════════════╣
+
+echo    %COL%[36m║   %COL%[96m[  1 ]%COL%[37m  YouTube                    %COL%[92m!YT!          !YT_sp!%COL%[90m(0-!MAX_YouTube!)
+echo    %COL%[36m║   %COL%[96m[  2 ]%COL%[37m  YouTube GoogleVideo        %COL%[92m!YTGV!          !YTGV_sp!%COL%[90m(0-!MAX_YouTubeGoogleVideo!)
+echo    %COL%[36m║   %COL%[96m[  3 ]%COL%[37m  YouTube QUIC               %COL%[92m!YTQ!          !YTQ_sp!%COL%[90m(0-!MAX_YouTubeQuic!)
+echo    %COL%[36m║ 
+echo    %COL%[36m║   %COL%[96m[  4 ]%COL%[37m  Twitch                     %COL%[92m!TW!          !TW_sp!%COL%[90m(0-!MAX_Twitch!)
+echo    %COL%[36m║
+echo    %COL%[36m║   %COL%[96m[  5 ]%COL%[37m  Discord Update             %COL%[92m!DSUPD!          !DSUPD_sp!%COL%[90m(0-!MAX_DiscordUpdate!)
+echo    %COL%[36m║   %COL%[96m[  6 ]%COL%[37m  Discord                    %COL%[92m!DS!          !DS_sp!%COL%[90m(0-!MAX_Discord!)
+echo    %COL%[36m║   %COL%[96m[  7 ]%COL%[37m  Discord QUIC               %COL%[92m!DSQ!          !DSQ_sp!%COL%[90m(0-!MAX_DiscordQuic!)
+echo    %COL%[36m║
+echo    %COL%[36m║   %COL%[96m[  8 ]%COL%[37m  Blacklist                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_blacklist!)
+echo    %COL%[36m║   %COL%[96m[  9 ]%COL%[37m  STUN                       %COL%[92m!STUN!          !STUN_sp!%COL%[90m(0-!MAX_STUN!)
+echo    %COL%[36m║
+echo    %COL%[36m║   %COL%[96m[ 10 ]%COL%[37m  CDN                        %COL%[92m!CDN!          !CDN_sp!%COL%[90m(0-!MAX_CDN!)
+echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
+echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
+echo    %COL%[36m║
+echo    %COL%[36m║   %COL%[96m[ 13 ]%COL%[37m  Личные списки              %COL%[92m!CUSTOM!          !CUSTOM_sp!%COL%[90m(0-!MAX_custom!)
+
+echo    %COL%[36m╠════════════════════════════════════════════════════════════════════════════════════
+echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень CDN              %COL%[92m!CDN_LVL!      %COL%[90m(off/base/full)
+echo    %COL%[36m║   %COL%[96m[ E ]%COL%[37m   Движок                  %COL%[92mZapret!ENGN!   %COL%[90m(Zapret1/Zapret2)
+echo    %COL%[36m╚════════════════════════════════════════════════════════════════════════════════════╝
+echo.
+echo    %COL%[92m[ S ] Запустить обход
+echo    %COL%[91m[ K ] Остановить обход
+if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+    if "%GoodbyeZapretStart%"=="Yes" (
+        echo    %COL%[91m[ D ] Удалить из автозапуска
+    ) else (
+        echo    %COL%[92m[ U ] Добавить в автозапуск
+    )
+)
+
+echo.
+echo    %COL%[90m[ I ] Инструкция     
+echo    %COL%[90m[ B ] Назад
 echo.
 set /p "opt=%DEL%   %COL%[90m:> "
+
 
 if /i "%opt%"=="S" goto START
 if /i "%opt%"=="ы" goto START
 if /i "%opt%"=="K" goto KILL
 if /i "%opt%"=="л" goto KILL
+if /i "%opt%"=="cfg" explorer "%USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt"
 if /i "%opt%"=="I" goto OpenConfiguratorInstructions
 if /i "%opt%"=="ш" goto OpenConfiguratorInstructions
 if /i "%opt%"=="B" goto MainMenu_without_ui_info
@@ -2886,9 +2935,10 @@ if /i "%opt%"=="у" (
 goto MENU
 
 :START
+cls
 echo.
 
-echo  [*] Настройка сборки для Zapret!ENGN!...
+echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
 "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (

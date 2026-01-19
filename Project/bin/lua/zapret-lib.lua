@@ -18,9 +18,14 @@ function luaexec(ctx, desync)
 	if not desync.arg.code then
 		error("luaexec: no 'code' parameter")
 	end
-	local fname = desync.func_instance.."_luaexec_code"
+	local fname = desync.func_instance.."_code"
 	if not _G[fname] then
-		_G[fname] = load(desync.arg.code, fname)
+		local err
+		_G[fname], err = load(desync.arg.code, fname)
+		if not _G[fname] then
+			error(err)
+			return
+		end
 	end
 	-- allow dynamic code to access desync
 	_G.desync = desync
@@ -242,9 +247,9 @@ end
 
 -- if seq is over 2G s and p position comparision can be wrong
 function pos_counter_overflow(desync, mode, reverse)
-	if not desync.track or not desync.track.tcp or (mode~='s' and mode~='p') then return false end
+	if not desync.track or (mode~='s' and mode~='p') then return false end
 	local track_pos = reverse and desync.track.pos.reverse or desync.track.pos.direct
-	return track_pos.tcp.rseq_over_2G
+	return track_pos.tcp and track_pos.tcp.rseq_over_2G
 end
 -- these functions duplicate range check logic from C code
 -- mode must be n,d,b,s,x,a
@@ -309,6 +314,7 @@ end
 function pos_str(desync, pos)
 	return pos.mode..pos_get(desync, pos.mode)
 end
+
 
 -- convert array a to packed string using 'packer' function. only numeric indexes starting from 1, order preserved
 function barray(a, packer)
@@ -628,7 +634,7 @@ end
 -- find first tcp options of specified kind in dissect.tcp.options
 function find_tcp_option(options, kind)
 	if options then
-		for i, opt in pairs(options) do
+		for i, opt in ipairs(options) do
 			if opt.kind==kind then return i end
 		end
 	end
@@ -638,7 +644,7 @@ end
 -- find first ipv6 extension header of specified protocol in dissect.ip6.exthdr
 function find_ip6_exthdr(exthdr, proto)
 	if exthdr then
-		for i, hdr in pairs(exthdr) do
+		for i, hdr in ipairs(exthdr) do
 			if hdr.type==proto then return i end
 		end
 	end
@@ -788,6 +794,7 @@ end
 -- tcp_flags_set=<list> - set tcp flags in comma separated list
 -- tcp_flags_unset=<list> - unset tcp flags in comma separated list
 -- tcp_ts_up - move timestamp tcp option to the top if it's present. this allows linux not to accept badack segments without badseq. this is very strange discovery but it works.
+-- tcp_nop_del - delete NOP tcp options to free space in tcp header
 
 -- fool - custom fooling function : fool_func(dis, fooling_options)
 function apply_fooling(desync, dis, fooling_options)
@@ -848,6 +855,13 @@ function apply_fooling(desync, dis, fooling_options)
 		end
 		if fooling_options.tcp_flags_set then
 			dis.tcp.th_flags = bitor(dis.tcp.th_flags, parse_tcp_flags(fooling_options.tcp_flags_set))
+		end
+		if fooling_options.tcp_nop_del then
+			for i=#dis.tcp.options,1,-1 do
+				if dis.tcp.options[i].kind==TCP_KIND_NOOP then
+					table.remove(dis.tcp.options,i)
+				end
+			end
 		end
 		if tonumber(fooling_options.tcp_ts) then
 			local idx = find_tcp_option(dis.tcp.options,TCP_KIND_TS)
@@ -1052,7 +1066,7 @@ function rawsend_dissect_ipfrag(dis, options)
 					if not rawsend_dissect(fragments[i], options.rawsend, reconstruct_frag) then return false end
 				end
 			else
-				for i, d in pairs(fragments) do
+				for i, d in ipairs(fragments) do
 					DLOG("sending ip fragment "..i)
 					-- C function
 					if not rawsend_dissect(d, options.rawsend, reconstruct_frag) then return false end
@@ -1068,13 +1082,18 @@ end
 
 -- send dissect with tcp segmentation based on mss value. appply specified rawsend options.
 function rawsend_dissect_segmented(desync, dis, mss, options)
+	dis = dis or desync.dis
 	local discopy = deepcopy(dis)
+	options = options or desync_opts(desync)
 	apply_fooling(desync, discopy, options and options.fooling)
 
 	if dis.tcp then
+		mss = mss or desync.tcp_mss
 		local extra_len = l3l4_extra_len(discopy)
 		if extra_len >= mss then return false end
 		local max_data = mss - extra_len
+		local urp = dis.tcp.th_urp
+		local oob = bitand(dis.tcp.th_flags, TH_URG)~=0
 		if #discopy.payload > max_data then
 			local pos=1
 			local len
@@ -1083,6 +1102,15 @@ function rawsend_dissect_segmented(desync, dis, mss, options)
 			while pos <= #payload do
 				len = #payload - pos + 1
 				if len > max_data then len = max_data end
+				if oob then
+					if urp>=pos and urp<(pos+len)then
+						discopy.tcp.th_flags = bitor(dis.tcp.th_flags, TH_URG)
+						discopy.tcp.th_urp = urp-pos+1
+					else
+						discopy.tcp.th_flags = bitand(dis.tcp.th_flags, bitnot(TH_URG))
+						discopy.tcp.th_urp = 0
+					end
+				end
 				discopy.payload = string.sub(payload,pos,pos+len-1)
 				apply_ip_id(desync, discopy, options and options.ipid)
 				if not rawsend_dissect_ipfrag(discopy, options) then
@@ -1102,20 +1130,20 @@ end
 
 -- send specified payload based on existing L3/L4 headers in the dissect. add seq to tcp.th_seq.
 function rawsend_payload_segmented(desync, payload, seq, options)
-	options = options or desync_opts(desync)
-	local dis = deepcopy(desync.dis)
+	-- save some cpu and ram
+	local dis = (payload or seq and seq~=0) and deepcopy(desync.dis) or desync.dis
 	if payload then dis.payload = payload end
 	if dis.tcp and seq then
 		dis.tcp.th_seq = dis.tcp.th_seq + seq
 	end
-	return rawsend_dissect_segmented(desync, dis, desync.tcp_mss, options)
+	return rawsend_dissect_segmented(desync, dis, nil, options)
 end
 
 
 -- check if desync.outgoing comply with arg.dir or def if it's not present or "out" of they are not present both. dir can be "in","out","any"
 function direction_check(desync, def)
 	local dir = desync.arg.dir or def or "out"
-	return desync.outgoing and desync.arg.dir~="in" or not desync.outgoing and dir~="out"
+	return desync.outgoing and dir~="in" or not desync.outgoing and dir~="out"
 end
 -- if dir "in" or "out" cutoff current desync function from opposite direction
 function direction_cutoff_opposite(ctx, desync, def)
@@ -1158,9 +1186,9 @@ function replay_drop_set(desync, v)
 		if v == nil then v=true end
 		local rdk = replay_drop_key(desync)
 		if v then
-			if desync.replay then desync.track.lua_state[replay_drop_key] = true end
+			if desync.replay then desync.track.lua_state[rdk] = true end
 		else
-			desync.track.lua_state[replay_drop_key] = nil
+			desync.track.lua_state[rdk] = nil
 		end
 	end
 end
@@ -1168,7 +1196,7 @@ end
 -- return true if the caller should return VERDICT_DROP
 function replay_drop(desync)
 	if desync.track then
-		local drop = desync.replay and desync.track.lua_state[replay_drop_key]
+		local drop = desync.replay and desync.track.lua_state[replay_drop_key(desync)]
 		if not desync.replay or desync.replay_piece_last then
 			-- replay stopped or last piece of reasm
 			replay_drop_set(desync, false)
@@ -1481,7 +1509,7 @@ function gzip_file(filename, data, expected_ratio, level, memlevel, compress_blo
 	if not f then
 		error("gzip_file: "..err)
 	end
-	if not write_block_size then compress_block_size=16384 end
+	if not compress_block_size then compress_block_size=16384 end
 	if not expected_ratio then expected_ratio=2 end
 
 	gz = gzip_init(nil, level, memlevel)
@@ -1530,6 +1558,9 @@ function writefile(filename, data)
 	end
 	local s,err = f:write(data)
 	f:close()
+	if not s then
+		error("writefile: "..err)
+	end
 end
 
 -- DISSECTORS
@@ -1545,7 +1576,7 @@ function http_dissect_header(header)
 end
 -- make table with structured http header representation
 function http_dissect_headers(http, pos)
-	local eol,pnext,header,value,idx,headers,pos_endheader,pos_startvalue,pos_headers_next
+	local eol,pnext,header,value,idx,headers,pos_endheader,pos_startvalue,pos_headers_end
 	headers={}
 	while pos do
 		eol,pnext = find_next_line(http,pos)
@@ -1604,9 +1635,10 @@ function http_dissect_reply(http)
 	s = string.sub(http,1,8)
 	if s~="HTTP/1.1" and s~="HTTP/1.0" then return nil end
 	pos = string.find(http,"[ \t\r\n]",10)
+	if not pos then return nil end
 	code = tonumber(string.sub(http,10,pos-1))
 	if not code then return nil end
-	pos = find_next_line(http,pos)
+	s,pos = find_next_line(http,pos)
 	local hdis = { code = code }
 	hdis.headers, hdis.pos_headers_end = http_dissect_headers(http,pos)
 	if hdis.pos_headers_end then

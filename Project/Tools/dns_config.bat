@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+:: Устанавливаем кодировку UTF-8 для корректного отображения
 cls
 
 :: Ensure working directory is the script's directory
@@ -13,9 +14,7 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-mode con: cols=55 lines=25 >nul 2>&1
-
-set count=0
+mode con: cols=65 lines=30 >nul 2>&1
 
 :: Title screen
 cls
@@ -24,79 +23,55 @@ echo               DNS Configuration Utility
 echo =======================================================
 echo.
 
-set count=0
+:: ---------------------------------------------------------
+:: Auto-detect Adapter (Logic from IPv6 check)
+:: ---------------------------------------------------------
+echo Detecting active network adapter...
+set "adapter_name="
 
-:: Use PowerShell to get adapters with IPv4 gateway and status Up
-for /f "usebackq delims=" %%a in (`powershell -NoProfile -Command "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -ExpandProperty InterfaceAlias"`) do (
-    set /a count+=1
-    set "adapter_!count!=%%a"
+:: 1. Пытаемся найти активный Wi-Fi (Native 802.11 и Status Up)
+for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -Command "Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.MediaType -eq 'Native 802.11' } | Select-Object -ExpandProperty Name -First 1"`) do (
+    set "adapter_name=%%A"
 )
 
-if %count% equ 0 (
-    echo WARNING: No active adapters with internet access found.
-    echo Please check your network connection.
+:: 2. Если Wi-Fi не найден, ищем ЛЮБОЙ активный адаптер с шлюзом (Ethernet и т.д.)
+if "!adapter_name!"=="" (
+    for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -Command "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -ExpandProperty InterfaceAlias -First 1"`) do (
+        set "adapter_name=%%A"
+    )
+)
+
+:: Если ничего не нашли
+if "!adapter_name!"=="" (
+    color 4f
+    echo.
+    echo [ERROR] No active network adapter found!
+    echo Please make sure you are connected to the internet.
     echo.
     pause
     exit /b
 )
-
-
-for /l %%i in (1,1,%count%) do (
-    powershell -Command "Write-Host ' %%i. !adapter_%%i!' -ForegroundColor Blue"
-)
-echo.
-echo -------------------------------------------------------
-
-:: Adapter selection loop
-:adapter_prompt
-set "choice="
-set /p choice="Select number (1-%count%): "
-
-:: Remove spaces
-set "choice=%choice: =%"
-
-:: Validate input
-if not defined choice (
-    echo Please enter a value.
-    goto adapter_prompt
-)
-
-:: Numeric validation to avoid invalid/non-numeric input
-echo(%choice%| findstr /r "^[0-9][0-9]*$" >nul || (
-    echo Invalid input. Please enter a number between 1 and %count%.
-    goto adapter_prompt
-)
-set /a test=%choice%
-
-if %test% lss 1 (
-    echo Value too low. Please enter a number between 1 and %count%.
-    goto adapter_prompt
-)
-
-if %test% gtr %count% (
-    echo Value too high. Please enter a number between 1 and %count%.
-    goto adapter_prompt
-)
-
-set "adapter_name=!adapter_%test%!"
+:: ---------------------------------------------------------
 
 :: Display selected adapter info
 cls
 echo =======================================================
-echo         Selected Adapter: %adapter_name%
+echo         Selected Adapter: !adapter_name!
 echo =======================================================
 echo.
 echo Current DNS Settings:
 echo.
-powershell -Command "Write-Host 'IPv4:' -ForegroundColor DarkGray"
-for /f "tokens=*" %%a in ('netsh interface ipv4 show dnsservers name^="%adapter_name%" ^| findstr /i "DNS"') do (
-    powershell -Command "Write-Host '%%a' -ForegroundColor Blue"
-)
+
+:: --- ИСПРАВЛЕННЫЙ БЛОК ОТОБРАЖЕНИЯ ---
+powershell -Command "Write-Host 'IPv4 Addresses:' -ForegroundColor DarkGray"
+powershell -Command "$d = Get-DnsClientServerAddress -InterfaceAlias '!adapter_name!' -AddressFamily IPv4; if ($d.ServerAddresses) { $d.ServerAddresses | ForEach-Object { Write-Host ('  ' + $_) -ForegroundColor Blue } } else { Write-Host '  (Auto/DHCP)' -ForegroundColor Yellow }"
+
 echo.
-powershell -Command "Write-Host 'IPv6:' -ForegroundColor DarkGray"
-for /f "tokens=*" %%a in ('netsh interface ipv6 show dnsservers interface^="%adapter_name%" ^| findstr /i "DNS"') do (
-    powershell -Command "Write-Host '%%a' -ForegroundColor Blue"
-)
+
+powershell -Command "Write-Host 'IPv6 Addresses:' -ForegroundColor DarkGray"
+powershell -Command "$d = Get-DnsClientServerAddress -InterfaceAlias '!adapter_name!' -AddressFamily IPv6; if ($d.ServerAddresses) { $d.ServerAddresses | ForEach-Object { Write-Host ('  ' + $_) -ForegroundColor Blue } } else { Write-Host '  (Auto/DHCP or None)' -ForegroundColor Yellow }"
+:: -------------------------------------
+
 echo.
 echo Press any key to continue to the menu...
 pause >nul
@@ -108,7 +83,8 @@ echo =======================================================
 echo               DNS Configuration Utility
 echo =======================================================
 echo.
-powershell -Command "Write-Host 'Configure DNS Settings:' -ForegroundColor Blue"
+powershell -Command "Write-Host 'Target Adapter: !adapter_name!' -ForegroundColor Cyan"
+echo.
 echo [1] Google DNS (IPv4+IPv6)
 echo [2] Cloudflare DNS (IPv4+IPv6)
 echo [3] OpenDNS (IPv4+IPv6)
@@ -159,6 +135,7 @@ echo              DNS Configuration Utility
 echo =======================================================
 echo.
 echo WARNING: This will overwrite your current DNS settings
+echo for adapter: "!adapter_name!"
 echo.
 echo You selected option [%dns_choice%]:
 if "%dns_choice%"=="1" echo Configure Google DNS IPv4: 8.8.8.8, 8.8.4.4 ^| IPv6: 2001:4860:4860::8888, 2001:4860:4860::8844
@@ -194,76 +171,76 @@ goto confirm_prompt
 :apply_settings
 cls
 echo =======================================================
-echo   Applying DNS Settings to "%adapter_name%"
+echo   Applying DNS Settings to "!adapter_name!"
 echo =======================================================
 echo.
 
 if "%dns_choice%"=="1" (
     echo Setting Google DNS IPv4:
-    netsh interface ipv4 set dnsservers name="%adapter_name%" static 8.8.8.8 primary
+    netsh interface ipv4 set dnsservers name="!adapter_name!" static 8.8.8.8 primary
     if errorlevel 1 goto error
-    netsh interface ipv4 add dnsservers name="%adapter_name%" address=8.8.4.4 index=2
+    netsh interface ipv4 add dnsservers name="!adapter_name!" address=8.8.4.4 index=2
     if errorlevel 1 goto error
     echo Setting Google DNS IPv6:
-    netsh interface ipv6 set dnsservers interface="%adapter_name%" static 2001:4860:4860::8888 primary
+    netsh interface ipv6 set dnsservers interface="!adapter_name!" static 2001:4860:4860::8888 primary
     if errorlevel 1 goto error
-    netsh interface ipv6 add dnsservers interface="%adapter_name%" address=2001:4860:4860::8844 index=2
+    netsh interface ipv6 add dnsservers interface="!adapter_name!" address=2001:4860:4860::8844 index=2
     if errorlevel 1 goto error
 )
 
 if "%dns_choice%"=="2" (
     echo Setting Cloudflare DNS IPv4:
-    netsh interface ipv4 set dnsservers name="%adapter_name%" static 1.1.1.1 primary
+    netsh interface ipv4 set dnsservers name="!adapter_name!" static 1.1.1.1 primary
     if errorlevel 1 goto error
-    netsh interface ipv4 add dnsservers name="%adapter_name%" address=1.0.0.1 index=2
+    netsh interface ipv4 add dnsservers name="!adapter_name!" address=1.0.0.1 index=2
     if errorlevel 1 goto error
     echo Setting Cloudflare DNS IPv6:
-    netsh interface ipv6 set dnsservers interface="%adapter_name%" static 2606:4700:4700::1111 primary
+    netsh interface ipv6 set dnsservers interface="!adapter_name!" static 2606:4700:4700::1111 primary
     if errorlevel 1 goto error
-    netsh interface ipv6 add dnsservers interface="%adapter_name%" address=2606:4700:4700::1001 index=2
+    netsh interface ipv6 add dnsservers interface="!adapter_name!" address=2606:4700:4700::1001 index=2
     if errorlevel 1 goto error
 )
 
 if "%dns_choice%"=="3" (
     echo Setting OpenDNS IPv4:
-    netsh interface ipv4 set dnsservers name="%adapter_name%" static 208.67.222.222 primary
+    netsh interface ipv4 set dnsservers name="!adapter_name!" static 208.67.222.222 primary
     if errorlevel 1 goto error
-    netsh interface ipv4 add dnsservers name="%adapter_name%" address=208.67.220.220 index=2
+    netsh interface ipv4 add dnsservers name="!adapter_name!" address=208.67.220.220 index=2
     if errorlevel 1 goto error
     echo Setting OpenDNS IPv6:
-    netsh interface ipv6 set dnsservers interface="%adapter_name%" static 2620:119:35::35 primary
+    netsh interface ipv6 set dnsservers interface="!adapter_name!" static 2620:119:35::35 primary
     if errorlevel 1 goto error
-    netsh interface ipv6 add dnsservers interface="%adapter_name%" address=2620:119:53::53 index=2
+    netsh interface ipv6 add dnsservers interface="!adapter_name!" address=2620:119:53::53 index=2
     if errorlevel 1 goto error
 )
 
 if "%dns_choice%"=="4" (
     echo Resetting to DHCP settings IPv4:
-    netsh interface ipv4 set dnsservers name="%adapter_name%" source=dhcp
+    netsh interface ipv4 set dnsservers name="!adapter_name!" source=dhcp
     if errorlevel 1 goto error
     echo Clearing IPv6 DNS server list (auto):
-    netsh interface ipv6 delete dnsservers interface="%adapter_name%" all
+    netsh interface ipv6 delete dnsservers interface="!adapter_name!" all
     if errorlevel 1 goto error
 )
 
 if "%dns_choice%"=="5" (
     if defined CUSTOM_V4_PRIMARY (
         echo Setting custom IPv4 primary: %CUSTOM_V4_PRIMARY%
-        netsh interface ipv4 set dnsservers name="%adapter_name%" static %CUSTOM_V4_PRIMARY% primary
+        netsh interface ipv4 set dnsservers name="!adapter_name!" static %CUSTOM_V4_PRIMARY% primary
         if errorlevel 1 goto error
         if defined CUSTOM_V4_SECONDARY (
             echo Adding custom IPv4 secondary: %CUSTOM_V4_SECONDARY%
-            netsh interface ipv4 add dnsservers name="%adapter_name%" address=%CUSTOM_V4_SECONDARY% index=2
+            netsh interface ipv4 add dnsservers name="!adapter_name!" address=%CUSTOM_V4_SECONDARY% index=2
             if errorlevel 1 goto error
         )
     )
     if defined CUSTOM_V6_PRIMARY (
         echo Setting custom IPv6 primary: %CUSTOM_V6_PRIMARY%
-        netsh interface ipv6 set dnsservers interface="%adapter_name%" static %CUSTOM_V6_PRIMARY% primary
+        netsh interface ipv6 set dnsservers interface="!adapter_name!" static %CUSTOM_V6_PRIMARY% primary
         if errorlevel 1 goto error
         if defined CUSTOM_V6_SECONDARY (
             echo Adding custom IPv6 secondary: %CUSTOM_V6_SECONDARY%
-            netsh interface ipv6 add dnsservers interface="%adapter_name%" address=%CUSTOM_V6_SECONDARY% index=2
+            netsh interface ipv6 add dnsservers interface="!adapter_name!" address=%CUSTOM_V6_SECONDARY% index=2
             if errorlevel 1 goto error
         )
     )
@@ -342,6 +319,7 @@ echo [Y] Yes - Apply Changes
 echo [N] No - Return to Menu
 echo.
 goto confirm_prompt
+
 :error
 echo.
 echo ERROR: Operation failed with error code %errorlevel%

@@ -58,6 +58,7 @@ function automate_host_record(desync)
 end
 -- per-connection storage
 function automate_conn_record(desync)
+	if not desync.track then return nil end
 	if not desync.track.lua_state.automate then
 		desync.track.lua_state.automate = {}
 	end
@@ -180,13 +181,16 @@ function standard_failure_detector(desync, crec)
 				end
 			elseif not arg.no_http_redirect and desync.l7payload=="http_reply" and desync.track.hostname then
 				local hdis = http_dissect_reply(desync.dis.payload)
-				if hdis and (hdis.code==302 or hdis.code==307) and hdis.headers.location and hdis.headers.location then
-					trigger = is_dpi_redirect(desync.track.hostname, hdis.headers.location.value)
-					if b_debug then
-						if trigger then
-							DLOG("standard_failure_detector: http redirect "..hdis.code.." to '"..hdis.headers.location.value.."'. looks like DPI redirect.")
-						else
-							DLOG("standard_failure_detector: http redirect "..hdis.code.." to '"..hdis.headers.location.value.."'. NOT a DPI redirect.")
+				if hdis and (hdis.code==302 or hdis.code==307) then
+					local idx_loc = array_field_search(hdis.headers, "header_low", "location")
+					if idx_loc then
+						trigger = is_dpi_redirect(desync.track.hostname, hdis.headers[idx_loc].value)
+						if b_debug then
+							if trigger then
+								DLOG("standard_failure_detector: http redirect "..hdis.code.." to '"..hdis.headers[idx_loc].value.."'. looks like DPI redirect.")
+							else
+								DLOG("standard_failure_detector: http redirect "..hdis.code.." to '"..hdis.headers[idx_loc].value.."'. NOT a DPI redirect.")
+							end
 						end
 					end
 				end

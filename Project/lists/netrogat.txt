@@ -119,3 +119,4 @@ ea.com
 tnt-ea.com
 eaavatarservice.akamaized.net
 vk.com
+warthunder.com

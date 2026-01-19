@@ -688,13 +688,13 @@ function test_rawsend(opts)
 			end
 		end
 	end
-	local function rawsend_dissect_print(dis, options)
+	local function rawsend_dissect_print(dis, options, reconstruct)
 		if options then
 			options.ifout = ifout
 		else
 			options = { ifout = ifout }
 		end
-		local b = rawsend_dissect(dis, options)
+		local b = rawsend_dissect(dis, options, reconstruct)
 		if not b then
 			print("rawsend_dissect failed")
 			rawsend_fail_warning()
@@ -760,8 +760,17 @@ function test_rawsend(opts)
 	print("send ipv6 udp")
 	test_assert(rawsend_dissect_print(dis, {repeats=3}))
 
+	ip2 = deepcopy(ip6)
+	ip2.ip6_plen = UDP_BASE_LEN + #payload;
+	raw_ip = reconstruct_ip6hdr(ip2, {ip6_last_proto = IPPROTO_UDP})
+	raw_udp = reconstruct_udphdr({uh_sport = udp.uh_sport, uh_dport = udp.uh_dport, uh_ulen = UDP_BASE_LEN + #payload})
+	raw_udp = csum_udp_fix(raw_ip,raw_udp,payload)
+	raw = raw_ip .. raw_udp .. payload
+	print("send ipv6 udp using pure rawsend without dissect")
+	test_assert(rawsend_print(raw, {repeats=7}))
+
 	ddis = ipfrag2(dis, {ipfrag_pos_udp = 80})
-	for k,d in pairs(ddis) do
+	for k,d in ipairs(ddis) do
 		print("send ipv6 udp frag "..k)
 		test_assert(rawsend_dissect_print(d))
 	end
@@ -771,7 +780,7 @@ function test_rawsend(opts)
 	test_assert(rawsend_dissect_print(dis, {repeats=3}))
 
 	ddis = ipfrag2(dis, {ipfrag_pos_udp = 80})
-	for k,d in pairs(ddis) do
+	for k,d in ipairs(ddis) do
 		print("send ipv6 udp frag "..k.." with hopbyhop ext header")
 		test_assert(rawsend_dissect_print(d))
 	end
@@ -780,7 +789,7 @@ function test_rawsend(opts)
 	table.insert(ip6.exthdr, { type = IPPROTO_DSTOPTS, data = "\x00\x00\x00\x00\x00\x00" })
 	ip6.ip6_flow = 0x60001234;
 	ddis = ipfrag2(dis, {ipfrag_pos_udp = 80})
-	for k,d in pairs(ddis) do
+	for k,d in ipairs(ddis) do
 		print("send ipv6 udp frag "..k.." with hopbyhop, destopt ext headers in unfragmentable part and another destopt ext header in fragmentable part")
 		test_assert(rawsend_dissect_print(d, {fwmark = 0x50EA}))
 	end
@@ -788,7 +797,7 @@ function test_rawsend(opts)
 	fix_ip6_next(ip6) -- required to forge next proto in the second fragment
 	ip6.ip6_flow = 0x6000AE38;
 	ddis = ipfrag2(dis, {ipfrag_pos_udp = 80, ipfrag_next = IPPROTO_TCP})
-	for k,d in pairs(ddis) do
+	for k,d in ipairs(ddis) do
 		print("send ipv6 udp frag "..k.." with hopbyhop, destopt ext headers in unfragmentable part and another destopt ext header in fragmentable part. forge next proto in fragment header of the second fragment to TCP")
 		-- reconstruct dissect using next proto fields in the dissect. do not auto fix next proto chain.
 		-- by default reconstruct fixes next proto chain

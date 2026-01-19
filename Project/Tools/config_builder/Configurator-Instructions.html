@@ -383,7 +383,7 @@
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>10</kbd> CDN</div>
-                <div class="param-desc">Основной пресет. Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также частично может влиять на подключение к голосовым каналам в Discord.</div>
+                <div class="param-desc">Основной пресет. Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также влияет на подключение к голосовым каналам в Discord.</div>
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>11</kbd> CDN Amazon TCP</div>
@@ -500,9 +500,21 @@
                 </div>
             </div>
 
-            <!-- Метод 2 -->
+             <!-- Метод 2 -->
+            <div class="param-card" style="border-left: 4px solid var(--accent-color);">
+                <div class="param-title">Способ 2: Передача содержимого файла настроек конфигуратора</div>
+                <div class="param-desc">
+                    <p>Самый простой вариант — написать <b>cfg</b>. Откроется файл с конфигурацией, содержимое которого можно скопировать и отправить другу.</p>
+                 <p>Ему нужно у себя написать <b>cfg</b> и полностью заменить содержимое тем, что вы ему прислали.</p>
+                    <div class="terminal-box">
+                        <span class="path-highlight">GoodbyeZapret</span>\Project\configs\custom\ConfiguratorFix.bat
+                    </div>
+                </div>
+            </div>
+
+            <!-- Метод 3 -->
             <div class="param-card">
-                <div class="param-title">Способ 2: Вручную (По цифрам)</div>
+                <div class="param-title">Способ 3: Вручную (По цифрам)</div>
                 <div class="param-desc">
                     <p>Если передать файл нет возможности, просто сообщите другу значения стратегий (зеленые цифры), которые установлены у вас.</p>
                     <p style="margin-top:10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
@@ -511,7 +523,6 @@
                     <p style="margin-top:10px">Друг должен открыть свой конфигуратор и вручную выставить эти цифры в меню.</p>
                 </div>
             </div>
-
         </div>
     </section>
 
