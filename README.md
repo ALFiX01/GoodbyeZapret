@@ -104,10 +104,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubus
 
 ### Метод 2. installer (автоматическая установка)
 
-1. Скачайте файл [`installer.exe`](https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/installer.exe) и переместите его в любую удобную папку (например, `C:\Users\PC\Desktop`).
+1. Скачайте файл [`installer.exe`](https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/installer.exe) и переместите его в любую удобную папку (например, `C:\`).
 2. Запустите `installer.exe` **от имени администратора** и следуйте подсказкам в открывшемся окне.
 3. После завершения рядом с `installer.exe` появится папка `GoodbyeZapret` — в неё будет установлена программа.
-4. Для запуска перейдите в созданную папку и откройте `Launcher.exe` **от имени администратора**.
+4. Для запуска перейдите в созданную папку и откройте `Launcher.bat` **от имени администратора**.
 
 ---
 
@@ -157,9 +157,10 @@ GoodbyeZapretTray.exe, а также закройте консоль, связа
    <Системный диск>:\GoodbyeZapret\configs
    ```
 2. Запустите нужный `.bat` файл **от имени администратора**:
-   - `UltimateFix.bat` — для обхода блокировок Discord, YouTube и др.
-   - `WebUnlock.bat` — аналог, но с расширенным списком сайтов и другим режимом.
-   - Альтернативные варианты: `UltimateFix_2.bat`, `UltimateFix_3.bat`, `WebUnlock_2.bat` и др.
+   - `MultiFix.bat` — для обхода блокировок Discord, YouTube и др.
+   - `MultiFix_AllPort.bat` — аналог, но с полным диапазоном портов.
+   - `MultiFix_Lab.bat` — детально настраиваемый через блокнот.
+   - Альтернативные варианты: `MultiFix_2.bat`, `MultiFix_3.bat` и др.
 3. **Оставьте консоль открытой** — она должна работать для обхода блокировок.
 4. Для остановки — просто закройте окно консоли.
 
