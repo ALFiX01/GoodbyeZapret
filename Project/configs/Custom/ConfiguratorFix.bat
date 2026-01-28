@@ -37,7 +37,6 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws2.exe" ^
 --wf-tcp-out=80,443,444-65535 --wf-udp-out=444-65535 ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
---wf-raw-part=@"%BIN%windivert.filter\windivert_part.wireguard.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 --blob=tls_google:@"%FAKE%tls_clienthello_www_google_com.bin" ^
@@ -46,11 +45,11 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws2.exe" ^
 --blob=quic_test:@"%FAKE%quic_test_00.bin" ^
 --filter-l7=discord,stun --out-range=-d10 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2 --new ^
 --filter-tcp=80,443 --filter-l7=tls --ipset="%LISTS%ipset-youtube.txt" --out-range=-d10 --lua-desync=send:repeats=3 --lua-desync=syndata:blob=tls_google --new ^
---filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20 --new ^
+--filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --out-range=-d4 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google --new ^
 --filter-udp=443 --hostlist="%LISTS%list-youtube.txt" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
 --filter-tcp=443 --hostlist-domains=updates.discord.com --out-range=-d10 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
 --filter-udp=443 --hostlist="%LISTS%list-discord-no-update.txt" --payload=unknown --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=2:payload=unknown --new ^
---filter-tcp=80,443 --ipset="%LISTS%ipset-discord.txt" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld --new ^
+--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google --lua-desync=multisplit:pos=midsld --new ^
 --filter-tcp=80,443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --ipset-exclude="%LISTS%ipset-dns.txt" --out-range=-n6 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20 --lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack --new ^
 --filter-udp=443,444-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --payload=all --lua-desync=fake:blob=quic_test:repeats=2:payload=all --new ^
 --filter-tcp=1080,2053,2083,2087,2096,8443 --out-range=-n5 --payload=tls_client_hello --lua-desync=rst:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 --lua-desync=multidisorder:pos=3:tcp_md5sig=1:tcp_seq=-10000:tcp_ack=-66000 --new ^

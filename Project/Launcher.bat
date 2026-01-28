@@ -50,8 +50,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.2.0"
-set "Current_GoodbyeZapret_version_code=20YA02"
+set "Current_GoodbyeZapret_version=3.2.1"
+set "Current_GoodbyeZapret_version_code=28YA02"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -495,19 +495,15 @@ REM Инициализируем переменные статуса
 set "CheckStatus=WithoutChecked"
 set "sourcePath=%~dp0"
 
-REM Устанавливаем значения по умолчанию для конфигурации GoodbyeZapret
+REM Устанавливаем значения по умолчанию для конфига GoodbyeZapret
 REM set "GoodbyeZapret_Current=Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
-set "GoodbyeZapret_Old=Отсутствует"
 
 REM Проверяем, существует ли служба GoodbyeZapret и получаем текущую конфигурацию
 REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
 REM if !errorlevel! equ 0 (
 REM     for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
 REM )
-
-REM Проверяем старый конфиг в config-файле
-call :ReadConfig GoodbyeZapret_OldConfig
 
 REM Инициализируем флаг ремонта
 set "RepairNeed=No"
@@ -729,7 +725,7 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     ) else (
         taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
         if exist "%ParentDirPath%\tools\tray\goodbyezapret_tray.log" (
-            del /F /Q "%ParentDirPath%\tools\tray\goodbyezapret_tray.log"
+            del /F /Q "%ParentDirPath%\tools\tray\goodbyezapret_tray.log" >nul
         )
         timeout /t 1 >nul
     )
@@ -782,11 +778,6 @@ if %errorlevel% equ 0 (
 
 if /i "%GoodbyeZapret_Config%" neq "NotFound" if /i not "%GoodbyeZapret_Config%"=="%GoodbyeZapret_Current%" call :WriteConfig GoodbyeZapret_Config "%GoodbyeZapret_Current%"
 
-
-REM Проверьте старый конфиг в config-файле
-call :ReadConfig GoodbyeZapret_OldConfig
-set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
-
 REM Update version in registry if defined
  if defined Current_GoodbyeZapret_version (
     call :WriteConfig GoodbyeZapret_Version "%Current_GoodbyeZapret_version%"
@@ -814,6 +805,7 @@ REM ----------------------------------------------------
 :MainMenu_without_ui_info
 REM call :ResizeMenuWindow
 mode con: cols=92 lines=41
+if /i "%WiFi%"=="Off" mode con: cols=92 lines=42
 REM Check for last working config in registry
 
 call :ReadConfig GoodbyeZapret_Config
@@ -968,7 +960,7 @@ set /p "choice=%DEL%                                           %COL%[90m:> "
 REM Handle user input with case-insensitive matching
 if /i "%choice%"=="1" goto CurrentStatus 
 if /i "%choice%"=="2" goto ConfiguratorMenu
-if /i "%choice%"=="3" goto ConfigSelectorMenu
+if /i "%choice%"=="3" goto ConfigSelectorMenu_without_ui_info
 if /i "%choice%"=="4" goto MenuBypassSettings_without_ui_info
 if /i "%choice%"=="5" Start https://hyperion-cs.github.io/dpi-checkers/ru/tcp-16-20
 if /i "%choice%"=="6" goto OpenInstructions
@@ -1232,15 +1224,26 @@ if errorlevel 1 (
     pause >nul
 )
 
+setlocal EnableDelayedExpansion
 set "hasActiveOrStarted=0"
-for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
-    set "ConfigName=%%~nF"
-    if /i "!ConfigName!"=="%GoodbyeZapret_Config%" set "hasActiveOrStarted=1"
+set /a counter=0
+
+REM === Получаем список .bat с natural sort =========================
+chcp 850 >nul 2>&1
+powershell -NoProfile -Command ^
+    "Get-ChildItem '%ParentDirPath%\configs\Preset','%ParentDirPath%\configs\Custom' -Filter *.bat |" ^
+    "Sort-Object { [regex]::Replace($_.Name, '\d+', { param($m) $m.Value.PadLeft(20,'0') }) } |" ^
+    "ForEach-Object { $_.FullName }" ^
+    > "%temp%\cfg_list.tmp"
+chcp 65001 >nul 2>&1
+REM === Проверка активного конфига ================================
+for /f "delims=" %%F in (%temp%\cfg_list.tmp) do (
+    if /i "%%~nF"=="%GoodbyeZapret_Config%" set "hasActiveOrStarted=1"
 )
 
-REM Modernized config enumeration ----------------------------------------------------
-for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Custom\*.bat") do (
-    set /a "counter+=1"
+REM === Вывод ======================================================
+for /f "delims=" %%F in (%temp%\cfg_list.tmp) do (
+    set /a counter+=1
     set "ConfigName=%%~nF"
     set "ConfigFull=%%~nxF"
 
@@ -1250,29 +1253,26 @@ for %%F in ("%ParentDirPath%\configs\Preset\*.bat" "%ParentDirPath%\configs\Cust
     if /i "!ConfigName!"=="%GoodbyeZapret_Config%" (
         set "StatusText=[Текущий]"
         set "StatusColor=%COL%[92m"
-    ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" (
-        if "!hasActiveOrStarted!"=="0" (
-            set "StatusText=[Работал лучше других]"
-            set "StatusColor=%COL%[93m"
-        )
-    ) else if /i "!ConfigName!"=="%GoodbyeZapret_Old%" (
-        set "StatusText=[Последний запущенный]"
+    ) else if /i "!ConfigName!"=="!GoodbyeZapret_LastWork!" if "!hasActiveOrStarted!"=="0" (
+        set "StatusText=[Работал лучше других]"
         set "StatusColor=%COL%[93m"
     )
 
-        REM Simple alignment for single-digit numbers
-        if !counter! lss 10 (set "Pad= ") else (set "Pad=")
+    if !counter! lss 10 (set "Pad= ") else set "Pad="
 
     if !counter! geq !StartIndex! if !counter! leq !EndIndex! (
         if defined StatusText (
-            echo                  %COL%[36m!counter!.!Pad! %COL%[36m%%~nF !StatusColor!!StatusText!
+            echo                  !Pad!%COL%[36m!counter!. %COL%[36m!ConfigName! !StatusColor!!StatusText!
         ) else (
-            echo                  %COL%[36m!counter!.!Pad! %COL%[37m%%~nF
+            echo                  !Pad!%COL%[36m!counter!. %COL%[37m!ConfigName!
         )
     )
 
     set "file!counter!=!ConfigFull!"
 )
+
+del "%temp%\cfg_list.tmp"
+
 REM ---------------------------------------------------------------------------------
 
 set /a "lastChoice=counter"
@@ -1295,22 +1295,22 @@ echo.
 REM Display different menu options based on current service status
 if "%GoodbyeZapret_Config%"=="Не выбран" (
     echo                  %COL%[36m^[1-!counter!s^] %COL%[92mЗапустить конфиг
-    echo                  %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
-    echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
+    echo                   %COL%[36m^[1-!counter!^] %COL%[92mУстановить конфиг в автозапуск
+    echo                    %COL%[36m^[ A ^] %COL%[37mАвтоподбор конфига
 ) else (
-    echo                  %COL%[36m^[ DS ^] %COL%[91mУдалить конфиг из автозапуска
-    echo                  %COL%[36m^[ RS ^] %COL%[37mБыстрый перезапуск конфига
-    echo                  %COL%[36m^[ AC ^] %COL%[37mАвтоподбор конфига
+    echo                    %COL%[36m^[ D ^] %COL%[91mУдалить конфиг из автозапуска
+    echo                    %COL%[36m^[ R ^] %COL%[37mБыстрый перезапуск конфига
+    echo                    %COL%[36m^[ A ^] %COL%[37mАвтоподбор конфига
 )
 
 REM ---- Pagination options ----
 if %TotalPages% gtr 1 (
     echo.
-    if %Page% lss %TotalPages% echo                  %COL%[36m^[ N  ^] %COL%[37mСледующая страница с конфигами
-    if %Page% gtr 1 echo                  %COL%[36m^[ B  ^] %COL%[37mПредыдущая страница
-    if %Page% equ 1 echo                  %COL%[36m^[ B  ^] %COL%[37mВернуться в главное меню
+    if %Page% lss %TotalPages% echo                    %COL%[36m^[ N ^] %COL%[37mСледующая страница с конфигами
+    if %Page% gtr 1 echo                    %COL%[36m^[ B ^] %COL%[37mПредыдущая страница
+    if %Page% equ 1 echo                    %COL%[36m^[ B ^] %COL%[37mВернуться в главное меню
 ) else (
-    echo                  %COL%[36m^[ B  ^] %COL%[37mВернуться в главное меню
+    echo                    %COL%[36m^[ B ^] %COL%[37mВернуться в главное меню
 )
 REM ----------------------------
 echo.
@@ -1320,19 +1320,20 @@ echo.
 set /p "choice=%DEL%                                           %COL%[90m:> "
 
 REM Handle user input with case-insensitive matching
-if /i "%choice%"=="DS" goto remove_service
-if /i "%choice%"=="вы" goto remove_service
+if /i "%choice%"=="D" goto remove_service
+if /i "%choice%"=="в" goto remove_service
 
-if /i "%choice%"=="ST" goto CurrentStatus
-if /i "%choice%"=="ые" goto CurrentStatus
+if /i "%choice%"=="R" goto QuickRestart
+if /i "%choice%"=="к" goto QuickRestart
 
-if /i "%choice%"=="AC" goto ConfigAutoFinder
-if /i "%choice%"=="фс" goto ConfigAutoFinder
+if /i "%choice%"=="S" goto CurrentStatus
+if /i "%choice%"=="ы" goto CurrentStatus
 
-if /i "%choice%"=="RC" goto QuickRestart
-if /i "%choice%"=="кы" goto QuickRestart
+if /i "%choice%"=="A" goto ConfigAutoFinder
+if /i "%choice%"=="ф" goto ConfigAutoFinder
 
-if /i "%choice%"=="R" goto RR
+
+if /i "%choice%"=="RR" goto RR
 
 REM --- Pagination input handling ---
 if /i "%choice%"=="N" (
@@ -1404,7 +1405,7 @@ if not defined batFile (
 
 REM Check if selected config file exists
 if not exist "%ParentDirPath%\configs\!batRel!" (
-    echo Ошибка: Файл конфигурации !batRel! не найден.
+    echo Ошибка: Файл конфига !batRel! не найден.
     echo Пожалуйста, попробуйте снова.
     goto MainMenu
 )
@@ -1485,7 +1486,6 @@ REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret
 REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
 
 call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
-call :WriteConfig GoodbyeZapret_OldConfig "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
 cls
@@ -1618,15 +1618,6 @@ goto :install_GZ_service
 if !ErrorCount! equ 0 (
     REM Set default values for GoodbyeZapret configuration
     set "GoodbyeZapret_Config=Не выбран"
-    set "GoodbyeZapret_Old=Отсутствует"
-
-    rem /// Check for old configuration via config ///
-    call :ReadConfig GoodbyeZapret_OldConfig
-    if "%GoodbyeZapret_OldConfig%"=="NotFound" (
-        set "GoodbyeZapret_Old=NotFound"
-    ) else (
-        set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
-    )
 
     call :ReadConfig GoodbyeZapret_Config
     if "%GoodbyeZapret_Config%"=="NotFound" (
@@ -1640,15 +1631,7 @@ if !ErrorCount! equ 0 (
     set "batFile="
     REM Set default values for GoodbyeZapret configuration
     set "GoodbyeZapret_Config=Не выбран"
-    set "GoodbyeZapret_Old=Отсутствует"
 
-    rem /// Check for old configuration via config ///
-    call :ReadConfig GoodbyeZapret_OldConfig
-    if "%GoodbyeZapret_OldConfig%"=="NotFound" (
-        set "GoodbyeZapret_Old=NotFound"
-    ) else (
-        set "GoodbyeZapret_Old=%GoodbyeZapret_OldConfig%"
-    )
     if "%PanelBack%"=="Configurator" ( goto ConfiguratorMenu ) else ( goto ConfigSelectorMenu_without_ui_info )
 )
 
@@ -2356,7 +2339,7 @@ if %Remaining% gtr %PageSize% set /a Remaining=%PageSize%
 set /a VisibleOnPage=Remaining
 
 REM === Базовое количество строк интерфейса ===
-set /a BaseLines=24
+set /a BaseLines=25
 set /a ListBatCount=BaseLines+VisibleOnPage
 
 REM === Пагинация: если страниц больше одной, добавляем 2 строки ===
@@ -2408,7 +2391,7 @@ if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
 
 
 REM === DEBUG ===
-set DEBUG_mode=0
+set "DEBUG_mode=0"
 if "%DEBUG_mode%"=="1" (
  echo WiFi - %WiFi%
  echo CheckStatus - %CheckStatus%
@@ -2457,7 +2440,7 @@ set "RES="
 set "FOUND=0"
 
 if not exist "%CONFIG_FILE%" (
-    echo [LOG][ОШИБКА] Файл конфигурации не найден
+    echo [LOG][ОШИБКА] Файл конфига не найден
     REM Если конфига нет, сразу пробуем применить дефолтное значение
     goto :CheckDefault
 )
@@ -2580,7 +2563,7 @@ for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_O
 
 
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
-set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_OldConfig GoodbyeZapret_Version_code"
+set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_Version_code"
 set "REG_KEY=HKCU\Software\ALFiX inc.\GoodbyeZapret"
 
 if exist "%CONFIG_FILE%" goto :eof
@@ -2664,7 +2647,7 @@ set "Configurator=1" & call :ReadConfig CDN_LVL base
 
 :MENU
 cls
-title GoodbyeZapret — Конфигуратор стратегий
+title GoodbyeZapret - Конфигуратор стратегий
 
 :: Список всех переменных для проверки
 set "CHECK_LIST=YT YTGV YTQ TW DSUPD DS DSQ BL STUN CDN AMZTCP AMZUDP CUSTOM"
@@ -2743,7 +2726,6 @@ if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
         call :remove_service_before_installing
         call :install_GZ_service
         call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
-        call :WriteConfig GoodbyeZapret_OldConfig "ConfiguratorFix"
     )
 if /i "%opt%"=="г" (
         set "batFile=ConfiguratorFix.bat"
@@ -2753,7 +2735,6 @@ if /i "%opt%"=="г" (
         call :remove_service_before_installing
         call :install_GZ_service
         call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
-        call :WriteConfig GoodbyeZapret_OldConfig "ConfiguratorFix"
     )
 )
 

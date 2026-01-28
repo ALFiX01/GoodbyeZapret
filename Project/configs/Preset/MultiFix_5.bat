@@ -47,14 +47,15 @@ REM --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloud
 REM --filter-udp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync=fake --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_6.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n4 --dpi-desync-ttl=7 --new ^
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,443,1080,2053,2083,2087,2096,8443,1024-65535 --wf-udp=443,444-65535 ^
+--wf-tcp=80,443,1080,2053,2083,2087,2096,8443,1024-65535 --wf-udp=443,1024-65535 ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 
 --filter-tcp=443 --filter-l7=unknown --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync-any-protocol=1 --dpi-desync=syndata --dpi-desync-fake-syndata="%FAKE%syn_packet.bin" --dup=2 --dup-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq,hopbyhop2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq,hopbyhop2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
+--filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq,hopbyhop2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
 
 --filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --dpi-desync=fake,multisplit --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=1000 --dpi-desync-fake-tls="%FAKE%tls_clienthello_www_google_com.bin" --new ^

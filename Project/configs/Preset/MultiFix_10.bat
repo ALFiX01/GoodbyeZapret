@@ -47,20 +47,19 @@ REM --filter-udp=1024-65535 --ipset="%LISTS%ipset-cloudflare-full.txt" --dpi-des
 REM start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 REM --dpi-desync-any-protocol=1 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=5 --dpi-desync-cutoff=n4
 
-REM --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x00FF00FF --dpi-desync-fooling=ts,md5sig --dpi-desync-cutoff=n4 --new ^
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 --wf-tcp=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535 --wf-udp=443,1024-65535 ^
---wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --filter-l7=stun --dpi-desync=fake --new ^
---wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
+--wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --filter-l7=stun --dpi-desync=fake --dpi-desync-repeats=5 --new ^
+--wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --filter-l7=discord --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-repeats=6 --new ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
 
 --filter-tcp=443 --filter-l7=unknown --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=314 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=314 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=314 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-cutoff=n5 --new ^
 --filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
 
 --filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls=^! --dpi-desync-fake-tls-mod=rnd,sni=www.google.com --dpi-desync-fake-tls="%FAKE%tls_clienthello_4pda_to.bin" --dpi-desync-fake-tls-mod=none --new ^
---filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
 
 --filter-udp=443 --hostlist-exclude="%LISTS%list-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
 --filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq,hopbyhop2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
