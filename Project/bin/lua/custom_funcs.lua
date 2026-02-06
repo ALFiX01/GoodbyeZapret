@@ -2457,12 +2457,174 @@ function http_mixed_prefix(ctx, desync)
         return
     end
     direction_cutoff_opposite(ctx, desync)
-    
+
     if desync.l7payload=="http_req" and direction_check(desync) then
         -- \r\n потом пробелы потом таб
         desync.dis.payload = "\r\n \t" .. desync.dis.payload
         DLOG("http_mixed_prefix: added mixed whitespace prefix")
         return VERDICT_MODIFY
+    end
+end
+
+-- ============================================================================
+-- SUPER ADVANCED DECOY + HOST SPLIT + MIXCASE
+-- ============================================================================
+
+-- standard args : direction, payload, rawsend, reconstruct, ipfrag
+-- arg : decoys=N - количество фейковых запросов (default 3)
+-- arg : decoy_hosts=<str> - список фейковых хостов через запятую (default: google.com,yandex.ru,vk.com)
+-- arg : disorder=N - отправлять части в обратном порядке (default enabled)
+-- arg : mixcase - включить замену Host на hoSt (по умолчанию включено)
+function http_super_decoy(ctx, desync)
+    if not desync.dis.tcp then
+        instance_cutoff(ctx)
+        return
+    end
+    direction_cutoff_opposite(ctx, desync)
+
+    local data = desync.reasm_data or desync.dis.payload
+    
+    -- Проверяем, что это HTTP запрос
+    if #data > 0 and desync.l7payload == "http_req" and direction_check(desync) then
+        if replay_first(desync) then
+            -- == НАСТРОЙКИ ==
+            local num_decoys = tonumber(desync.arg.decoys) or 3
+            local decoy_hosts_str = desync.arg.decoy_hosts or "google.com,facebook.com,twitter.com,drive.google.com"
+            local use_disorder = desync.arg.disorder ~= "false" -- включено по умолчанию
+            local use_mixcase = desync.arg.mixcase ~= "false"   -- включено по умолчанию
+            
+            -- Парсинг списка хостов
+            local decoy_hosts = {}
+            for host in string.gmatch(decoy_hosts_str, "[^,]+") do
+                table.insert(decoy_hosts, host)
+            end
+
+            -- Парсим реальный запрос
+            local hdis = http_dissect_req(data)
+            local real_host = "example.com"
+            local host_pos_start = 0
+            local host_pos_end = 0
+            local host_header_pos = 0 -- позиция слова "Host:"
+            
+            if hdis and hdis.headers.host then
+                host_pos_start = hdis.headers.host.pos_value_start
+                host_pos_end = hdis.headers.host.pos_end
+                host_header_pos = hdis.headers.host.pos_key_start
+                real_host = string.sub(data, host_pos_start, host_pos_end)
+            end
+
+            -- == ГЕНЕРАЦИЯ ФЕЙКОВ (DECOYS) ==
+            local opts_decoy = {
+                rawsend = rawsend_opts(desync),
+                fooling = { badsum = true, md5sig = true } -- Badsum + TCP MD5 (если поддерживается)
+            }
+
+            local user_agents = {
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+            }
+
+            for i = 1, num_decoys do
+                local fake_host = decoy_hosts[(i % #decoy_hosts) + 1]
+                local ua = user_agents[(i % #user_agents) + 1]
+                
+                -- Создаем реалистичный фейковый запрос
+                local fake_request = "GET /search?q=".. os.time() .. " HTTP/1.1\r\n" ..
+                                   "Host: " .. fake_host .. "\r\n" ..
+                                   "User-Agent: " .. ua .. "\r\n" ..
+                                   "Accept: text/html,application/xhtml+xml\r\n" ..
+                                   "Connection: close\r\n\r\n"
+
+                local fake_dis = deepcopy(desync.dis)
+                fake_dis.payload = fake_request
+
+                -- TTL: Чередуем очень низкий (не дойдет) и чуть повыше (дойдет, но будет отброшен из-за badsum)
+                if fake_dis.ip then fake_dis.ip.ip_ttl = (i % 2 == 0) and 3 or 5 end
+                if fake_dis.ip6 then fake_dis.ip6.ip6_hlim = (i % 2 == 0) and 3 or 5 end
+
+                if b_debug then DLOG("SuperDecoy: sending fake -> "..fake_host) end
+                rawsend_dissect(fake_dis, opts_decoy.rawsend)
+            end
+
+            -- == МОДИФИКАЦИЯ РЕАЛЬНОГО ЗАПРОСА ==
+            
+            -- 1. MixCase: меняем Host: -> hoSt: (если включено и найден заголовок)
+            if use_mixcase and host_header_pos > 0 then
+                -- Патчим байты в payload ("Host" -> "hoSt")
+                -- Lua строки неизменяемы, собираем новую
+                local prefix = string.sub(data, 1, host_header_pos - 1)
+                local suffix = string.sub(data, host_header_pos + 4)
+                data = prefix .. "hoSt" .. suffix
+                -- Смещаем позиции, так как мы изменили data, но длина не поменялась
+            end
+
+            -- 2. Разбиение (Segmentation)
+            -- Стратегия: 
+            -- Часть 1: Начало ... середина домена
+            -- Часть 2: Оставшаяся часть домена ... конец
+            
+            local parts = {}
+            local split_point = 0
+
+            if host_pos_start > 0 and host_pos_end > 0 then
+                -- Режем посередине домена (например, yout|ube.com)
+                local host_len = host_pos_end - host_pos_start
+                local half_host = math.floor(host_len / 2)
+                split_point = host_pos_start + half_host
+            else
+                -- Fallback: просто пополам
+                split_point = math.floor(#data / 2)
+            end
+
+            -- Формируем части
+            local part1 = string.sub(data, 1, split_point)
+            local part2 = string.sub(data, split_point + 1)
+            
+            table.insert(parts, {data=part1, offset=0})
+            table.insert(parts, {data=part2, offset=#part1})
+
+            -- Опции отправки реальных данных
+            local opts_real = {
+                rawsend = rawsend_opts_base(desync),
+                reconstruct = {}, -- не пересчитываем payload (мы его уже собрали)
+                -- Включаем IP фрагментацию на уровне шлюза/пакета
+                ipfrag = { 
+                    ipfrag_pos_tcp = 24 -- Маленький первый IP фрагмент для еще большего запутывания
+                } 
+            }
+
+            -- == ОТПРАВКА (DISORDER) ==
+            if use_disorder then
+                -- Отправляем задом наперед: Часть 2, затем Часть 1
+                -- DPI видит "ube.com HTTP/..." (сирота), затем "GET... Host: yout"
+                -- Сервер собирает по SEQ номерам.
+                if b_debug then DLOG("SuperDecoy: Sending DISORDER split at "..split_point) end
+                
+                -- Отправляем вторую часть
+                if not rawsend_payload_segmented(desync, parts[2].data, parts[2].offset, opts_real) then return VERDICT_PASS end
+                -- Отправляем первую часть
+                if not rawsend_payload_segmented(desync, parts[1].data, parts[1].offset, opts_real) then return VERDICT_PASS end
+            else
+                -- Обычный порядок (просто сплит + ipfrag)
+                if b_debug then DLOG("SuperDecoy: Sending ORDERED split") end
+                for _, part in ipairs(parts) do
+                    if not rawsend_payload_segmented(desync, part.data, part.offset, opts_real) then return VERDICT_PASS end
+                end
+            end
+
+            -- Песочный эффект: еще один фейк в конце
+            local fake_dis = deepcopy(desync.dis)
+            fake_dis.payload = "GET / HTTP/1.1\r\nHost: " .. real_host .. "\r\n\r\n"
+            if fake_dis.ip then fake_dis.ip.ip_ttl = 3 end
+            rawsend_dissect(fake_dis, opts_decoy.rawsend)
+
+            replay_drop_set(desync)
+            return VERDICT_DROP
+        end
+        
+        if replay_drop(desync) then
+            return VERDICT_DROP
+        end
     end
 end
 
@@ -2583,7 +2745,18 @@ end
   - pos: позиция разбиения (default: "host" для TLS SNI)
   - delay: задержка перед отправкой второй части в мс (опционально)
 ]]
+--lua-desync=discord_window_collapse:pos=host
+
 function discord_window_collapse(ctx, desync)
+    -- DEFINING MISSING CONSTANTS --
+    local TH_FIN = 0x01
+    local TH_SYN = 0x02
+    local TH_RST = 0x04
+    local TH_PSH = 0x08
+    local TH_ACK = 0x10
+    local TH_URG = 0x20
+    --------------------------------
+
     -- Проверка наличия TCP
     if not desync.dis.tcp then
         instance_cutoff_shim(ctx, desync)
@@ -2637,6 +2810,7 @@ function discord_window_collapse(ctx, desync)
     local part1 = string.sub(data, 1, split_pos - 1)
     local pkt1 = deepcopy(desync.dis)
     pkt1.payload = part1
+    -- Now TH_ACK and TH_PSH are defined numbers
     pkt1.tcp.th_flags = bitor(TH_ACK, TH_PSH)
 
     DLOG("discord_window_collapse: sending part1 len="..#part1)
@@ -2677,6 +2851,7 @@ function discord_window_collapse(ctx, desync)
     replay_drop_set(desync)
     return VERDICT_DROP
 end
+
 
 
 --[[

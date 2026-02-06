@@ -347,7 +347,7 @@
         <div class="params-grid">
             <div class="param-card">
                 <div class="param-title"><kbd>1</kbd> YouTube</div>
-                <div class="param-desc">Основной пресет. Если сайт не грузится — меняйте это значение в первую очередь.</div>
+                <div class="param-desc">Если сайт не грузится — меняйте это значение в первую очередь.</div>
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>2</kbd> YouTube GoogleVideo</div>
@@ -359,7 +359,7 @@
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>4</kbd> Twitch</div>
-                <div class="param-desc">Основной пресет. Если не работают стримы на твиче - то крутите его.</div>
+                <div class="param-desc">Если не работают стримы на твиче - то крутите его.</div>
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>5</kbd> Discord Update</div>
@@ -367,31 +367,31 @@
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>6</kbd> Discord</div>
-                <div class="param-desc">Основной пресет. Подбирайте после того, как пропал экран обновлений ("Checking for updates..."), если интерфейс не грузится.</div>
+                <div class="param-desc">Подбирайте после того, как пропал экран обновлений ("Checking for updates..."), если интерфейс не грузится.</div>
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>7</kbd> Discord Quic</div>
                 <div class="param-desc">Протокол QUIC. Иногда участвует для подгрузки интерфейса. Если без него всё норм то ставьте <kbd>0</kbd> </div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>8</kbd> Blacklist</div>
-                <div class="param-desc">Instagram, Twitter и др. Из-за новых блокировок РКН практически бесполезно. Рекомендуется <kbd>0</kbd>.</div>
-            </div>
-            <div class="param-card">
-                <div class="param-title"><kbd>9</kbd> STUN</div>
+                <div class="param-title"><kbd>8</kbd> STUN</div>
                 <div class="param-desc">Важно для звонков (Telegram, WhatsApp, Discord Voice). Если не подключается к голосовому каналу дискорд ("RTC Connecting" или "Подключение...") — крутите здесь.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>10</kbd> CDN</div>
-                <div class="param-desc">Основной пресет. Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также влияет на подключение к голосовым каналам в Discord.</div>
+                <div class="param-title"><kbd>9</kbd> CDN</div>
+                <div class="param-desc">Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также влияет на подключение к голосовым каналам в Discord.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>11</kbd> CDN Amazon TCP</div>
-                <div class="param-desc">Основной пресет. Также частично может влиять на Twitch и загрузку изображений в Discord и подключение к голосовым каналам.</div>
+                <div class="param-title"><kbd>10</kbd> CDN Amazon TCP</div>
+                <div class="param-desc">Также частично может влиять на Twitch и загрузку изображений в Discord и подключение к голосовым каналам.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>12</kbd> CDN Amazon UDP</div>
+                <div class="param-title"><kbd>11</kbd> CDN Amazon UDP</div>
                 <div class="param-desc">То же самое что и CDN Amazon TCP но работает через UDP.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>12</kbd> Blacklist</div>
+                <div class="param-desc">Instagram, Twitter и др. Из-за новых блокировок РКН практически бесполезно. Рекомендуется <kbd>0</kbd>.</div>
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>13</kbd> Личные списки</div>
@@ -529,6 +529,7 @@
     <div class="tips-box">
         <h3>💡 Советы</h3>
         <ul>
+            <li><b>Проблемы с играми:</b> Для CDN и Amazone укажите значение 0 или же вручную отредактируйте файл прописав вместо "--filter-tcp=80,443,1024-65535" - "--filter-tcp=80,443" и вместо "--filter-udp=443,1024-65535" - "--filter-udp=443" убрав порты 1024-65535 используемые игровыми серверами</li>
             <li><b>Метод тыка:</b> Самый эффективный способ — перебор. Нет "лучшей" цифры, всё зависит от вашего провайдера.</li>
             <li><b>Индикация:</b> Цифры, подсвеченные зеленым цветом в консоли — это текущее активное значение.</li>
             <li><b>Диапазоны:</b> Вводите только числа, указанные в скобках (напр. 0-25).</li>
@@ -536,6 +537,11 @@
         </ul>
     </div>
 </div>
-
+</div>
+    <footer style="text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.9em;">
+        GoodbyeZapret © 2026 ALFiX<br>
+        Documentation Design by You
+    </footer>
+</div>
 </body>
 </html>

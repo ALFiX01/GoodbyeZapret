@@ -40,9 +40,11 @@ REM set log=--debug=@%~dp0log_debug.txt
 :: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
 :: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
+if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
+if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535 --wf-udp=443,50000-50090,4 ^
+--wf-tcp=%tcp_ports% --wf-udp=%udp_ports% ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --dpi-desync=fake --dpi-desync-fake-discord=0xc80000000114 --dpi-desync-cutoff=n6 --new ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --dpi-desync-hostfakesplit-mod=host=www.google.com,altorder=1 --dpi-desync-fooling=ts --new ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
@@ -64,7 +66,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 --filter-tcp=443 --filter-l7=tls --hostlist-exclude="%LISTS%autohostlist.txt" --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,rnd,sni=download.max.ru --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=315 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_11.bin" --dpi-desync-fooling=badseq,ts --dpi-desync-badseq-increment=3 --dpi-desync-badack-increment=21 --dpi-desync-cutoff=n6 --new ^
 
 --filter-tcp=80,443-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --ipset-exclude="%LISTS%ipset-dns.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fake-tls-mod=rnd,dupsid,sni=ya.ru --dpi-desync-hostfakesplit-mod=host=ya.ru,altorder=1 --dpi-desync-fooling=ts --new ^
---filter-udp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=10 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2 --new ^
+--filter-udp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake --dpi-desync-repeats=10 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n3 --new ^
 
 --filter-tcp=1080,2053,2083,2087,2096,8443 --hostlist-domains=discord.media --dpi-desync=rst,multidisorder --dpi-desync-split-pos=3 --dpi-desync-fooling=md5sig,badseq --dpi-desync-cutoff=n4 --new ^
 --filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-retrans-threshold=5 --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,sni=max.ru --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=226 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_10.bin" --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n6

@@ -107,10 +107,10 @@ end
 -- hostname is original hostname
 function is_dpi_redirect(hostname, location)
 	local ds = dissect_url(location)
-	if ds.domain then
+	if ds and ds.domain then
 		local sld1 = dissect_nld(hostname,2)
 		local sld2 = dissect_nld(ds.domain,2)
-		return sld2 and sld1~=sld2
+		return sld2 and sld1~=sld2 and true or false
 	end
 	return false
 end
@@ -403,7 +403,7 @@ function cond_payload_str(desync)
 	if not desync.arg.pattern then
 		error("cond_payload_str: missing 'pattern'")
 	end
-	return string.find(desync.dis.payload,desync.arg.pattern,1,true)
+	return desync.dis.payload and string.find(desync.dis.payload,desync.arg.pattern,1,true)
 end
 -- check iff function available. error if not
 function require_iff(desync, name)
@@ -458,13 +458,17 @@ end
 function repeater(ctx, desync)
 	local repeats = tonumber(desync.arg.repeats)
 	if not repeats then
-		error("repeat: missing 'repeats'")
+		error("repeater: missing 'repeats'")
 	end
 	local iff = desync.arg.iff or "cond_true"
 	if type(_G[iff])~="function" then
-		error(name..": invalid 'iff' function '"..iff.."'")
+		error("repeater: invalid 'iff' function '"..iff.."'")
 	end
 	orchestrate(ctx, desync)
+	if #desync.plan==0 then
+		DLOG("repeater: execution plan is empty - nothing to repeat")
+		return
+	end
 	local neg = desync.arg.neg
 	local stop = desync.arg.stop
 	local clear = desync.arg.clear

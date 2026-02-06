@@ -2,6 +2,9 @@
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
+:: Запуск от имени админа
+if not "%1"=="am_admin" (powershell start -verb runas '%0' am_admin & exit /b)
+
 :: Получаем путь к родительской папке и проверяем на пробелы
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent \"%~f0\""') do set "ParentDirPathForCheck=%%A"
 
@@ -16,14 +19,6 @@ echo."%tempvar%"| findstr /c:" " >nul && (
     echo  WARN: The folder name contains spaces.
     echo.
     pause
-    exit /b
-)
-
-:: Метод C: fsutil dirty query %SystemDrive% (часто доступен даже на урезанных системах)
-fsutil dirty query %SystemDrive% >nul 2>&1
-if %errorlevel% neq 0 (
-    echo  Requesting administrator privileges...
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
     exit /b
 )
 
@@ -50,8 +45,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.2.1"
-set "Current_GoodbyeZapret_version_code=28YA02"
+set "Current_GoodbyeZapret_version=3.3.0"
+set "Current_GoodbyeZapret_version_code=2F01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1036,21 +1031,23 @@ if /i "%branch%"=="beta" (
 )
 
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
+if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 echo.
 echo.
-echo                          %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN          ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
+echo                    %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN               ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
 echo.
-echo                          %COL%[96m^[ 2 ^]%COL%[37m Обход Discord + Fin. Voice   ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
+echo                    %COL%[96m^[ 2 ^]%COL%[37m Host Обход Discord + Fin. Voice   ^(%COL%[96m%FinlandDiscordHost%%COL%[37m^)
 echo.
-echo                          %COL%[96m^[ 3 ^]%COL%[37m Обход twitch                 ^(%COL%[96m%TwitchHost%%COL%[37m^)
+echo                    %COL%[96m^[ 3 ^]%COL%[37m Host Обход twitch                 ^(%COL%[96m%TwitchHost%%COL%[37m^)
 echo.
-echo                          %COL%[96m^[ 4 ^]%COL%[37m Обход YouTube                ^(%COL%[96m%YoutubeHost%%COL%[37m^)
+echo                    %COL%[96m^[ 4 ^]%COL%[37m Host Обход YouTube                ^(%COL%[96m%YoutubeHost%%COL%[37m^)
 echo.
+echo                    %COL%[96m^[ 5 ^]%COL%[37m TCP порты обхода:
+echo                    %COL%[92m!tcp_ports!
 echo.
-echo.
-echo.
-echo.
-echo.
+echo                    %COL%[96m^[ 6 ^]%COL%[37m UDP порты обхода:
+echo                    %COL%[92m!udp_ports!
 echo.
 echo.
 echo.
@@ -1079,15 +1076,46 @@ if /i "%choice%"=="4" goto YoutubeHostsSelector
 
 if /i "%choice%"=="B" goto MainMenu_without_ui_info
 if /i "%choice%"=="и" goto MainMenu_without_ui_info
-goto MenuBypassSettings
+
+:: Проверки ввода с использованием полученных лимитов
+if "%choice%"=="5" (
+    set /p tcp_ports="%DEL%   Введите новые TCP порты: "
+    REM Записываем новое значение в реестр (системные переменные)
+
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "tcp_ports" /t REG_SZ /d "!tcp_ports!" /f >nul
+
+    if defined tcp_ports (
+        call :WriteConfig CDN_LVL "%tcp_ports%"
+    ) else (
+        echo ^[ERROR^] tcp_ports не определен
+    )
+    goto MENU
+)
+
+:: Проверки ввода с использованием полученных лимитов
+if "%choice%"=="6" (
+    set /p udp_ports="%DEL%   Введите новые UDP порты: "
+    REM Записываем новое значение в реестр (системные переменные)
+
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "udp_ports" /t REG_SZ /d "!udp_ports!" /f >nul
+
+    if defined udp_ports (
+        call :WriteConfig CDN_LVL "%udp_ports%"
+    ) else (
+        echo ^[ERROR^] udp_ports не определен
+    )
+    goto MENU
+)
+
+goto MenuBypassSettings_without_ui_info
 
 
 :ConfigSelectorMenu
 call :ui_info "Загружаю интерфейс..."
-set "PanelBack=ConfigSelectorMenu"
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
 :ConfigSelectorMenu_without_ui_info
+set "PanelBack=ConfigSelectorMenu"
 call :ResizeMenuWindow
 REM Check for last working config in registry
 call :ReadConfig GoodbyeZapret_LastWorkConfig
@@ -2676,22 +2704,22 @@ echo    %COL%[36m║
 echo    %COL%[36m║   %COL%[96m[  5 ]%COL%[37m  Discord Update             %COL%[92m!DSUPD!          !DSUPD_sp!%COL%[90m(0-!MAX_DiscordUpdate!)
 echo    %COL%[36m║   %COL%[96m[  6 ]%COL%[37m  Discord                    %COL%[92m!DS!          !DS_sp!%COL%[90m(0-!MAX_Discord!)
 echo    %COL%[36m║   %COL%[96m[  7 ]%COL%[37m  Discord QUIC               %COL%[92m!DSQ!          !DSQ_sp!%COL%[90m(0-!MAX_DiscordQuic!)
+echo    %COL%[36m║   %COL%[96m[  8 ]%COL%[37m  STUN                       %COL%[92m!STUN!          !STUN_sp!%COL%[90m(0-!MAX_STUN!)
 echo    %COL%[36m║
-echo    %COL%[36m║   %COL%[96m[  8 ]%COL%[37m  Blacklist                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_blacklist!)
-echo    %COL%[36m║   %COL%[96m[  9 ]%COL%[37m  STUN                       %COL%[92m!STUN!          !STUN_sp!%COL%[90m(0-!MAX_STUN!)
+echo    %COL%[36m║   %COL%[96m[  9 ]%COL%[37m  CDN                        %COL%[92m!CDN!          !CDN_sp!%COL%[90m(0-!MAX_CDN!)
+echo    %COL%[36m║   %COL%[96m[ 10 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
+echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
 echo    %COL%[36m║
-echo    %COL%[36m║   %COL%[96m[ 10 ]%COL%[37m  CDN                        %COL%[92m!CDN!          !CDN_sp!%COL%[90m(0-!MAX_CDN!)
-echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
-echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
-echo    %COL%[36m║
+echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Blacklist                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_blacklist!)
 echo    %COL%[36m║   %COL%[96m[ 13 ]%COL%[37m  Личные списки              %COL%[92m!CUSTOM!          !CUSTOM_sp!%COL%[90m(0-!MAX_custom!)
 
 echo    %COL%[36m╠════════════════════════════════════════════════════════════════════════════════════
-echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень CDN              %COL%[92m!CDN_LVL!      %COL%[90m(off/base/full)
-echo    %COL%[36m║   %COL%[96m[ E ]%COL%[37m   Движок                  %COL%[92mZapret!ENGN!   %COL%[90m(Zapret1/Zapret2)
+echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень CDN              %COL%[92m!CDN_LVL!       %COL%[90m(off/base/full)
+echo    %COL%[36m║   %COL%[96m[ E ]%COL%[37m   Движок                  %COL%[92mZapret!ENGN!    %COL%[90m(Zapret1/Zapret2)
 echo    %COL%[36m╚════════════════════════════════════════════════════════════════════════════════════╝
 echo.
 echo    %COL%[92m[ S ] Запустить обход
+echo    %COL%[92m[ С ] Быстро проверить обход
 echo    %COL%[91m[ K ] Остановить обход
 if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
     if "%GoodbyeZapretStart%"=="Yes" (
@@ -2702,7 +2730,8 @@ if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
 )
 
 echo.
-echo    %COL%[90m[ I ] Инструкция     
+echo    %COL%[90m[ L ] Открыть личные списки  
+echo    %COL%[90m[ I ] Инструкция   
 echo    %COL%[90m[ B ] Назад
 echo.
 set /p "opt=%DEL%   %COL%[90m:> "
@@ -2712,13 +2741,23 @@ if /i "%opt%"=="S" goto START
 if /i "%opt%"=="ы" goto START
 if /i "%opt%"=="K" goto KILL
 if /i "%opt%"=="л" goto KILL
+
 if /i "%opt%"=="cfg" explorer "%USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt"
 if /i "%opt%"=="I" goto OpenConfiguratorInstructions
 if /i "%opt%"=="ш" goto OpenConfiguratorInstructions
+if /i "%opt%"=="L" goto OpenPersonalList
+if /i "%opt%"=="д" goto OpenPersonalList
 if /i "%opt%"=="B" goto MainMenu_without_ui_info
 if /i "%opt%"=="И" goto MainMenu_without_ui_info
+if /i "%opt%"=="C" goto START_with_checking
+if /i "%opt%"=="с" goto START_with_checking
+
 if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
     if /i "%opt%"=="U" ( 
+    cls
+    echo.
+    echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
+    "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
         set "batFile=ConfiguratorFix.bat"
         set "batRel=Custom\ConfiguratorFix.bat"
         set "batPath=Custom"
@@ -2728,6 +2767,10 @@ if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
         call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
     )
 if /i "%opt%"=="г" (
+        cls
+        echo.
+        echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
+        "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
         set "batFile=ConfiguratorFix.bat"
         set "batRel=Custom\ConfiguratorFix.bat"
         set "batPath=Custom"
@@ -2832,17 +2875,6 @@ if "%opt%"=="7" (
 )
 
 if "%opt%"=="8" (
-    set /p val="%DEL%   Введите стратегию для Blacklist (0-!MAX_blacklist!): "
-    if !val! gtr !MAX_blacklist! (
-        echo  Неверное значение. Максимум - !MAX_blacklist!
-        pause
-    ) else (
-        set "BL=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="9" (
     set /p val="%DEL%   Введите стратегию для STUN (0-!MAX_STUN!): "
     if !val! gtr !MAX_STUN! (
         echo  Неверное значение. Максимум - !MAX_STUN!
@@ -2853,7 +2885,7 @@ if "%opt%"=="9" (
     goto MENU
 )
 
-if "%opt%"=="10" (
+if "%opt%"=="9" (
     set /p val="%DEL%   Введите стратегию для CDN (0-!MAX_CDN!): "
     if !val! gtr !MAX_CDN! (
         echo  Неверное значение. Максимум - !MAX_CDN!
@@ -2864,7 +2896,7 @@ if "%opt%"=="10" (
     goto MENU
 )
 
-if "%opt%"=="11" (
+if "%opt%"=="10" (
     set /p val="%DEL%   Введите стратегию для CDN Amazon TCP (0-!MAX_AmazonTCP!): "
     if !val! gtr !MAX_AmazonTCP! (
         echo  Неверное значение. Максимум - !MAX_AmazonTCP!
@@ -2875,13 +2907,24 @@ if "%opt%"=="11" (
     goto MENU
 )
 
-if "%opt%"=="12" (
+if "%opt%"=="11" (
     set /p val="%DEL%   Введите стратегию для CDN Amazon UDP (0-!MAX_AmazonUDP!): "
     if !val! gtr !MAX_AmazonUDP! (
         echo  Неверное значение. Максимум - !MAX_AmazonUDP!
         pause
     ) else (
         set "AMZUDP=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="12" (
+    set /p val="%DEL%   Введите стратегию для Blacklist (0-!MAX_blacklist!): "
+    if !val! gtr !MAX_blacklist! (
+        echo  Неверное значение. Максимум - !MAX_blacklist!
+        pause
+    ) else (
+        set "BL=!val!"
     )
     goto MENU
 )
@@ -2954,12 +2997,62 @@ if !ENGN! equ 1 (
 )
 goto MENU
 
+:START_with_checking
+cls
+echo.
+
+echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+
+if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
+	set "currentDir=%~dp0"
+    echo  [*] Запуск...
+explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+)
+echo  [*] Проверяем процесс обхода...
+timeout /t 3 >nul 2>&1
+if !ENGN! equ 1 (
+    tasklist | find /i "Winws.exe" >nul
+        if errorlevel 1 (
+            echo.
+            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws.exe^) НЕ ЗАПУЩЕН. %COL%[37m
+            echo.
+            timeout /t 3 >nul 2>&1
+        ) else (
+            echo  [*] Процесс обхода работает, ошибки не обнаружены
+            timeout /t 1 >nul 2>&1
+        )
+) else (
+    tasklist | find /i "Winws2.exe" >nul
+        if errorlevel 1 (
+            echo.
+            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws2.exe^) НЕ ЗАПУЩЕН. %COL%[37m
+            echo.
+            timeout /t 3 >nul 2>&1
+        ) else (
+            echo  [*] Процесс обхода работает, ошибки не обнаружены
+            timeout /t 1 >nul 2>&1
+        )
+)
+if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
+    cls
+    echo %COL%[37m
+    REM Цветной текст
+    for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
+    "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
+)
+goto MENU
+
 :KILL
 echo  [*] Завершаю работу winws...
 taskkill /F /IM winws.exe /T >nul 2>&1
 taskkill /F /IM winws2.exe /T >nul 2>&1
 goto MENU
 
+:OpenPersonalList
+explorer "%ParentDirPath%\lists\ipset-custom.txt"
+explorer "%ParentDirPath%\lists\list-custom.txt"
+goto MENU
 
 :FinlandDiscordHostSelector
 set "HOSTS=%hostspath%"

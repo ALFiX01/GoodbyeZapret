@@ -129,7 +129,7 @@
         "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls=^! --dpi-desync-fake-tls-mod=rnd,sni=www.google.com --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_4pda_to.bin\" --dpi-desync-fake-tls-mod=none"
       ],
       "21": [
-        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=654 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern=\"%FAKE%tls_clienthello_max_ru.bin\" --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_max_ru.bin\""
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=664 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern=\"%FAKE%tls_clienthello_max_ru.bin\" --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_max_ru.bin\""
       ],
       "22": [
         "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=2 --dpi-desync-repeats=8 --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com"
@@ -191,7 +191,7 @@
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls=^! --dpi-desync-fake-tls-mod=rnd,sni=www.google.com --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_4pda_to.bin\" --dpi-desync-fake-tls-mod=none"
       ],
       "11": [
-        "--filter-tcp=443 --hostlist-domains=updates.discord.com --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=654 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern=\"%FAKE%tls_clienthello_max_ru.bin\" --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_max_ru.bin\""
+        "--filter-tcp=443 --hostlist-domains=updates.discord.com --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=664 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern=\"%FAKE%tls_clienthello_max_ru.bin\" --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_max_ru.bin\""
       ],
       "12": [
         "--filter-tcp=443 --hostlist-domains=updates.discord.com --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=2 --dpi-desync-repeats=8 --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com"
@@ -385,7 +385,7 @@
       ],
       "12": [
         "--filter-tcp=80,443-65535 --ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\" --ipset-exclude=\"%LISTS%ipset-dns.txt\" --dpi-desync=fake,fakedsplit --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fakedsplit-pattern=0x00 --dpi-desync-fake-tls=\"%FAKE%tls_clienthello_www_google_com.bin\"",
-        "--filter-udp=443,444-65535 --ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp=\"%FAKE%quic_initial_www_google_com.bin\" --dpi-desync-cutoff=n3"
+        "--filter-udp=443,444-65535 --ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\" --dpi-desync=fake --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp=\"%FAKE%quic_initial_www_google_com.bin\" --dpi-desync-cutoff=n3"
       ],
       "13": [
         "--filter-tcp=80,443-65535 --ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\" --ipset-exclude=\"%LISTS%ipset-dns.txt\" --dpi-desync=multisplit --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern=\"%FAKE%tls_clienthello_www_google_com.bin\"",

@@ -30,7 +30,7 @@ function pcap(ctx, desync)
 			os.remove(_G[fn_cache_name])
 		end
 	end
-	local f = io.open(_G[fn_cache_name], "a")
+	local f = io.open(_G[fn_cache_name], "ab")
 	if not f then
 		error("pcap: could not write to '".._G[fn_cache_name].."'")
 	end

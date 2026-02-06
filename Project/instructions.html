@@ -197,7 +197,7 @@
 <div class="container">
     <header>
         <h1>GoodbyeZapret <span>Manual</span></h1>
-        <p class="subtitle">Руководство пользователя // 2025</p>
+        <p class="subtitle">Руководство пользователя // 2026</p>
     </header>
 
     <nav>
@@ -356,32 +356,281 @@ tools/                - Утилиты (обновление, очистка)
         </ol>
     </section>
 
-    <section id="faq">
-        <h2>8. FAQ (Частые вопросы)</h2>
+<section id="faq">
+    <h2>8. FAQ (Частые вопросы)</h2>
+    
+    <style>
+        /* Стили только для блока FAQ */
+        #faq .faq-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
         
-        <h4>Можно ли использовать вместе с VPN?</h4>
-        <p>— <strong>НЕТ.</strong> Они будут конфликтовать.</p>
-
-        <h4>Скрипт запущен, но сайты не работают.</h4>
-        <p>1. Убедитесь, что IPv6 отключен.<br>
-           2. Проверьте в браузере <code>chrome://flags</code> (QUIC и TLS 1.3 должны быть Default).<br>
-           3. Выключите "Secure DNS" или встроенные прокси в браузере.</p>
-
-        <h4>Антивирус ругается.</h4>
-        <p>— Это ложное срабатывание на драйвер WinDivert. Добавьте папку в исключения.</p>
-
-        <h4>Launcher закрывается сразу.</h4>
-        <p>— Скорее всего, в пути к папке есть пробелы или русские буквы. Перенесите в корень диска, например <code>C:\GoodbyeZapret</code>.</p>
-    </section>
+        #faq .faq-item {
+            background: rgba(30, 30, 35, 0.7);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        }
+        
+        #faq .faq-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 210, 255, 0.15);
+            border-color: rgba(0, 210, 255, 0.3);
+        }
+        
+        #faq .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 18px 25px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.15rem;
+            font-weight: 200;
+            color: var(--text-main);
+            background: rgba(20, 20, 25, 0.85);
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+        
+        #faq .faq-question:hover {
+            background: rgba(35, 35, 40, 0.9);
+        }
+        
+        #faq .faq-question:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 255, 157, 0.3);
+        }
+        
+        #faq .faq-toggle {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0, 210, 255, 0.15);
+            color: var(--accent-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            margin-left: 15px;
+        }
+        
+        #faq .faq-item.active .faq-toggle {
+            transform: rotate(45deg);
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--accent-color);
+        }
+        
+        #faq .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease;
+            background: rgba(25, 25, 30, 0.9);
+        }
+        
+        #faq .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 0 25px 20px;
+        }
+        
+        #faq .faq-answer-content {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            padding: 15px 0 5px;
+            line-height: 1.7;
+            color: var(--text-main);
+        }
+        
+        #faq .faq-item.active .faq-answer-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #faq .faq-answer-content p {
+            margin-bottom: 12px;
+            font-size: 0.98rem;
+        }
+        
+        #faq .faq-answer-content strong {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        
+        #faq .faq-answer-content code {
+            background: rgba(30, 30, 35, 0.95);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.92em;
+            color: var(--accent-color);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            margin: 0 2px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        #faq .faq-answer-content br {
+            display: block;
+            content: "";
+            margin-top: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            #faq .faq-question {
+                padding: 16px 20px;
+                font-size: 1.05rem;
+            }
+            
+            #faq .faq-toggle {
+                width: 26px;
+                height: 26px;
+                font-size: 1.1rem;
+            }
+            
+            #faq .faq-item.active .faq-answer {
+                padding: 0 20px 18px;
+            }
+        }
+    </style>
+    
+    <div class="faq-container">
+        <div class="faq-item">
+            <button class="faq-question">
+                Можно ли использовать вместе с VPN?
+                <span class="faq-toggle">+</span>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    <p>— <strong>НЕТ.</strong> Они будут конфликтовать.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <button class="faq-question">
+                Можно ли добавить свои домены в быструю проверку?
+                <span class="faq-toggle">+</span>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    <p>— Да, можно, просто добавьте их в файл <code>tools\config_check\domains.txt</code>.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <button class="faq-question">
+                Скрипт запущен, но сайты не работают.
+                <span class="faq-toggle">+</span>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    <p>1. Убедитесь, что IPv6 отключен.<br>
+                       2. Проверьте в браузере <code>chrome://flags</code> (QUIC и TLS 1.3 должны быть Default).<br>
+                       3. Выключите "Secure DNS" или встроенные прокси в браузере.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <button class="faq-question">
+                Антивирус ругается.
+                <span class="faq-toggle">+</span>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    <p>— Это ложное срабатывание на драйвер WinDivert. Добавьте папку в исключения.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="faq-item">
+            <button class="faq-question">
+                Launcher закрывается сразу.
+                <span class="faq-toggle">+</span>
+            </button>
+            <div class="faq-answer">
+                <div class="faq-answer-content">
+                    <p>— Скорее всего, в пути к папке есть пробелы или русские буквы. Перенесите в корень диска, например <code>C:\GoodbyeZapret</code>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Скрипт только для блока FAQ
+        document.addEventListener('DOMContentLoaded', function() {
+            const faqItems = document.querySelectorAll('#faq .faq-item');
+            
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                const answer = item.querySelector('.faq-answer');
+                const toggle = item.querySelector('.faq-toggle');
+                
+                question.addEventListener('click', () => {
+                    const isActive = item.classList.contains('active');
+                    
+                    // Закрываем все открытые элементы
+                    faqItems.forEach(otherItem => {
+                        if (otherItem !== item) {
+                            otherItem.classList.remove('active');
+                            otherItem.querySelector('.faq-answer').style.maxHeight = null;
+                        }
+                    });
+                    
+                    // Переключаем текущий элемент
+                    if (isActive) {
+                        item.classList.remove('active');
+                        answer.style.maxHeight = null;
+                    } else {
+                        item.classList.add('active');
+                        answer.style.maxHeight = answer.scrollHeight + "px";
+                    }
+                });
+            });
+            
+            // Добавляем поддержку копирования для кода внутри FAQ
+            document.querySelectorAll('#faq code').forEach((codeEl) => {
+                codeEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(codeEl.textContent.trim());
+                    
+                    // Визуальный эффект
+                    const originalBg = codeEl.style.backgroundColor;
+                    const originalBorder = codeEl.style.borderColor;
+                    codeEl.style.backgroundColor = 'rgba(0, 255, 157, 0.2)';
+                    codeEl.style.borderColor = 'var(--accent-color)';
+                    
+                    setTimeout(() => { 
+                        codeEl.style.backgroundColor = originalBg;
+                        codeEl.style.borderColor = originalBorder;
+                    }, 600);
+                });
+            });
+        });
+    </script>
+</section>
 
     <section style="text-align: center; border: 1px dashed var(--border-color);">
         <h2>Дисклеймер</h2>
-        <p style="font-size: 0.9em;">GoodbyeZapret предоставляется «как есть». Авторы не несут ответственности за использование.</p>
+        <p style="font-size: 0.9em;">GoodbyeZapret предоставляется «как есть». Автор не несет ответственность за использование GoodbyeZapret.</p>
         <p>Поддержка: <a href="https://t.me/+QUADX-YqFUJhM2Fi" target="_blank">Telegram Канал</a></p>
     </section>
 
     <footer>
-        GoodbyeZapret © 2025 ALFiX<br>
+        GoodbyeZapret © 2026 ALFiX<br>
         Documentation Design by You
     </footer>
 </div>

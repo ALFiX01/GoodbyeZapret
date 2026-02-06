@@ -40,6 +40,8 @@ REM set log=--debug=@%~dp0log_debug.txt
 :: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
 :: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
+if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
+if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 
 REM --filter-tcp=80 --hostlist-domains=cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
 REM --filter-tcp=80 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=2 --dpi-desync-split-pos=sld+1 --dpi-desync-fake-http="%FAKE%http_fake_MS.bin" --dpi-desync-fooling=md5sig --dup=2 --dup-fooling=md5sig --dup-cutoff=n3 --new ^
@@ -47,7 +49,7 @@ REM --filter-tcp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloud
 REM --filter-udp=443,444-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync=fake --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%FAKE%quic_6.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n4 --dpi-desync-ttl=7 --new ^
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,443,1080,2053,2083,2087,2096,8443,1024-65535 --wf-udp=443,1024-65535 ^
+--wf-tcp=%tcp_ports% --wf-udp=%udp_ports% ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^

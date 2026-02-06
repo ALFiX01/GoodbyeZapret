@@ -40,11 +40,13 @@ REM set log=--debug=@%~dp0log_debug.txt
 :: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
 :: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
+if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
+if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 
 REM --wf-tcp=80,443-65535 --wf-udp=443,444-65535
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,443,2053,2083,2087,2096,65530-65535 --wf-udp=443,1024-65535 ^
+--wf-tcp=%tcp_ports% --wf-udp=%udp_ports% ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt"  --new ^

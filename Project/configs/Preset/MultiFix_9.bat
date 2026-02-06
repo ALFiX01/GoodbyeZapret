@@ -40,6 +40,8 @@ REM set log=--debug=@%~dp0log_debug.txt
 :: Уровень обхода для CDN (Cloudflare, Fastly, Amazon и др.): off / min / base / full / full_ext
 :: Режимы отличаются количеством обрабатываемых IP-адресов (чем выше уровень, тем шире список).
 if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
+if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
+if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 
 REM start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
 REM --dpi-desync-any-protocol=1 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=5 --dpi-desync-cutoff=n4
@@ -47,7 +49,7 @@ REM discord80: --filter-tcp=80 --hostlist="%LISTS%list-discord.txt" --dpi-desync
 REM --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x0F0F0F0F --dpi-desync-split-pos=1,sld+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-fakedsplit-mod=altorder=0 --dpi-desync-fooling=ts --dpi-desync-cutoff=n4 --new ^
 
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
---wf-tcp=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535 --wf-udp=443,1024-65535 ^
+--wf-tcp=%tcp_ports% --wf-udp=%udp_ports% ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --filter-l7=stun --dpi-desync=fake --new ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --filter-l7=discord --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-repeats=6 --new ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
