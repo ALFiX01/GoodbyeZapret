@@ -1,0 +1,30 @@
+name: Package folder into Files
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_DIR: Project
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create zip in Files
+        run: |
+          mkdir -p Files
+          if [ ! -d "$SOURCE_DIR" ]; then
+            echo "Source directory '$SOURCE_DIR' not found."
+            exit 1
+          fi
+          (cd "$SOURCE_DIR" && zip -r "../Files/${SOURCE_DIR}.zip" .)
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.SOURCE_DIR }}-zip
+          path: Files/${{ env.SOURCE_DIR }}.zip
