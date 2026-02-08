@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - "**"
+    # ВАЖНО: Игнорируем изменения в самом архиве, чтобы не вызвать вечный цикл
+    paths-ignore:
+      - 'Files/**'
+
+permissions:
+  contents: write  # Разрешаем изменять файлы в репозитории
 
 jobs:
   package:
@@ -21,10 +27,23 @@ jobs:
             echo "Source directory '$SOURCE_DIR' not found."
             exit 1
           fi
+          # Удаляем старый архив, если он есть, чтобы zip не дописывал в него, а создавал новый
+          rm -f "Files/${SOURCE_DIR}.zip"
+          
           (cd "$SOURCE_DIR" && zip -r "../Files/${SOURCE_DIR}.zip" .)
 
-      - name: Upload zip artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.SOURCE_DIR }}-zip
-          path: Files/${{ env.SOURCE_DIR }}.zip
+      - name: Commit and Push zip
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Добавляем файл в индекс
+          git add "Files/${SOURCE_DIR}.zip"
+          
+          # Проверяем, есть ли изменения, прежде чем коммитить
+          if git diff --staged --quiet; then
+            echo "No changes in zip file. Nothing to commit."
+          else
+            git commit -m "Update packaged zip [skip ci]"
+            git push
+          fi
