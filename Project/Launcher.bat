@@ -91,7 +91,7 @@ if /i not "%CurrentFont%"=="__DefaultTTFont__" (
     ) else (
         call :ui_info "Шрифт консоли изменен с %CurrentFont% на __DefaultTTFont__"
         timeout /t 2 >nul
-        start "" /d "%ParentDirPath%" "%ParentDirPath%\launcher.bat"
+        powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -WorkingDirectory '%~dp0' -Verb RunAs -ArgumentList 'am_admin'" & exit /b
         exit /b
     )
 )

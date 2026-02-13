@@ -292,20 +292,20 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
         echo         ^[*^] Обновление завершено
         call :log INFO "Update finished"
-        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
+        start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
         call :log ERROR "Config file not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat"
         echo         ^[*^] Файл конфига %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
+        start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul
         exit
     )
 ) else (
     call :log INFO "Starting Launcher"
-    start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
+    start "" "%ParentDirPath%\Launcher.bat"
     exit
 )
 
