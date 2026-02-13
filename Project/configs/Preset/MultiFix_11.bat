@@ -60,7 +60,7 @@ start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 
 --filter-tcp=80,443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,rnd,sni=www.asus.com --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=311 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_13.bin" --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
 
---filter-tcp=80,443 --hostlist="%LISTS%russia-youtube2.txt" --dpi-desync=fake,multisplit --dpi-desync-split-pos=6,midsld --ip-id=zero --dpi-desync-fake-tls-mod=dupsid,sni=goodbyezapret.mooo.com --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%russia-youtube2.txt" --dpi-desync=fake,multisplit --dpi-desync-split-pos=6,midsld --ip-id=zero --dpi-desync-fake-tls-mod=dupsid,sni=www.asus.com --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
 
 --filter-tcp=443 --hostlist="%LISTS%anomaly_site.txt" --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=2,endsld-2 --dpi-desync-fake-tls-mod=rnd,sni=fonts.google.com --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_3.bin" --dpi-desync-fakedsplit-mod=altorder=3 --ip-id=zero --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n6 --new ^
 --filter-tcp=443 --filter-l7=tls --hostlist-exclude="%LISTS%autohostlist.txt" --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,rnd,sni=download.max.ru --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=315 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_11.bin" --dpi-desync-fooling=badseq,ts --dpi-desync-badseq-increment=3 --dpi-desync-badack-increment=21 --dpi-desync-cutoff=n6 --new ^

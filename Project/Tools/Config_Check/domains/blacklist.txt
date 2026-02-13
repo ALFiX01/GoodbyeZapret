@@ -1,0 +1,2 @@
+# Blacklist module domains
+raw.githubusercontent.com

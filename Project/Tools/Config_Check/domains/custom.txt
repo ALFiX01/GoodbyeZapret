@@ -1,0 +1,2 @@
+# Custom lists module domains
+# Put your own domains here.

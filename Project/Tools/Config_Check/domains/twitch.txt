@@ -1,0 +1,4 @@
+# Twitch module domains
+www.twitch.tv
+gql.twitch.tv
+usher.ttvnw.net

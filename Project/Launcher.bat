@@ -3,7 +3,9 @@
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
 :: Запуск от имени админа
-if not "%1"=="am_admin" (powershell start -verb runas '%0' am_admin & exit /b)
+if not "%1"=="am_admin" (
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList 'am_admin'" & exit /b
+)
 
 :: Получаем путь к родительской папке и проверяем на пробелы
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent \"%~f0\""') do set "ParentDirPathForCheck=%%A"
@@ -27,10 +29,18 @@ setlocal EnableDelayedExpansion
 
 set "ErrorCount=0"
 
-:: Определяем архитектуру системы
-IF "%PROCESSOR_ARCHITECTURE%"=="AMD64" (set "os_arch=64")
-IF "%PROCESSOR_ARCHITECTURE%"=="x86" (set "os_arch=32")
-IF DEFINED PROCESSOR_ARCHITEW6432 (set "os_arch=64")
+:: --- Определяем архитектуру системы
+set "os_arch="
+if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "os_arch=64"
+if /I "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "os_arch=64"
+if /I "%PROCESSOR_ARCHITECTURE%"=="x86"   set "os_arch=32"
+if defined PROCESSOR_ARCHITEW6432 set "os_arch=64"
+
+if not defined os_arch (
+    echo Unsupported CPU architecture: %PROCESSOR_ARCHITECTURE%
+    pause > nul
+    exit /b 1
+)
 
 if %os_arch%==32 (
     color f2
@@ -45,8 +55,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.3.0"
-set "Current_GoodbyeZapret_version_code=6F01"
+set "Current_GoodbyeZapret_version=3.4.0"
+set "Current_GoodbyeZapret_version_code=13F01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -99,8 +109,6 @@ if "%FirstLaunch%"=="0" (
 )
 
 call :ui_info "Первый запуск, выполняю проверку и настройку..."
-
-
 
 REM /// UAC Settings ///
 set "L_ConsentPromptBehaviorAdmin=0"
@@ -164,14 +172,29 @@ for %%i in (
     )
 )
 
-rem Отключение "Предупреждение системы безопасности" 
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation 2>nul | find "0x1" >nul || (
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d 1 /f >nul 2>&1
-    if not %ERRORLEVEL% equ 0 (
+REM Отключение "предупреждения системы безопасности"
+set "ExpectedSaveZone=1"
+set "CurrentSaveZone="
+for /f "tokens=3" %%a in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation 2^>nul ^| find /i "SaveZoneInformation"') do (
+    set "CurrentSaveZone=%%a"
+)
+if not defined CurrentSaveZone (
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d %ExpectedSaveZone% /f >nul 2>&1
+    if errorlevel 1 (
         call :ui_err "Error installing SaveZoneInformation"
         timeout /t 2 >nul
     )
+) else (
+    set "CurrentSaveZone=!CurrentSaveZone:0x=!"
+    if /i not "!CurrentSaveZone!"=="%ExpectedSaveZone%" (
+        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d %ExpectedSaveZone% /f >nul 2>&1
+        if errorlevel 1 (
+            call :ui_err "Error updating SaveZoneInformation"
+            timeout /t 2 >nul
+        )
+    )
 )
+set "CurrentSaveZone="
 
 
 REM /// Предупреждения при запуске любых exe ///
@@ -312,12 +335,11 @@ call :ui_info "Проверка DNS и подключения к интерне�
 
 REM First check DNS resolution
 nslookup %DNS_TEST% >nul 2>&1
-if not "!ERRORLEVEL!"=="0" (
+if errorlevel 1 (
     echo.
     call :ui_err "Ошибка 02: DNS не отвечает или отсутствует доступ к интернету"
     echo   Проверьте подключение и настройки сети.
     set "WiFi=Off"
-    goto :eof
 )
 
 REM --- Если DNS работает, проверяем основной сервер ---
@@ -653,10 +675,11 @@ if "%StatusProject%"=="0" (
     echo.
     REM  GoodbyeZapret
     sc query "GoodbyeZapret" >nul 2>&1
-    if %errorlevel% equ 0 (
-        net stop "GoodbyeZapret" >nul 2>&1
-        sc delete "GoodbyeZapret" >nul 2>&1
+    if !errorlevel! equ 0 (
+    net stop "GoodbyeZapret" >nul 2>&1
+    sc delete "GoodbyeZapret" >nul 2>&1
     )
+
     
     REM  winws.exe
     tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
@@ -1031,8 +1054,12 @@ if /i "%branch%"=="beta" (
 )
 
 echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+
+call "%USERPROFILE%\AppData\Roaming\GoodbyeZapret\ports.bat"
+
 if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
-if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
+if not defined udp_ports set "udp_ports=80,443,1024-65535,4" 
+
 echo.
 echo.
 echo                    %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN               ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
@@ -1044,10 +1071,10 @@ echo.
 echo                    %COL%[96m^[ 4 ^]%COL%[37m Host Обход YouTube                ^(%COL%[96m%YoutubeHost%%COL%[37m^)
 echo.
 echo                    %COL%[96m^[ 5 ^]%COL%[37m TCP порты обхода:
-echo                    %COL%[92m!tcp_ports!
+echo                    %COL%[92m%tcp_ports%
 echo.
 echo                    %COL%[96m^[ 6 ^]%COL%[37m UDP порты обхода:
-echo                    %COL%[92m!udp_ports!
+echo                    %COL%[92m%udp_ports%
 echo.
 echo.
 echo.
@@ -1085,11 +1112,11 @@ if "%choice%"=="5" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "tcp_ports" /t REG_SZ /d "!tcp_ports!" /f >nul
 
     if defined tcp_ports (
-        call :WriteConfig CDN_LVL "%tcp_ports%"
+        call :WriteConfig tcp_ports "%tcp_ports%"
     ) else (
         echo ^[ERROR^] tcp_ports не определен
     )
-    goto MENU
+    goto MenuBypassSettings_without_ui_info
 )
 
 :: Проверки ввода с использованием полученных лимитов
@@ -1100,11 +1127,11 @@ if "%choice%"=="6" (
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "udp_ports" /t REG_SZ /d "!udp_ports!" /f >nul
 
     if defined udp_ports (
-        call :WriteConfig CDN_LVL "%udp_ports%"
+        call :WriteConfig udp_ports "%udp_ports%"
     ) else (
         echo ^[ERROR^] udp_ports не определен
     )
-    goto MENU
+    goto MenuBypassSettings_without_ui_info
 )
 
 goto MenuBypassSettings_without_ui_info
@@ -2483,12 +2510,10 @@ for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
 :: БАРЬЕР: Перенос переменной RES из setlocal в основной контекст
 if defined RES (
     for /f "delims=" %%V in ("%RES%") do (
-        endlocal
         set "RES=%%V"
         set "FOUND=1"
     )
 ) else (
-    endlocal
     set "RES="
     set "FOUND=0"
 )
@@ -2607,8 +2632,6 @@ for %%V in (%VARS%) do (
 )
 goto :eof
 
-
-
 :CDN_BypassLevelSelector
 REM Проверяем текущее значение и переключаем на следующее по циклу
 if /i "%CDN_BypassLevel%"=="off" (
@@ -2719,6 +2742,7 @@ echo    %COL%[36m║   %COL%[96m[ E ]%COL%[37m   Движок                  %
 echo    %COL%[36m╚════════════════════════════════════════════════════════════════════════════════════╝
 echo.
 echo    %COL%[92m[ S ] Запустить обход
+echo    %COL%[94m[ A ] Автоподбор стратегии
 echo    %COL%[92m[ С ] Быстро проверить обход
 echo    %COL%[91m[ K ] Остановить обход
 if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
@@ -2739,6 +2763,8 @@ set /p "opt=%DEL%   %COL%[90m:> "
 
 if /i "%opt%"=="S" goto START
 if /i "%opt%"=="ы" goto START
+if /i "%opt%"=="A" goto ConfiguratorAutoPicker
+if /i "%opt%"=="ф" goto ConfiguratorAutoPicker
 if /i "%opt%"=="K" goto KILL
 if /i "%opt%"=="л" goto KILL
 
@@ -2958,6 +2984,332 @@ if /i "%opt%"=="у" (
 
 goto MENU
 
+:ConfiguratorAutoPicker
+cls
+title GoodbyeZapret - Автоподбор стратегий
+echo.
+echo  %COL%[36mВыберите модуль для автоподбора:
+echo.
+echo    %COL%[96m[  1 ]%COL%[37m  YouTube
+echo    %COL%[96m[  2 ]%COL%[37m  YouTube GoogleVideo
+echo    %COL%[96m[  3 ]%COL%[37m  YouTube QUIC
+echo.
+echo    %COL%[96m[  4 ]%COL%[37m  Twitch
+echo.
+echo    %COL%[96m[  5 ]%COL%[37m  Discord Update
+echo    %COL%[96m[  6 ]%COL%[37m  Discord
+echo    %COL%[96m[  7 ]%COL%[37m  Discord QUIC
+echo    %COL%[96m[  8 ]%COL%[37m  STUN
+echo.
+echo    %COL%[96m[  9 ]%COL%[37m  CDN
+echo    %COL%[96m[ 10 ]%COL%[37m  Amazon CDN TCP
+echo    %COL%[96m[ 11 ]%COL%[37m  Amazon CDN UDP
+echo.
+echo    %COL%[96m[ 12 ]%COL%[37m  Blacklist
+echo    %COL%[96m[ 13 ]%COL%[37m  Личные списки
+echo.
+echo    %COL%[90m[  0 ] Назад
+echo.
+set /p "AutoChoice=%DEL%   %COL%[90m:> "
+
+set "AutoVar="
+set "AutoMaxVar="
+set "AutoName="
+
+if "%AutoChoice%"=="0" goto MENU
+if "%AutoChoice%"=="1"  (set "AutoVar=YT"     & set "AutoMaxVar=MAX_YouTube"            & set "AutoName=YouTube")
+if "%AutoChoice%"=="2"  (set "AutoVar=YTGV"   & set "AutoMaxVar=MAX_YouTubeGoogleVideo" & set "AutoName=YouTube GoogleVideo")
+if "%AutoChoice%"=="3"  (set "AutoVar=YTQ"    & set "AutoMaxVar=MAX_YouTubeQuic"        & set "AutoName=YouTube QUIC")
+if "%AutoChoice%"=="4"  (set "AutoVar=TW"     & set "AutoMaxVar=MAX_Twitch"             & set "AutoName=Twitch")
+if "%AutoChoice%"=="5"  (set "AutoVar=DSUPD"  & set "AutoMaxVar=MAX_DiscordUpdate"      & set "AutoName=Discord Update")
+if "%AutoChoice%"=="6"  (set "AutoVar=DS"     & set "AutoMaxVar=MAX_Discord"            & set "AutoName=Discord")
+if "%AutoChoice%"=="7"  (set "AutoVar=DSQ"    & set "AutoMaxVar=MAX_DiscordQuic"        & set "AutoName=Discord QUIC")
+if "%AutoChoice%"=="8"  (set "AutoVar=STUN"   & set "AutoMaxVar=MAX_STUN"               & set "AutoName=STUN")
+if "%AutoChoice%"=="9"  (set "AutoVar=CDN"    & set "AutoMaxVar=MAX_CDN"                & set "AutoName=CDN")
+if "%AutoChoice%"=="10" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
+if "%AutoChoice%"=="11" (set "AutoVar=AMZUDP" & set "AutoMaxVar=MAX_AmazonUDP"          & set "AutoName=Amazon CDN UDP")
+if "%AutoChoice%"=="12" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_blacklist"          & set "AutoName=Blacklist")
+if "%AutoChoice%"=="13" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & set "AutoName=Личные списки")
+
+if not defined AutoVar goto ConfiguratorAutoPicker
+
+call set "AutoMax=%%%AutoMaxVar%%%"
+if not defined AutoMax set "AutoMax=0"
+call set "AutoPrev=%%%AutoVar%%%"
+set "AutoPrev_YT=!YT!"
+set "AutoPrev_YTGV=!YTGV!"
+set "AutoPrev_YTQ=!YTQ!"
+set "AutoPrev_TW=!TW!"
+set "AutoPrev_DSUPD=!DSUPD!"
+set "AutoPrev_DS=!DS!"
+set "AutoPrev_DSQ=!DSQ!"
+set "AutoPrev_STUN=!STUN!"
+set "AutoPrev_CDN=!CDN!"
+set "AutoPrev_AMZTCP=!AMZTCP!"
+set "AutoPrev_AMZUDP=!AMZUDP!"
+set "AutoPrev_BL=!BL!"
+set "AutoPrev_CUSTOM=!CUSTOM!"
+call :ConfiguratorAutoBackup
+
+set "AutoZeroOthers=1"
+echo.
+echo  %COL%[36mОбнулить остальные стратегии на время автоподбора?%COL%[90m [Enter=Да / N=Нет]
+set /p "AutoZeroChoice=%DEL%   %COL%[90m:> "
+if /i "!AutoZeroChoice!"=="N" set "AutoZeroOthers=0"
+if /i "!AutoZeroChoice!"=="Н" set "AutoZeroOthers=0"
+set /a AutoIndex=0
+set "AutoAlmostList="
+set /a AutoAlmostCount=0
+
+:ConfiguratorAutoLoop
+if !AutoIndex! gtr !AutoMax! goto ConfiguratorAutoNotFound
+call :ConfiguratorAutoSetTestVars
+call :ConfiguratorAutoApply
+call :ConfiguratorAutoCheck
+
+if "!AutoCheckResult!"=="0" goto ConfiguratorAutoSave
+if "!AutoCheckResult!"=="1" (
+    set /a AutoAlmostCount+=1
+    set "AutoAlmostList=!AutoAlmostList!!AutoIndex! "
+)
+set /a AutoIndex+=1
+goto ConfiguratorAutoLoop
+
+:ConfiguratorAutoSave
+call :ConfiguratorAutoRestoreAll
+for %%V in (!AutoVar!) do set "%%V=!AutoIndex!"
+call :ConfiguratorAutoApply
+echo.
+echo  %COL%[92m[OK]%COL%[37m Найдена рабочая стратегия %COL%[92m!AutoIndex!%COL%[37m для %COL%[92m!AutoName!%COL%[37m.
+pause >nul
+goto MENU
+
+:ConfiguratorAutoCancel
+call :ConfiguratorAutoRestoreAll
+set "%AutoVar%=!AutoPrev!"
+set /a AutoIndex=AutoPrev
+call :ConfiguratorAutoApply
+echo.
+echo  %COL%[90mВозвращено предыдущее значение %COL%[92m!AutoPrev!%COL%[90m для %COL%[92m!AutoName!%COL%[90m.
+pause >nul
+goto MENU
+
+:ConfiguratorAutoNotFound
+call :ConfiguratorAutoRestoreAll
+set "%AutoVar%=!AutoPrev!"
+set /a AutoIndex=AutoPrev
+call :ConfiguratorAutoApply
+echo.
+echo  %COL%[91m[WARN]%COL%[37m Подходящая стратегия не найдена (0-!AutoMax!).
+if !AutoAlmostCount! gtr 0 (
+    echo  %COL%[93m[INFO]%COL%[37m Почти рабочие стратегии: %COL%[92m!AutoAlmostList!%COL%[37m
+)
+echo  %COL%[90mВозвращено значение %COL%[92m!AutoPrev!%COL%[90m для %COL%[92m!AutoName!%COL%[90m.
+pause >nul
+goto MENU
+
+:ConfiguratorAutoApply
+cls
+echo.
+echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!)
+echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+
+if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
+	set "currentDir=%~dp0"
+    echo  [*] Запуск...
+    explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+)
+echo  [*] Проверяем процесс обхода...
+timeout /t 3 >nul 2>&1
+if !ENGN! equ 1 (
+    tasklist | find /i "Winws.exe" >nul
+        if errorlevel 1 (
+            echo.
+            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws.exe^) НЕ ЗАПУЩЕН. %COL%[37m
+            echo.
+            timeout /t 3 >nul 2>&1
+        ) else (
+            echo  [*] Процесс обхода работает, ошибки не обнаружены
+            timeout /t 1 >nul 2>&1
+        )
+) else (
+    tasklist | find /i "Winws2.exe" >nul
+        if errorlevel 1 (
+            echo.
+            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws2.exe^) НЕ ЗАПУЩЕН. %COL%[37m
+            echo.
+            timeout /t 3 >nul 2>&1
+        ) else (
+            echo  [*] Процесс обхода работает, ошибки не обнаружены
+            timeout /t 1 >nul 2>&1
+        )
+)
+exit /b
+
+:ConfiguratorAutoSetTestVars
+if "!AutoZeroOthers!"=="1" (
+    for %%V in (YT YTGV YTQ TW DSUPD DS DSQ STUN CDN AMZTCP AMZUDP BL CUSTOM) do set "%%V=0"
+)
+for %%V in (!AutoVar!) do set "%%V=!AutoIndex!"
+exit /b
+
+:ConfiguratorAutoRestoreAll
+set "YT=!AutoPrev_YT!"
+set "YTGV=!AutoPrev_YTGV!"
+set "YTQ=!AutoPrev_YTQ!"
+set "TW=!AutoPrev_TW!"
+set "DSUPD=!AutoPrev_DSUPD!"
+set "DS=!AutoPrev_DS!"
+set "DSQ=!AutoPrev_DSQ!"
+set "STUN=!AutoPrev_STUN!"
+set "CDN=!AutoPrev_CDN!"
+set "AMZTCP=!AutoPrev_AMZTCP!"
+set "AMZUDP=!AutoPrev_AMZUDP!"
+set "BL=!AutoPrev_BL!"
+set "CUSTOM=!AutoPrev_CUSTOM!"
+exit /b
+
+:ConfiguratorAutoBackup
+set "AutoBackupFile=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\autopick_backup.txt"
+if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" >nul 2>&1
+> "%AutoBackupFile%" echo # GoodbyeZapret AutoPick backup
+>>"%AutoBackupFile%" echo Date=%DATE% Time=%TIME%
+>>"%AutoBackupFile%" echo ENGN="!ENGN!"
+>>"%AutoBackupFile%" echo YT="!YT!"
+>>"%AutoBackupFile%" echo YTGV="!YTGV!"
+>>"%AutoBackupFile%" echo YTQ="!YTQ!""
+>>"%AutoBackupFile%" echo TW="!TW!""
+>>"%AutoBackupFile%" echo DSUPD="!DSUPD!"
+>>"%AutoBackupFile%" echo DS="!DS!"
+>>"%AutoBackupFile%" echo DSQ="!DSQ!""
+>>"%AutoBackupFile%" echo STUN="!STUN!"
+>>"%AutoBackupFile%" echo CDN="!CDN!"
+>>"%AutoBackupFile%" echo AMZTCP="!AMZTCP!""
+>>"%AutoBackupFile%" echo AMZUDP="!AMZUDP!"
+>>"%AutoBackupFile%" echo BL="!BL!""
+>>"%AutoBackupFile%" echo CUSTOM="!CUSTOM!"
+exit /b
+
+:ConfiguratorAutoCheck
+set "AutoCheckResult=2"
+set "AutoGitPath=/ALFiX01/GoodbyeZapret/main/GoodbyeZapret_Version"
+set "AutoDomainFileDefault=%ParentDirPath%\tools\Config_Check\domains.txt"
+set "AutoDomainFile=%AutoDomainFileDefault%"
+set "AutoModuleFile="
+set "AutoDomainUsedModule=0"
+
+if /i "!AutoVar!"=="YT"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube.txt"
+if /i "!AutoVar!"=="YTGV"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube_googlevideo.txt"
+if /i "!AutoVar!"=="YTQ"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube_quic.txt"
+if /i "!AutoVar!"=="TW"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\twitch.txt"
+if /i "!AutoVar!"=="DSUPD" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_update.txt"
+if /i "!AutoVar!"=="DS"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord.txt"
+if /i "!AutoVar!"=="DSQ"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_quic.txt"
+if /i "!AutoVar!"=="STUN"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\stun.txt"
+if /i "!AutoVar!"=="CDN"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\cdn.txt"
+if /i "!AutoVar!"=="AMZTCP" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_tcp.txt"
+if /i "!AutoVar!"=="AMZUDP" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_udp.txt"
+if /i "!AutoVar!"=="BL"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\blacklist.txt"
+if /i "!AutoVar!"=="CUSTOM" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\custom.txt"
+
+if defined AutoModuleFile if exist "!AutoModuleFile!" (
+    set "AutoDomainFile=!AutoModuleFile!"
+    set "AutoDomainUsedModule=1"
+)
+
+if not defined CURL (
+    if exist "%ParentDirPath%\tools\curl\curl.exe" (
+        set CURL="%ParentDirPath%\tools\curl\curl.exe"
+    ) else (
+        set "CURL=curl"
+    )
+)
+
+:ConfiguratorAutoCheck_ReadDomains
+set "AutoFailed=0"
+set "AutoTotal=0"
+set "AutoFailedDomains="
+echo.
+if "!AutoDomainUsedModule!"=="1" (
+    echo  [*] Автопроверка доменов ^(модульный список^)...
+) else (
+    echo  [*] Автопроверка доменов...
+)
+
+if exist "!AutoDomainFile!" (
+    for /f "usebackq delims=" %%D in ("!AutoDomainFile!") do (
+        set "AutoLine=%%D"
+        if defined AutoLine (
+            for /f "tokens=* delims= " %%L in ("!AutoLine!") do set "AutoLine=%%L"
+            if "!AutoLine:~0,3!"=="ï»¿" set "AutoLine=!AutoLine:~3!"
+            if defined AutoLine if not "!AutoLine:~0,1!"=="#" call :ConfiguratorAutoCheckOne "!AutoLine!"
+        )
+    )
+) else (
+    for %%D in (rr6---sn-jvhnu5g-n8vy.googlevideo.com i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg discord.com cloudflare.com aws.amazon.com raw.githubusercontent.com) do (
+        call :ConfiguratorAutoCheckOne "%%D"
+    )
+)
+
+if !AutoTotal! LEQ 0 (
+    if "!AutoDomainUsedModule!"=="1" (
+        set "AutoDomainFile=!AutoDomainFileDefault!"
+        set "AutoDomainUsedModule=0"
+        goto ConfiguratorAutoCheck_ReadDomains
+    )
+    set "AutoCheckResult=2"
+    echo  ^[WARN^] Список доменов пуст.
+    exit /b
+)
+
+if !AutoFailed! EQU 0 (
+    set "AutoCheckResult=0"
+    echo  ^[OK^] Все домены доступны.
+    exit /b
+)
+
+if !AutoFailed! EQU 1 (
+    set "AutoCheckResult=1"
+    echo  ^[WARN^] Недоступен 1 домен: !AutoFailedDomains!
+    exit /b
+)
+
+set "AutoCheckResult=2"
+echo  ^[FAIL^] Недоступно доменов: !AutoFailed!
+exit /b
+
+:ConfiguratorAutoCheckOne
+set "AutoUrlRaw=%~1"
+if /i "!AutoUrlRaw!"=="raw.githubusercontent.com" set "AutoUrlRaw=raw.githubusercontent.com!AutoGitPath!"
+set "AutoUrl=!AutoUrlRaw!"
+if /i not "!AutoUrl:~0,7!"=="http://" if /i not "!AutoUrl:~0,8!"=="https://" set "AutoUrl=https://!AutoUrl!"
+set /a AutoTotal+=1
+
+set "AutoCode="
+for /f "delims=" %%H in ('
+    curl -L -k --connect-timeout 1 -m 6 -s -o NUL -w "%%{http_code}" "!AutoUrl!"
+') do set "AutoCode=%%H"
+
+if not defined AutoCode (
+    set /a AutoFailed+=1
+    set "AutoFailedDomains=!AutoFailedDomains!!AutoUrlRaw! "
+    exit /b
+)
+
+REM Если AutoCode остался 000 или пустой — значит связи нет вообще (ошибка curl)
+if "!AutoCode!"=="000" goto :AutoCheckFail
+if not defined AutoCode goto :AutoCheckFail
+
+REM Если сервер ответил ЛЮБЫМ кодом (200, 302, 403, 404, 500) — домен жив.
+REM Выходим как "успех"
+exit /b
+
+:AutoCheckFail
+set /a AutoFailed+=1
+set "AutoFailedDomains=!AutoFailedDomains!!AutoUrlRaw! "
+exit /b
+
 :START
 cls
 echo.
@@ -2968,7 +3320,7 @@ echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
     echo  [*] Запуск...
-explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
 )
 echo  [*] Проверяем процесс обхода...
 timeout /t 3 >nul 2>&1

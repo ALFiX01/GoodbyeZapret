@@ -93,8 +93,6 @@ thefinals.com
 msi.com
 # rockstar
 rockstargames.com
-# GZ-vpn
-goodbyezapret.mooo.com
 # Other
 aadcdn.msftauth.net
 rbc.ru

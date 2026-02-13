@@ -1,0 +1,3 @@
+# STUN module domains
+# Replace with your STUN-related test endpoints if needed.
+cloudflare.com

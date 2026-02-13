@@ -1,5 +1,6 @@
 # List of domains to test (one per line). Lines starting with
 rr6---sn-jvhnu5g-n8vy.googlevideo.com
+www.youtube.com
 i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg
 discord.com
 cloudflare.com

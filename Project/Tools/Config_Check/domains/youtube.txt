@@ -1,0 +1,3 @@
+# YouTube module domains
+# One per line. Lines starting with # are ignored.
+www.youtube.com
