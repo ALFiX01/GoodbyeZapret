@@ -82,13 +82,13 @@ end
 
 -- test case :
 --  endpoint1:
---   --filter-icmp=0,8,128,129 --filter-ipp=193,198,209,250 --filter-tcp=* --filter-udp=* --in-range=a --lua-desync=ippxor:xor=192:dataxor=0xABCD
+--   --filter-icmp=0,8,128,129 --filter-ipp=193,198,209,250 --filter-tcp=* --filter-udp=* --in-range=a --lua-desync=ippxor:ippxor=192:dataxor=0xABCD
 --   nft add rule inet ztest pre meta mark and 0x40000000 == 0 meta l4proto {193, 198, 209, 250} queue num 200 bypass
 --   nft add rule inet ztest post meta mark and 0x40000000 == 0 tcp dport "{5001}" queue num 200 bypass
 --   nft add rule inet ztest post meta mark and 0x40000000 == 0 udp dport "{5001}" queue num 200 bypass
 --   iperf -i 1 -c endpoint2
 --  endpoint2:
---   --filter-icmp=0,8,128,129 --filter-ipp=193,198,209,250 --filter-tcp=* --filter-udp=* --in-range=a --lua-desync=ippxor:xor=192:dataxor=0xABCD --server
+--   --filter-icmp=0,8,128,129 --filter-ipp=193,198,209,250 --filter-tcp=* --filter-udp=* --in-range=a --lua-desync=ippxor:ippxor=192:dataxor=0xABCD --server
 --   nft add rule inet ztest pre meta mark and 0x40000000 == 0 meta l4proto {193, 198, 209, 250} queue num 200 bypass
 --   nft add rule inet ztest post meta mark and 0x40000000 == 0 tcp sport "{5001}" queue num 200 bypass
 --   nft add rule inet ztest post meta mark and 0x40000000 == 0 udp sport "{5001}" queue num 200 bypass

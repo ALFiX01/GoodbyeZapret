@@ -90,10 +90,9 @@ function test_hkdf()
 			local ikm = brandom(math.random(5,10))
 			for ninfo=1,nblob do
 				local info = brandom(math.random(5,10))
-				local okm_prev
 				for k,sha in pairs({"sha256","sha224"}) do
-					for k,okml in pairs({8, 16, 50}) do
 					local okm_prev
+					for k,okml in pairs({8, 16, 50}) do
 						local okm
 						print("* hkdf "..sha)
 						print("salt: "..string2hex(salt))
@@ -107,7 +106,6 @@ function test_hkdf()
 							print("duplicate okm !")
 						end
 						okms[okm] = true
-
 						test_assert(not okm_prev or okm_prev==string.sub(okm, 1, #okm_prev))
 						okm_prev = okm
 					end
@@ -420,26 +418,35 @@ function test_time(...)
 
 	local unixtime=os.time()
 	local tm = localtime(unixtime);
+	local t
 	print()
 	print("now: "..tm.str.." "..tm.zone.." = "..unixtime)
 	local tm = gmtime(unixtime);
 	print("gmt: "..tm.str.." "..tm.zone.." = "..unixtime)
 	print()
 	for i=1,20 do
-		unixtime = math.random(0,10000000000);
+		unixtime = math.random(0,0x7FFFFFFF);
 		tm = localtime(unixtime);
-		local t = timelocal(tm)
+		t = timelocal(tm)
 		print("timelocal: "..tm.str.." "..tm.zone.." = "..t)
 		print( t==unixtime and "LOCALTIME OK" or "LOCALTIME FAILED" )
 		test_assert(t==unixtime)
 
-		unixtime = math.random(0,10000000000);
+		unixtime = math.random(0,0x7FFFFFFF);
 		tm = gmtime(unixtime);
 		t = timegm(tm)
 		print("timegm: "..tm.str.." "..tm.zone.." = "..t)
 		print( t==unixtime and "GMTIME OK" or "GMTIME FAILED" )
 		test_assert(t==unixtime)
 	end
+	unixtime = math.random(0x80000000,0xFFFFFFFF);
+	tm = gmtime(unixtime)
+	t = timegm(tm)
+	print( t==unixtime and "TIME 0x80000000..0xFFFFFFFF OK" or "TIME 0x80000000..0xFFFFFFFF FAILED : "..unixtime.." != "..t.." ("..tm.str..")" )
+	unixtime = math.random(0x100000000,0x200000000);
+	tm = gmtime(unixtime)
+	t = timegm(tm)
+	print( t==unixtime and "TIME 64 OK" or "TIME 64 FAILED : "..unixtime.." != "..t.." ("..tm.str..")" )
 end
 
 function test_gzip()

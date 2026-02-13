@@ -54,7 +54,7 @@ standard rawsend :
 
 standard payload :
 
-* payload - comma separarated list of allowed payload types. if not present - allow non-empty known payloads.
+* payload - comma separated list of allowed payload types. if not present - allow non-empty known payloads.
 
 standard ip_id :
 

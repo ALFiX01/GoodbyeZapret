@@ -29,8 +29,11 @@ function luaexec(ctx, desync)
 	end
 	-- allow dynamic code to access desync
 	_G.desync = desync
-	_G[fname]()
+	local res, err = pcall(_G[fname])
 	_G.desync = nil
+	if not res then
+		error(err);
+	end
 end
 
 -- basic desync function
@@ -206,8 +209,13 @@ end
 function plan_instance_pop(desync)
 	return (desync.plan and #desync.plan>0) and table.remove(desync.plan, 1) or nil
 end
-function plan_clear(desync)
-	while table.remove(desync.plan) do end
+function plan_clear(desync, max)
+	if max then
+		local n=0
+		while n<max and table.remove(desync.plan,1) do n=n+1 end
+	else
+		while table.remove(desync.plan) do end
+	end
 end
 -- this approach allows nested orchestrators
 function orchestrate(ctx, desync)
@@ -230,12 +238,17 @@ function desync_copy(desync)
 	return dcopy
 end
 -- redo what whould be done without orchestration
-function replay_execution_plan(desync)
+function replay_execution_plan(desync, max)
 	local verdict = VERDICT_PASS
-	while true do
+	local n=0
+	while not max or n<max do
 		local instance = plan_instance_pop(desync)
 		if not instance then break end
 		verdict = plan_instance_execute(desync, verdict, instance)
+		n = n + 1
+	end
+	if max and n>=max then
+		DLOG("replay_execution_plan: reached max instances limit "..max)
 	end
 	return verdict
 end
@@ -321,22 +334,24 @@ end
 
 -- convert array a to packed string using 'packer' function. only numeric indexes starting from 1, order preserved
 function barray(a, packer)
+	local sa={}
 	if a then
 		local s=""
 		for i=1,#a do
-			s = s .. packer(a[i])
+			sa[i] = packer(a[i])
 		end
-		return s
+		return table.concat(sa)
 	end
 end
 -- convert table a to packed string using 'packer' function. any indexes, any order
 function btable(a, packer)
+	local sa={}
 	if a then
 		local s=""
 		for k,v in pairs(a) do
-			s = s .. packer(v)
+			sa[k] = packer(v)
 		end
-		return s
+		return table.concat(sa)
 	end
 end
 
@@ -932,11 +947,11 @@ function apply_fooling(desync, dis, fooling_options)
 		local bin
 		if fooling_options.ip6_hopbyhop then
 			bin = prepare_bin(fooling_options.ip6_hopbyhop,"\x00\x00\x00\x00\x00\x00")
-			insert_ip6_exthdr(dis.ip6,nil,IPPROTO_HOPOPTS,bin)
+			insert_ip6_exthdr(dis.ip6,1,IPPROTO_HOPOPTS,bin)
 		end
 		if fooling_options.ip6_hopbyhop2 then
 			bin = prepare_bin(fooling_options.ip6_hopbyhop2,"\x00\x00\x00\x00\x00\x00")
-			insert_ip6_exthdr(dis.ip6,nil,IPPROTO_HOPOPTS,bin)
+			insert_ip6_exthdr(dis.ip6,1,IPPROTO_HOPOPTS,bin)
 		end
 		-- for possible unfragmentable part
 		if fooling_options.ip6_destopt then
@@ -1094,7 +1109,7 @@ end
 
 -- option : ipfrag.ipfrag_disorder - send fragments from last to first
 function rawsend_dissect_ipfrag(dis, options)
-	if options and options.ipfrag and options.ipfrag.ipfrag then
+	if options and options.ipfrag and options.ipfrag.ipfrag and not dis.frag then
 		local frag_func = options.ipfrag.ipfrag=="" and "ipfrag2" or options.ipfrag.ipfrag
 		if type(_G[frag_func]) ~= "function" then
 			error("rawsend_dissect_ipfrag: ipfrag function '"..tostring(frag_func).."' does not exist")
