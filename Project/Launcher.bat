@@ -1,10 +1,11 @@
 @echo off
+cd /d "%~dp0" >nul 2>&1
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
 
 :: Запуск от имени админа
 if not "%1"=="am_admin" (
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList 'am_admin'" & exit /b
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -WorkingDirectory '%~dp0' -Verb RunAs -ArgumentList 'am_admin'" & exit /b
 )
 
 :: Получаем путь к родительской папке и проверяем на пробелы
@@ -90,7 +91,7 @@ if /i not "%CurrentFont%"=="__DefaultTTFont__" (
     ) else (
         call :ui_info "Шрифт консоли изменен с %CurrentFont% на __DefaultTTFont__"
         timeout /t 2 >nul
-        start "" "%ParentDirPath%\launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\launcher.bat"
         exit /b
     )
 )

@@ -32,6 +32,7 @@
 ::
 ::978f952a14a936cc963da21a135fa983
 @echo off
+cd /d "%~dp0" >nul 2>&1
 
 setlocal EnableDelayedExpansion
 
@@ -44,7 +45,7 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  Requesting administrator privileges...
     call :log INFO "Requesting administrative privileges"
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -WorkingDirectory '%~dp0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
     exit /b
 )
 
@@ -54,7 +55,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.8"
+set "UpdaterVersion=2.8.1"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -291,20 +292,20 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
         echo         ^[*^] Обновление завершено
         call :log INFO "Update finished"
-        start "" "%ParentDirPath%\Launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
         call :log ERROR "Config file not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat"
         echo         ^[*^] Файл конфига %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" "%ParentDirPath%\Launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul
         exit
     )
 ) else (
     call :log INFO "Starting Launcher"
-    start "" "%ParentDirPath%\Launcher.bat"
+    start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
     exit
 )
 

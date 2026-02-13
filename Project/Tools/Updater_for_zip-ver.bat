@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0" >nul 2>&1
 setlocal EnableDelayedExpansion
 
 REM Resolve install root early and prepare logging
@@ -10,7 +11,7 @@ net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo  Requesting administrator privileges...
     call :log INFO "Requesting administrative privileges"
-    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -WorkingDirectory '%~dp0' -Verb RunAs -ArgumentList '--elevated'" >nul 2>&1
     exit /b
 )
 
@@ -254,20 +255,20 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
         echo         ^[*^] Обновление завершено
         call :log INFO "Update finished"
-        start "" "%ParentDirPath%\Launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul 2>&1
         exit
     ) else (
         call :log ERROR "Config file not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat"
         echo         ^[*^] Файл конфига %GoodbyeZapret_Config%.bat не найден
         timeout /t 2 >nul
-        start "" "%ParentDirPath%\Launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul
         exit
     )
 ) else (
     call :log INFO "Starting Launcher"
-    start "" "%ParentDirPath%\Launcher.bat"
+    start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
     exit
 )
 
