@@ -57,7 +57,7 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 :: Version information Stable Beta Alpha
 set "Current_GoodbyeZapret_version=3.4.0"
-set "Current_GoodbyeZapret_version_code=13F01"
+set "Current_GoodbyeZapret_version_code=14F01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1058,8 +1058,17 @@ echo             %COL%[90m ─────────────────�
 
 call "%USERPROFILE%\AppData\Roaming\GoodbyeZapret\ports.bat"
 
-if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
-if not defined udp_ports set "udp_ports=80,443,1024-65535,4" 
+if defined tcp_portsV (
+    if not defined tcp_ports set "tcp_ports=%tcp_portsV%"
+) else (
+    if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
+)
+
+if defined udp_portsV (
+    if not defined udp_ports set "udp_ports=%udp_portsV%"
+) else (
+    if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
+)
 
 echo.
 echo.
