@@ -1,2 +1,0 @@
-# Amazon CDN UDP module domains
-aws.amazon.com

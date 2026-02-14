@@ -1,2 +1,0 @@
-# YouTube QUIC module domains
-redirector.googlevideo.com

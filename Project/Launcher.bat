@@ -19,7 +19,7 @@ set "tempvar=%FolderName%"
 echo."%tempvar%"| findstr /c:" " >nul && (
     cls
     echo.
-    echo  WARN: The folder name contains spaces.
+    echo  ERROR: The folder name contains spaces.
     echo.
     pause
     exit /b
@@ -55,9 +55,9 @@ if %os_arch%==32 (
 for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
 
 
-:: Version information Stable Beta Alpha
-set "Current_GoodbyeZapret_version=3.4.0"
-set "Current_GoodbyeZapret_version_code=14F01"
+:: Version information   Stable / Beta / Alpha
+set "Current_GoodbyeZapret_version=3.4.1"
+set "Current_GoodbyeZapret_version_code=15F01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -2129,11 +2129,11 @@ goto CurrentStatus
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     )
     echo.
-    echo    %COL%[36mВыполняется быстрый перезапуск и очистка WinDivert...%COL%[37m
+    echo    %COL%[36mВыполняется быстрый перезапуск обхода...%COL%[37m
     
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% neq 0 (
-        echo    %COL%[91mСлужба GoodbyeZapret не установлена%COL%[37m
+        echo  %COL%[91m[W] Служба GoodbyeZapret не установлена%COL%[37m
         timeout /t 2 >nul 2>&1
         if defined QuickRestartFromMainMenu (
             set "QuickRestartFromMainMenu="
@@ -2143,16 +2143,16 @@ goto CurrentStatus
         )
     )
 
-    echo    %COL%[90mОстановка службы GoodbyeZapret...%COL%[37m
+    echo   %COL%[90m[*] Остановка службы GoodbyeZapret%COL%[37m
     net stop "GoodbyeZapret" >nul 2>&1
 
-    echo    %COL%[90mОстановка GoodbyeZapretTray...%COL%[37m
+    echo   %COL%[90m[*] Остановка процесса GoodbyeZapretTray.exe%COL%[37m
     taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 
     tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
     if not errorlevel 1 (
-        echo    %COL%[90mОстановка winws.exe...%COL%[37m
+        echo   %COL%[90m[*] Остановка процесса Winws.exe%COL%[37m
         taskkill /F /IM winws.exe >nul 2>&1
         taskkill /F /IM winws2.exe >nul 2>&1
     )
@@ -2160,19 +2160,18 @@ goto CurrentStatus
     for %%S in (WinDivert WinDivert14 monkey) do (
         sc query "%%S" >nul 2>&1
         if !errorlevel! equ 0 (
-            echo    %COL%[90mОстановка %%S...%COL%[37m
+            echo   %COL%[90m[*] Остановка %%S %COL%[37m
             net stop "%%S" >nul 2>&1
         )
     )
 
-    echo    %COL%[90mОчистка DNS-кэша...%COL%[37m
+    echo   %COL%[90m[*] Очистка DNS-кэша%COL%[37m
     ipconfig /flushdns >nul 2>&1
 
-    echo    %COL%[90mЗапуск службы GoodbyeZapret...%COL%[37m
+    echo   %COL%[90m[*] Запуск службы GoodbyeZapret%COL%[37m
     sc start "GoodbyeZapret" >nul 2>&1
-    echo    %COL%[92mПерезапуск выполнен успешно%COL%[37m
-    timeout /t 2 >nul 2>&1
-    echo    %COL%[90mЗапуск службы GoodbyeZapretTray    ...%COL%[37m
+    timeout /t 1 >nul 2>&1
+    echo   %COL%[90m[*] Запуск процесса GoodbyeZapretTray.exe    ...%COL%[37m
     if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
         schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
     )
@@ -2218,10 +2217,9 @@ IF "%WiFi%" == "Off" (
     echo.
     echo   Error 01: No internet connection.
     timeout /t 4 >nul 2>&1
-    goto MainMenu
+    exit
 )
 
-set "Assistant_version=0.3"
 REM mode con: cols=112 lines=38 >nul 2>&1
 mode con: cols=80 lines=28 >nul 2>&1
 REM Цветной текст
@@ -2249,7 +2247,6 @@ echo.
 echo        %COL%[36m Нажмите любую клавишу для продолжения...
 pause >nul
 
-
 :install_GoodbyeZapret
 cls
 title Установщик программного обеспечения от ALFiX, Inc.
@@ -2270,37 +2267,37 @@ echo.
 if not exist "%ParentDirPath%" (
     md "%ParentDirPath%"
 )
-echo        ^[*^] Скачивание файлов GoodbyeZapret...
+echo        [*] Скачивание файлов GoodbyeZapret...
 
 %CURL% -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
 if errorlevel 1 (
-    echo %COL%[91m ^[*^] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
+    echo       %COL%[91m [ERR] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
 )
 
 echo        ^[*^] Скачивание Updater.exe...
 %CURL% -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
  if errorlevel 1 (
-    echo         %COL%[91m ^[*^] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
-    echo         %COL%[93m ^[*^] Установка продолжится, но обновление может не работать.%COL%[90m
+    echo       %COL%[91m [ERR] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
+    echo       %COL%[93m [*] Установка продолжится, но обновление может не работать.%COL%[90m
     REM Не выходим, так как основной zip скачался
 )
 
 
 if exist "%TEMP%\GoodbyeZapret.zip" (
-    echo        ^[*^] Распаковка файлов
+    echo        [*] Распаковка файлов
     chcp 850 >nul 2>&1
     powershell -NoProfile Expand-Archive '%TEMP%\GoodbyeZapret.zip' -DestinationPath '%ParentDirPath%' >nul 2>&1
     chcp 65001 >nul 2>&1
     if exist "%ParentDirPath%" (
-        echo        ^[*^] Местоположение GoodbyeZapret: %ParentDirPath%
+        echo        [*] Местоположение GoodbyeZapret: %ParentDirPath%
     )
 ) else (
-    echo        %COL%[91m ^[*^] Error: File not found: %TEMP%\GoodbyeZapret.zip %COL%[90m
+    echo       %COL%[91m [ERR] Ошибка: Отсутствует файл %TEMP%\GoodbyeZapret.zip %COL%[90m
     timeout /t 5 >nul
     exit
 )
 
-echo        ^[*^] Создание ярлыка на рабочем столе...
+echo        [*] Создание ярлыка на рабочем столе...
 chcp 850 >nul 2>&1
 powershell "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\GoodbyeZapret.lnk'); $Shortcut.TargetPath = '%ParentDirPath%\launcher.bat'; $Shortcut.Save()"
 chcp 65001 >nul 2>&1
@@ -2344,7 +2341,7 @@ echo         │     %COL%[91m ╚██████╔╝██║     ██�
 echo         │     %COL%[91m  ╚═════╝ ╚═╝     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝     %COL%[36m │
 echo         └──────────────────────────────────────────────────────────────┘
 echo.
-echo  %COL%[36m Доступно обновление GoodbyeZapret %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
+echo  %COL%[36m Доступно обновление %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
 echo  %COL%[90m ──────────────────────────────────────────────────────────────────────────── %COL%[36m
 echo   Описание обновления: %COL%[37m
 type "%ParentDirPath%\bin\PatchNote.txt"
@@ -3000,25 +2997,21 @@ title GoodbyeZapret - Автоподбор стратегий
 echo.
 echo  %COL%[36mВыберите модуль для автоподбора:
 echo.
-echo    %COL%[96m[  1 ]%COL%[37m  YouTube
-echo    %COL%[96m[  2 ]%COL%[37m  YouTube GoogleVideo
-echo    %COL%[96m[  3 ]%COL%[37m  YouTube QUIC
+echo    %COL%[96m[ 1 ]%COL%[37m  YouTube
+echo    %COL%[96m[ 2 ]%COL%[37m  YouTube GoogleVideo
 echo.
-echo    %COL%[96m[  4 ]%COL%[37m  Twitch
+echo    %COL%[96m[ 3 ]%COL%[37m  Twitch
 echo.
-echo    %COL%[96m[  5 ]%COL%[37m  Discord Update
-echo    %COL%[96m[  6 ]%COL%[37m  Discord
-echo    %COL%[96m[  7 ]%COL%[37m  Discord QUIC
-echo    %COL%[96m[  8 ]%COL%[37m  STUN
+echo    %COL%[96m[ 4 ]%COL%[37m  Discord Update
+echo    %COL%[96m[ 5 ]%COL%[37m  Discord
 echo.
-echo    %COL%[96m[  9 ]%COL%[37m  CDN
-echo    %COL%[96m[ 10 ]%COL%[37m  Amazon CDN TCP
-echo    %COL%[96m[ 11 ]%COL%[37m  Amazon CDN UDP
+echo    %COL%[96m[ 6 ]%COL%[37m  CDN
+echo    %COL%[96m[ 7 ]%COL%[37m  Amazon CDN TCP
 echo.
-echo    %COL%[96m[ 12 ]%COL%[37m  Blacklist
-echo    %COL%[96m[ 13 ]%COL%[37m  Личные списки
+echo    %COL%[96m[ 8 ]%COL%[37m  Blacklist
+echo    %COL%[96m[ 9 ]%COL%[37m  Личные списки
 echo.
-echo    %COL%[90m[  0 ] Назад
+echo    %COL%[90m[ B ] Назад
 echo.
 set /p "AutoChoice=%DEL%   %COL%[90m:> "
 
@@ -3026,20 +3019,16 @@ set "AutoVar="
 set "AutoMaxVar="
 set "AutoName="
 
-if "%AutoChoice%"=="0" goto MENU
+if /i "%AutoChoice%"=="B" goto MENU
 if "%AutoChoice%"=="1"  (set "AutoVar=YT"     & set "AutoMaxVar=MAX_YouTube"            & set "AutoName=YouTube")
 if "%AutoChoice%"=="2"  (set "AutoVar=YTGV"   & set "AutoMaxVar=MAX_YouTubeGoogleVideo" & set "AutoName=YouTube GoogleVideo")
-if "%AutoChoice%"=="3"  (set "AutoVar=YTQ"    & set "AutoMaxVar=MAX_YouTubeQuic"        & set "AutoName=YouTube QUIC")
-if "%AutoChoice%"=="4"  (set "AutoVar=TW"     & set "AutoMaxVar=MAX_Twitch"             & set "AutoName=Twitch")
-if "%AutoChoice%"=="5"  (set "AutoVar=DSUPD"  & set "AutoMaxVar=MAX_DiscordUpdate"      & set "AutoName=Discord Update")
-if "%AutoChoice%"=="6"  (set "AutoVar=DS"     & set "AutoMaxVar=MAX_Discord"            & set "AutoName=Discord")
-if "%AutoChoice%"=="7"  (set "AutoVar=DSQ"    & set "AutoMaxVar=MAX_DiscordQuic"        & set "AutoName=Discord QUIC")
-if "%AutoChoice%"=="8"  (set "AutoVar=STUN"   & set "AutoMaxVar=MAX_STUN"               & set "AutoName=STUN")
-if "%AutoChoice%"=="9"  (set "AutoVar=CDN"    & set "AutoMaxVar=MAX_CDN"                & set "AutoName=CDN")
-if "%AutoChoice%"=="10" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
-if "%AutoChoice%"=="11" (set "AutoVar=AMZUDP" & set "AutoMaxVar=MAX_AmazonUDP"          & set "AutoName=Amazon CDN UDP")
-if "%AutoChoice%"=="12" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_blacklist"          & set "AutoName=Blacklist")
-if "%AutoChoice%"=="13" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & set "AutoName=Личные списки")
+if "%AutoChoice%"=="3"  (set "AutoVar=TW"     & set "AutoMaxVar=MAX_Twitch"             & set "AutoName=Twitch")
+if "%AutoChoice%"=="4"  (set "AutoVar=DSUPD"  & set "AutoMaxVar=MAX_DiscordUpdate"      & set "AutoName=Discord Update")
+if "%AutoChoice%"=="5"  (set "AutoVar=DS"     & set "AutoMaxVar=MAX_Discord"            & set "AutoName=Discord")
+if "%AutoChoice%"=="6"  (set "AutoVar=CDN"    & set "AutoMaxVar=MAX_CDN"                & set "AutoName=CDN")
+if "%AutoChoice%"=="7" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
+if "%AutoChoice%"=="8" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_blacklist"          & set "AutoName=Blacklist")
+if "%AutoChoice%"=="9" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & set "AutoName=Личные списки")
 
 if not defined AutoVar goto ConfiguratorAutoPicker
 
@@ -3211,15 +3200,11 @@ set "AutoDomainUsedModule=0"
 
 if /i "!AutoVar!"=="YT"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube.txt"
 if /i "!AutoVar!"=="YTGV"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube_googlevideo.txt"
-if /i "!AutoVar!"=="YTQ"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube_quic.txt"
 if /i "!AutoVar!"=="TW"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\twitch.txt"
 if /i "!AutoVar!"=="DSUPD" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_update.txt"
 if /i "!AutoVar!"=="DS"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord.txt"
-if /i "!AutoVar!"=="DSQ"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_quic.txt"
-if /i "!AutoVar!"=="STUN"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\stun.txt"
 if /i "!AutoVar!"=="CDN"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\cdn.txt"
 if /i "!AutoVar!"=="AMZTCP" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_tcp.txt"
-if /i "!AutoVar!"=="AMZUDP" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_udp.txt"
 if /i "!AutoVar!"=="BL"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\blacklist.txt"
 if /i "!AutoVar!"=="CUSTOM" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\custom.txt"
 

@@ -1,3 +1,0 @@
-# Discord QUIC module domains
-gateway.discord.gg
-discord.media

@@ -188,3 +188,4 @@ github.blog
 github.community
 dependabot.com
 githubapp.com
+kinorium.com

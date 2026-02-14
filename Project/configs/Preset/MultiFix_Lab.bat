@@ -96,13 +96,6 @@ if not "%1"=="am_admin" (
 )
 Echo Preparing...
 
-REM Stop & delete zapret service if it exists
-sc query "zapret" >nul 2>&1
-if %errorlevel% equ 0 (
-  sc stop zapret >nul 2>&1
-  sc delete zapret >nul 2>&1
-)
-
 REM Check if winws.exe is running and terminate it if found
 tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
 if "%ERRORLEVEL%"=="0" (
