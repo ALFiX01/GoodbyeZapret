@@ -56,8 +56,8 @@ for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=3.4.1"
-set "Current_GoodbyeZapret_version_code=15F01"
+set "Current_GoodbyeZapret_version=3.4.2"
+set "Current_GoodbyeZapret_version_code=18F01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1070,6 +1070,10 @@ if defined udp_portsV (
     if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 )
 
+for /f "tokens=2*" %%A in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v "CDN_BypassLevel" 2^>nul ^| findstr /i "CDN_BypassLevel"') do (
+    set "CDN_BypassLevel=%%B"
+)
+
 echo.
 echo.
 echo                    %COL%[96m^[ 1 ^]%COL%[37m Уровень обхода CDN               ^(%COL%[96m%CDN_BypassLevel%%COL%[37m^)
@@ -2060,15 +2064,28 @@ echo.
 echo    %COL%[90m^[ %COL%[32mF %COL%[90m^] %COL%[32mПоддержать разработку проекта
 echo    %COL%[90m^[ %COL%[32mT %COL%[90m^] %COL%[32mОткрыть telegram канал
 echo.
-echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[90mПереустановить GoodbyeZapret
-echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[90mБыстрый перезапуск и очистка WinDivert
-echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[90mВернуться в главное меню
 if "%UpdateNeed%"=="Yes" (
     echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[93mОбновить до актуальной версии
-)
+) else ( echo    %COL%[90m^[ %COL%[36mU %COL%[90m^] %COL%[90mПринудительно обновить GoodbyeZapret )
+
+echo    %COL%[90m^[ %COL%[36mR %COL%[90m^] %COL%[90mБыстрый перезапуск и очистка WinDivert
+echo    %COL%[90m^[ %COL%[36mB %COL%[90m^] %COL%[90mВернуться в главное меню
+
 echo.
 echo.
 set /p "choice=%DEL%   %COL%[90m:> "
+
+if /i "%choice%"=="F" set "choice=" && start https://pay.cloudtips.ru/p/b98d1870
+if /i "%choice%"=="а" set "choice=" && start https://pay.cloudtips.ru/p/b98d1870
+
+if /i "%choice%"=="T" set "choice=" && goto OpenTelegram
+if /i "%choice%"=="е" set "choice=" && goto OpenTelegram
+
+if /i "%choice%"=="U" set "choice=" && goto FullUpdate
+if /i "%choice%"=="г" set "choice=" && goto FullUpdate
+
+if /i "%choice%"=="R" set "choice=" && goto QuickRestart
+if /i "%choice%"=="к" set "choice=" && goto QuickRestart
 
 REM Handle menu choices with proper error checking
 if /i "%choice%"=="B" (
@@ -2080,21 +2097,6 @@ if /i "%choice%"=="и" (
     call :ResizeMenuWindow
     set "choice=" && goto MainMenu
 )
-
-if /i "%choice%"=="U" set "choice=" && goto FullUpdate
-if /i "%choice%"=="г" set "choice=" && goto FullUpdate
-
-if /i "%choice%"=="C" set "choice=" && goto CDN_BypassLevelSelector
-if /i "%choice%"=="с" set "choice=" && goto CDN_BypassLevelSelector
-
-if /i "%choice%"=="T" set "choice=" && goto OpenTelegram
-if /i "%choice%"=="е" set "choice=" && goto OpenTelegram
-
-if /i "%choice%"=="R" set "choice=" && goto QuickRestart
-if /i "%choice%"=="к" set "choice=" && goto QuickRestart
-
-if /i "%choice%"=="F" set "choice=" && start https://pay.cloudtips.ru/p/b98d1870
-if /i "%choice%"=="а" set "choice=" && start https://pay.cloudtips.ru/p/b98d1870
 
 REM Handle update option only if update is needed
 if "%UpdateNeed%"=="Yes" (
