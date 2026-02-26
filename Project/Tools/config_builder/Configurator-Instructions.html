@@ -329,7 +329,7 @@
         <div class="steps-container">
             <div class="step">
                 <div class="step-number">1</div>
-                <div>Введите цифру <kbd>1</kbd>–<kbd>13</kbd> или букву <kbd>L</kbd>, <kbd>E</kbd>, соответствующую нужному параметру, и нажмите <kbd>Enter</kbd>.</div>
+                <div>Введите цифру <kbd>1</kbd>–<kbd>14</kbd> или букву <kbd>L</kbd>, <kbd>E</kbd>, соответствующую нужному параметру, и нажмите <kbd>Enter</kbd>.</div>
             </div>
             <div class="step">
                 <div class="step-number">2</div>
@@ -374,27 +374,31 @@
                 <div class="param-desc">Протокол QUIC. Иногда участвует для подгрузки интерфейса. Если без него всё норм то ставьте <kbd>0</kbd> </div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>8</kbd> STUN</div>
+                <div class="param-title"><kbd>8</kbd> Discord.media</div>
+                <div class="param-desc">Отдельный модуль для доменов Discord media (картинки и видео-вложения). Также может влиять на подключение к голосовым каналам на серверах Discord. Если медиа или войсы в Discord работают нестабильно, подбирайте стратегию здесь.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>9</kbd> STUN</div>
                 <div class="param-desc">Важно для звонков (Telegram, WhatsApp, Discord Voice). Если не подключается к голосовому каналу дискорд ("RTC Connecting" или "Подключение...") — крутите здесь.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>9</kbd> CDN</div>
+                <div class="param-title"><kbd>10</kbd> CDN</div>
                 <div class="param-desc">Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также влияет на подключение к голосовым каналам в Discord.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>10</kbd> CDN Amazon TCP</div>
+                <div class="param-title"><kbd>11</kbd> CDN Amazon TCP</div>
                 <div class="param-desc">Также частично может влиять на Twitch и загрузку изображений в Discord и подключение к голосовым каналам.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>11</kbd> CDN Amazon UDP</div>
+                <div class="param-title"><kbd>12</kbd> CDN Amazon UDP</div>
                 <div class="param-desc">То же самое что и CDN Amazon TCP но работает через UDP.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>12</kbd> Blacklist</div>
+                <div class="param-title"><kbd>13</kbd> Blacklist</div>
                 <div class="param-desc">Instagram, Twitter и др. Из-за новых блокировок РКН практически бесполезно. Рекомендуется <kbd>0</kbd>.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>13</kbd> Личные списки</div>
+                <div class="param-title"><kbd>14</kbd> Личные списки</div>
                 <div class="param-desc">Пресет для персональных списков. Обходит ip из ipset-custom.txt и домены из list-custom.txt. Если не добавляли туда ничего, то используйте <kbd>0</kbd>.</div>
             </div>
             <div class="param-card">

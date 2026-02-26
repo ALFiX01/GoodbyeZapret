@@ -1,6 +1,6 @@
 function pcap_write_header(file)
-	-- big endian, nanoseconds in timestamps, ver 2.4, max packet size - 0x4000 (16384), 0x65 - l3 packets without l2
-	file:write("\xA1\xB2\x3C\x4D\x00\x02\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x40\x00\x00\x00\x00\x65")
+	-- big endian, nanoseconds in timestamps, ver 2.4, max packet size - 0xFFFF (65535), 0x65 - l3 packets without l2
+	file:write("\xA1\xB2\x3C\x4D\x00\x02\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xFF\xFF\x00\x00\x00\x65")
 end
 function pcap_write_packet(file, raw)
 	local sec, nsec = clock_gettime();
@@ -34,6 +34,7 @@ function pcap(ctx, desync)
 	if not f then
 		error("pcap: could not write to '".._G[fn_cache_name].."'")
 	end
-	pcap_write(f, raw_packet(ctx))
+	local raw = ctx and raw_packet(ctx) or reconstruct_dissect(desync.dis)
+	pcap_write(f, raw)
 	f:close()
 end

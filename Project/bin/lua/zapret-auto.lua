@@ -411,19 +411,19 @@ function cond_tcp_has_ts(desync)
 end
 -- exec lua code in "code" arg and return it's result
 function cond_lua(desync)
-	if not desync.arg.code then
-		error("cond_lua: no 'code' parameter")
+	if not desync.arg.cond_code then
+		error("cond_lua: no 'cond_code' parameter")
 	end
-	local fname = desync.func_instance.."_cond_code"
+	local fname = desync.func_instance.."_cond_cond_code"
 	if not _G[fname] then
 		local err
-		_G[fname], err = load(desync.arg.code, fname)
+		_G[fname], err = load(desync.arg.cond_code, fname)
 		if not _G[fname] then
 			error(err)
 			return
 		end
 	end
-	-- allow dynamic code to access desync
+	-- allow dynamic cond_code to access desync
 	_G.desync = desync
 	local res, v = pcall(_G[fname])
 	_G.desync = nil
@@ -479,8 +479,10 @@ function per_instance_condition(ctx, desync)
 			if type(_G[instance.arg.cond])~="function" then
 				error("per_instance_condition: invalid 'iff' function '"..instance.arg.cond.."'")
 			end
+			-- preapply exec plan to feed cond function correct args
+			apply_execution_plan(desync, instance)
 			if logical_xor(_G[instance.arg.cond](desync), instance.arg.cond_neg) then
-				verdict = plan_instance_execute(desync, verdict, instance)
+				verdict = plan_instance_execute_preapplied(desync, verdict, instance)
 			else
 				DLOG("per_instance_condition: condition not satisfied. skipping '"..instance.func_instance.."'")
 			end

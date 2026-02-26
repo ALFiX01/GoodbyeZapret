@@ -9,7 +9,9 @@ if not "%1"=="am_admin" (
 )
 
 :: Получаем путь к родительской папке и проверяем на пробелы
-for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent \"%~f0\""') do set "ParentDirPathForCheck=%%A"
+set "ParentDirPathForCheck=%~dp0"
+if "%ParentDirPathForCheck:~-1%"=="\" set "ParentDirPathForCheck=%ParentDirPathForCheck:~0,-1%"
+
 
 :: Извлекаем имя папки и проверяем на пробелы
 for %%A in ("%ParentDirPathForCheck%") do set "FolderName=%%~nxA"
@@ -52,12 +54,12 @@ if %os_arch%==32 (
 )
 
 :: Получаем путь к родительской папке
-for /f "delims=" %%A in ('powershell -NoProfile -Command "Split-Path -Parent '%~f0'"') do set "ParentDirPath=%%A"
+set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=3.4.2"
-set "Current_GoodbyeZapret_version_code=18F01"
+set "Current_GoodbyeZapret_version=3.5.0"
+set "Current_GoodbyeZapret_version_code=26F01"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -803,9 +805,9 @@ REM Update version in registry if defined
  )
 
 :GZ_loading_process
-set "SilentMode=1"
-call :CurrentStatus
-set "SilentMode="
+REM set "SilentMode=1"
+REM call :CurrentStatus
+REM set "SilentMode="
 
 if "%UpdateNeedShowScreen%"=="1" (
     goto MainMenu
@@ -936,13 +938,13 @@ if /i "%WiFi%"=="Off" (
 )
 
 REM ------ New: warn user if system problems detected ------
-if "%TotalCheck%"=="Problem" (
-    echo                         %COL%[90mВозможна нестабильная работа GoodbyeZapret
-    echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
-) else (
+REM if "%TotalCheck%"=="Problem" (
+REM     echo                         %COL%[90mВозможна нестабильная работа GoodbyeZapret
+REM     echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
+REM ) else (
     echo             %COL%[90m ────────────────────────────────────────────────────────────────── %COL%[37m
     echo.
-)
+REM )
 echo.
 echo.
 echo.
@@ -1248,8 +1250,10 @@ echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \__
 if /i "%branch%"=="beta" (
     echo                                       /____/  бета версия  /_/ 
     echo.
+    echo             %COL%[90mГотовые конфиги менее эффективны. Используйте конфигуратор стратегий %COL%[37m
 ) else (
     echo                                       /____/               /_/
+    echo.
     echo             %COL%[90mГотовые конфиги менее эффективны. Используйте конфигуратор стратегий %COL%[37m
 )
 
@@ -2612,12 +2616,14 @@ for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_O
     echo !WinVersion! | find /i "Windows 11" >nul
     if not errorlevel 1 (
         set "WinVer=Windows 11"
+        call :ui_info "Определяю версию Windows как Win11"
         reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "11" /f >nul 2>&1
     ) else (
         REM Проверяем, является ли система Windows 10
         echo !WinVersion! | find /i "Windows 10" >nul
         if not errorlevel 1 (
             set "WinVer=Windows 10"
+            call :ui_info "Определяю версию Windows как Win10"
             reg add "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "WinVer" /d "10" /f >nul 2>&1
         )
     )
@@ -2687,7 +2693,7 @@ if exist "%ParentDirPath%\tools\config_builder\config_builder_limits.bat" (
     del "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
 ) else (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_DiscordMedia=0" & set "MAX_blacklist=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
 )
 
 set "Configurator=1" & call :ReadConfig YT 1
@@ -2697,6 +2703,7 @@ set "Configurator=1" & call :ReadConfig TW 0
 set "Configurator=1" & call :ReadConfig DSUPD 1
 set "Configurator=1" & call :ReadConfig DS 1
 set "Configurator=1" & call :ReadConfig DSQ 1
+set "Configurator=1" & call :ReadConfig DSMEDIA 1
 set "Configurator=1" & call :ReadConfig BL 0
 set "Configurator=1" & call :ReadConfig STUN 1
 set "Configurator=1" & call :ReadConfig CDN 1
@@ -2710,7 +2717,7 @@ cls
 title GoodbyeZapret - Конфигуратор стратегий
 
 :: Список всех переменных для проверки
-set "CHECK_LIST=YT YTGV YTQ TW DSUPD DS DSQ BL STUN CDN AMZTCP AMZUDP CUSTOM"
+set "CHECK_LIST=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA BL STUN CDN AMZTCP AMZUDP CUSTOM"
 
 :: Цикл по каждой переменной из списка
 for %%V in (%CHECK_LIST%) do (
@@ -2736,14 +2743,15 @@ echo    %COL%[36m║
 echo    %COL%[36m║   %COL%[96m[  5 ]%COL%[37m  Discord Update             %COL%[92m!DSUPD!          !DSUPD_sp!%COL%[90m(0-!MAX_DiscordUpdate!)
 echo    %COL%[36m║   %COL%[96m[  6 ]%COL%[37m  Discord                    %COL%[92m!DS!          !DS_sp!%COL%[90m(0-!MAX_Discord!)
 echo    %COL%[36m║   %COL%[96m[  7 ]%COL%[37m  Discord QUIC               %COL%[92m!DSQ!          !DSQ_sp!%COL%[90m(0-!MAX_DiscordQuic!)
-echo    %COL%[36m║   %COL%[96m[  8 ]%COL%[37m  STUN                       %COL%[92m!STUN!          !STUN_sp!%COL%[90m(0-!MAX_STUN!)
+echo    %COL%[36m║   %COL%[96m[  8 ]%COL%[37m  Discord.media              %COL%[92m!DSMEDIA!          !DSMEDIA_sp!%COL%[90m(0-!MAX_DiscordMedia!)
+echo    %COL%[36m║   %COL%[96m[  9 ]%COL%[37m  STUN                       %COL%[92m!STUN!          !STUN_sp!%COL%[90m(0-!MAX_STUN!)
 echo    %COL%[36m║
-echo    %COL%[36m║   %COL%[96m[  9 ]%COL%[37m  CDN                        %COL%[92m!CDN!          !CDN_sp!%COL%[90m(0-!MAX_CDN!)
-echo    %COL%[36m║   %COL%[96m[ 10 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
-echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
+echo    %COL%[36m║   %COL%[96m[ 10 ]%COL%[37m  CDN                        %COL%[92m!CDN!          !CDN_sp!%COL%[90m(0-!MAX_CDN!)
+echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
+echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
 echo    %COL%[36m║
-echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Blacklist                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_blacklist!)
-echo    %COL%[36m║   %COL%[96m[ 13 ]%COL%[37m  Личные списки              %COL%[92m!CUSTOM!          !CUSTOM_sp!%COL%[90m(0-!MAX_custom!)
+echo    %COL%[36m║   %COL%[96m[ 13 ]%COL%[37m  Blacklist                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_blacklist!)
+echo    %COL%[36m║   %COL%[96m[ 14 ]%COL%[37m  Личные списки              %COL%[92m!CUSTOM!          !CUSTOM_sp!%COL%[90m(0-!MAX_custom!)
 
 echo    %COL%[36m╠════════════════════════════════════════════════════════════════════════════════════
 echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень CDN              %COL%[92m!CDN_LVL!       %COL%[90m(off/base/full)
@@ -2792,7 +2800,7 @@ if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
     cls
     echo.
     echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-    "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+    "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
         set "batFile=ConfiguratorFix.bat"
         set "batRel=Custom\ConfiguratorFix.bat"
         set "batPath=Custom"
@@ -2805,7 +2813,7 @@ if /i "%opt%"=="г" (
         cls
         echo.
         echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-        "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+        "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
         set "batFile=ConfiguratorFix.bat"
         set "batRel=Custom\ConfiguratorFix.bat"
         set "batPath=Custom"
@@ -2910,6 +2918,17 @@ if "%opt%"=="7" (
 )
 
 if "%opt%"=="8" (
+    set /p val="%DEL%   Введите стратегию для Discord.media (0-!MAX_DiscordMedia!): "
+    if !val! gtr !MAX_DiscordMedia! (
+        echo  Неверное значение. Максимум - !MAX_DiscordMedia!
+        pause
+    ) else (
+        set "DSMEDIA=!val!"
+    )
+    goto MENU
+)
+
+if "%opt%"=="9" (
     set /p val="%DEL%   Введите стратегию для STUN (0-!MAX_STUN!): "
     if !val! gtr !MAX_STUN! (
         echo  Неверное значение. Максимум - !MAX_STUN!
@@ -2920,7 +2939,7 @@ if "%opt%"=="8" (
     goto MENU
 )
 
-if "%opt%"=="9" (
+if "%opt%"=="10" (
     set /p val="%DEL%   Введите стратегию для CDN (0-!MAX_CDN!): "
     if !val! gtr !MAX_CDN! (
         echo  Неверное значение. Максимум - !MAX_CDN!
@@ -2931,7 +2950,7 @@ if "%opt%"=="9" (
     goto MENU
 )
 
-if "%opt%"=="10" (
+if "%opt%"=="11" (
     set /p val="%DEL%   Введите стратегию для CDN Amazon TCP (0-!MAX_AmazonTCP!): "
     if !val! gtr !MAX_AmazonTCP! (
         echo  Неверное значение. Максимум - !MAX_AmazonTCP!
@@ -2942,7 +2961,7 @@ if "%opt%"=="10" (
     goto MENU
 )
 
-if "%opt%"=="11" (
+if "%opt%"=="12" (
     set /p val="%DEL%   Введите стратегию для CDN Amazon UDP (0-!MAX_AmazonUDP!): "
     if !val! gtr !MAX_AmazonUDP! (
         echo  Неверное значение. Максимум - !MAX_AmazonUDP!
@@ -2953,7 +2972,7 @@ if "%opt%"=="11" (
     goto MENU
 )
 
-if "%opt%"=="12" (
+if "%opt%"=="13" (
     set /p val="%DEL%   Введите стратегию для Blacklist (0-!MAX_blacklist!): "
     if !val! gtr !MAX_blacklist! (
         echo  Неверное значение. Максимум - !MAX_blacklist!
@@ -2964,7 +2983,7 @@ if "%opt%"=="12" (
     goto MENU
 )
 
-if "%opt%"=="13" (
+if "%opt%"=="14" (
     set /p val="%DEL%   Введите стратегию для личных списков (0-!MAX_Custom!): "
     if !val! gtr !MAX_Custom! (
         echo  Неверное значение. Максимум - !MAX_Custom!
@@ -2981,13 +3000,13 @@ if /i "%opt%"=="д" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full):
 if /i "%opt%"=="E" (
     if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
     :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
+    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "DSMEDIA=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
     goto UpdateLimits
 )
 if /i "%opt%"=="у" (
     if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
     :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
+    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "DSMEDIA=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
     goto UpdateLimits
 )
 
@@ -3044,6 +3063,7 @@ set "AutoPrev_TW=!TW!"
 set "AutoPrev_DSUPD=!DSUPD!"
 set "AutoPrev_DS=!DS!"
 set "AutoPrev_DSQ=!DSQ!"
+set "AutoPrev_DSMEDIA=!DSMEDIA!"
 set "AutoPrev_STUN=!STUN!"
 set "AutoPrev_CDN=!CDN!"
 set "AutoPrev_AMZTCP=!AMZTCP!"
@@ -3114,7 +3134,7 @@ cls
 echo.
 echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!)
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
@@ -3150,7 +3170,7 @@ exit /b
 
 :ConfiguratorAutoSetTestVars
 if "!AutoZeroOthers!"=="1" (
-    for %%V in (YT YTGV YTQ TW DSUPD DS DSQ STUN CDN AMZTCP AMZUDP BL CUSTOM) do set "%%V=0"
+    for %%V in (YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA STUN CDN AMZTCP AMZUDP BL CUSTOM) do set "%%V=0"
 )
 for %%V in (!AutoVar!) do set "%%V=!AutoIndex!"
 exit /b
@@ -3163,6 +3183,7 @@ set "TW=!AutoPrev_TW!"
 set "DSUPD=!AutoPrev_DSUPD!"
 set "DS=!AutoPrev_DS!"
 set "DSQ=!AutoPrev_DSQ!"
+set "DSMEDIA=!AutoPrev_DSMEDIA!"
 set "STUN=!AutoPrev_STUN!"
 set "CDN=!AutoPrev_CDN!"
 set "AMZTCP=!AutoPrev_AMZTCP!"
@@ -3184,6 +3205,7 @@ if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\App
 >>"%AutoBackupFile%" echo DSUPD="!DSUPD!"
 >>"%AutoBackupFile%" echo DS="!DS!"
 >>"%AutoBackupFile%" echo DSQ="!DSQ!""
+>>"%AutoBackupFile%" echo DSMEDIA="!DSMEDIA!"
 >>"%AutoBackupFile%" echo STUN="!STUN!"
 >>"%AutoBackupFile%" echo CDN="!CDN!"
 >>"%AutoBackupFile%" echo AMZTCP="!AMZTCP!""
@@ -3312,7 +3334,7 @@ cls
 echo.
 
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"
@@ -3351,7 +3373,7 @@ cls
 echo.
 
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
 	set "currentDir=%~dp0"

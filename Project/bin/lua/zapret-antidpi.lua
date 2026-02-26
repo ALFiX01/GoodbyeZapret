@@ -729,13 +729,14 @@ function hostfakesplit(ctx, desync)
 				local midhost
 				if desync.arg.midhost then
 					midhost = resolve_pos(data,desync.l7payload,desync.arg.midhost)
-					if not midhost then
+					if midhost then
+						DLOG("hosfakesplit: midhost marker resolved to "..midhost)
+						if midhost<=pos[1] or midhost>pos[2] then
+							DLOG("hostfakesplit: midhost is not inside the host range")
+							midhost = nil
+						end
+					else
 						DLOG("hostfakesplit: cannot resolve midhost marker '"..desync.arg.midhost.."'")
-					end
-					DLOG("hosfakesplit: midhost marker resolved to "..midhost)
-					if midhost<=pos[1] or midhost>pos[2] then
-						DLOG("hostfakesplit: midhost is not inside the host range")
-						midhost = nil
 					end
 				end
 				-- if present apply ipfrag only to real host parts. fakes and parts outside of the host must be visible to DPI.
@@ -942,7 +943,7 @@ function fakeddisorder(ctx, desync)
 					local opts_orig = {rawsend = rawsend_opts_base(desync), reconstruct = {}, ipfrag = {}, ipid = desync.arg, fooling = {tcp_ts_up = desync.arg.tcp_ts_up}}
 					local opts_fake = {rawsend = rawsend_opts(desync), reconstruct = reconstruct_opts(desync), ipfrag = {}, ipid = desync.arg, fooling = desync.arg}
 
-					fakepat = desync.arg.pattern and blob(desync,desync.arg.pattern) or "\x00"
+					local fakepat = desync.arg.pattern and blob(desync,desync.arg.pattern) or "\x00"
 
 					-- second fake
 					fake = pattern(fakepat,pos,#data-pos+1)
