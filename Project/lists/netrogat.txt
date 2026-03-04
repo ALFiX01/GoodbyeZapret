@@ -214,3 +214,9 @@ wb.ru
 wbbasket.ru
 yandex.by
 yandex.kz
+# valorant exclude
+unrealengine.com
+riotgames.com
+riotcdn.net
+leagueoflegends.com
+playvalorant.com
