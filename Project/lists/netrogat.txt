@@ -215,8 +215,6 @@ wbbasket.ru
 yandex.by
 yandex.kz
 # valorant exclude
-epicgames.dev
-epicgames.com
 unrealengine.com
 riotgames.com
 riotcdn.net
