@@ -249,18 +249,6 @@ GoodbyeZapretTray.exe, а также закройте консоль, связа
 
 ---
 
-## 📣 Telegram-канал
-
-📢 **Официальный Telegram-канал проекта:**  
-[https://t.me/+QUADX-YqFUJhM2Fi](https://t.me/+QUADX-YqFUJhM2Fi)
-
-Здесь публикуются:
-- Актуальные обновления и релизы
-- Важные уведомления и патчи
-- Ответы на частые вопросы и советы по использованию
-
----
-
 <div align="center">
   ⭐ Понравился проект? Поставь звездочку! ⭐
   <a href="https://github.com/ALFiX01/GoodbyeZapret/stargazers"> <img src="https://img.shields.io/github/stars/ALFiX01/GoodbyeZapret?style=social" alt="GitHub Stars"> </a>
