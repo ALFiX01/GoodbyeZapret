@@ -13,6 +13,9 @@
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/total?style=plastic" alt="GitHub Downloads"></a>
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a>
   </p>
+  <p align="center">
+    💖 <a href="https://example.com/donate"><b>Поддержать разработчика</b></a>
+  </p>
 </div>
 
 > **Важно:** GoodbyeZapret не предназначен для использования в целях обхода законных ограничений или нарушений условий обслуживания интернет-провайдеров. Проект создан исключительно в образовательных и исследовательских целях, в том числе для изучения работы сетевых протоколов и механизмов фильтрации. Ответственность за использование программного обеспечения лежит исключительно на конечном пользователе.
