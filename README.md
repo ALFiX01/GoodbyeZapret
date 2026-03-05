@@ -14,7 +14,7 @@
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a>
   </p>
   <p align="center">
-    💖 <a href="https://pay.cloudtips.ru/p/b98d1870"><b>Поддержать разработчика</b></a>
+    💖 <a href="https://example.com/donate"><b>Поддержать разработчика</b></a>
   </p>
 </div>
 
@@ -40,7 +40,7 @@
 
 ## 📌 О проекте
 
-**GoodbyeZapret** — это инструмент с открытым исходным кодом на базе [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws), предназначенный для модификации сетевых пакетов с целью предотвращения принудительного разрыва сессий системами DPI (Deep Packet Inspection).
+**GoodbyeZapret** — это инструмент на базе [zapret-win-bundle/zapret-winws](https://github.com/bol-van/zapret-win-bundle/tree/master/zapret-winws), предназначенный для модификации сетевых пакетов с целью предотвращения принудительного разрыва сессий системами DPI (Deep Packet Inspection).
 
 *Инструмент изменяет сетевые пакеты так, чтобы DPI-системы не могли корректно определить ресурс.*
 
