@@ -14,7 +14,7 @@
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a>
   </p>
   <p align="center">
-    💖 <a href="https://example.com/donate"><b>Поддержать разработчика</b></a>
+    💖 <a href="https://pay.cloudtips.ru/p/b98d1870"><b>Поддержать разработчика</b></a>
   </p>
 </div>
 
