@@ -125,7 +125,7 @@ function http_domcase(ctx, desync)
 		local host_range = resolve_multi_pos(desync.dis.payload,desync.l7payload,"host,endhost")
 		if #host_range == 2 then
 			local host = string.sub(desync.dis.payload,host_range[1],host_range[2]-1)
-			local newhost="", i
+			local newhost=""
 			for i = 1, #host do
 				newhost=newhost..((i%2)==0 and string.lower(string.sub(host,i,i)) or string.upper(string.sub(host,i,i)))
 			end
@@ -221,7 +221,7 @@ function http_unixeol(ctx, desync)
 				if #http < #desync.dis.payload then
 					hdis.headers[idx_ua].value = hdis.headers[idx_ua].value .. string.rep(" ", #desync.dis.payload - #http)
 				end
-				local http = http_reconstruct_req(hdis, true)
+				http = http_reconstruct_req(hdis, true)
 				if #http==#desync.dis.payload then
 					desync.dis.payload = http
 					DLOG("http_unixeol: applied")
@@ -894,7 +894,7 @@ function fakedsplit(ctx, desync)
 					return desync.arg.nodrop and VERDICT_PASS or VERDICT_DROP
 				end
 			else
-				DLOG("fakedsplit: cannot resolve pos '"..desync.arg.pos.."'")
+				DLOG("fakedsplit: cannot resolve pos '"..spos.."'")
 			end
 		else
 			DLOG("fakedsplit: not acting on further replay pieces")
@@ -939,7 +939,7 @@ function fakeddisorder(ctx, desync)
 					if b_debug then DLOG("fakeddisorder: resolved split pos: "..tostring(pos-1)) end
 
 					-- do not apply fooling to original parts except tcp_ts_up but apply ip_id
-					local fake, part, pat
+					local fake, part
 					local opts_orig = {rawsend = rawsend_opts_base(desync), reconstruct = {}, ipfrag = {}, ipid = desync.arg, fooling = {tcp_ts_up = desync.arg.tcp_ts_up}}
 					local opts_fake = {rawsend = rawsend_opts(desync), reconstruct = reconstruct_opts(desync), ipfrag = {}, ipid = desync.arg, fooling = desync.arg}
 
@@ -1009,7 +1009,7 @@ function fakeddisorder(ctx, desync)
 					return desync.arg.nodrop and VERDICT_PASS or VERDICT_DROP
 				end
 			else
-				DLOG("fakeddisorder: cannot resolve pos '"..desync.arg.pos.."'")
+				DLOG("fakeddisorder: cannot resolve pos '"..spos.."'")
 			end
 		else
 			DLOG("fakeddisorder: not acting on further replay pieces")
@@ -1210,8 +1210,8 @@ function udplen(ctx, desync)
 				else
 					desync.dis.payload = string.sub(desync.dis.payload,1,len+inc)
 					DLOG("udplen: "..len.." => "..#desync.dis.payload)
+					return VERDICT_MODIFY
 				end
-				return VERDICT_MODIFY
 			end
 		end
 	end
