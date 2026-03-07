@@ -21,7 +21,7 @@ for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 for %%i in ("%parentDir:~0,-1%") do set "ProjectDir=%%~dpi"
 REM set "GoodbyeZapret_LastStartConfig=%~nx0"
 
-set "CONFIG_NAME=MultiFix 9"
+set "CONFIG_NAME=MultiFix 11"
 
 set "FAKE=%ProjectDir%bin\fake\"
 set "BIN=%ProjectDir%bin\"
@@ -43,38 +43,34 @@ if not defined CDN_BypassLevel set "CDN_BypassLevel=base"
 if not defined tcp_ports set "tcp_ports=80,443,1080,2053,2083,2087,2096,8443,6568,1024-65535"
 if not defined udp_ports set "udp_ports=80,443,1024-65535,4"
 
-REM start "GoodbyeZapret: %CONFIG_NAME% - discord_media+stun" /b "%BIN%winws.exe" --wf-tcp=80,443  --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" ^
-REM --dpi-desync-any-protocol=1 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=5 --dpi-desync-cutoff=n4
-REM discord80: --filter-tcp=80 --hostlist="%LISTS%list-discord.txt" --dpi-desync=fake,hostfakesplit --dpi-desync-fooling=md5sig --dup=1 --dup-cutoff=n2 --dup-fooling=md5sig --dpi-desync-hostfakesplit-mod=altorder=1 --dpi-desync-fake-tls="%FAKE%tls_clienthello_312.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni,sni=www.google.com --new ^
-REM --filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x0F0F0F0F --dpi-desync-split-pos=1,sld+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-fakedsplit-mod=altorder=0 --dpi-desync-fooling=ts --dpi-desync-cutoff=n4 --new ^
-
 start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%winws.exe" %log% ^
 --wf-tcp=%tcp_ports% --wf-udp=%udp_ports% ^
---wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --filter-l7=stun --dpi-desync=fake --new ^
+--wf-raw-part=@"%BIN%windivert.filter\windivert_part.stun.txt" --filter-l7=stun --dpi-desync=fake --dpi-desync-fake-discord=0xc80000000114 --dpi-desync-cutoff=n6 --new ^
 --wf-raw-part=@"%BIN%windivert.filter\windivert_part.discord_media.txt" --filter-l7=discord --dpi-desync=fake --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --dpi-desync-repeats=6 --new ^
 --filter-tcp=80,443 --ipset="%LISTS%netrogat_ip.txt" --ipset="%LISTS%netrogat_ip_custom.txt" --new ^
 --filter-tcp=80,443 --hostlist="%LISTS%netrogat.txt" --hostlist="%LISTS%netrogat_custom.txt" --new ^
---filter-tcp=443 --filter-l7=unknown --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync-any-protocol=1 --dpi-desync=multisplit --dpi-desync-split-seqovl=228 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-cutoff=n3 --new ^
---filter-udp=443 --hostlist-domains=yt3.ggpht.com,www.youtube.com,signaler-pa.youtube.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin" --dpi-desync-ttl=6 --new ^
---ipcache-hostname=1 --ipcache-lifetime=0 --filter-tcp=80,443 --hostlist="%LISTS%list-youtube.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=5,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_max_ru.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni,sni=fonts.google.com --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
---ipcache-hostname=1 --ipcache-lifetime=0 --filter-tcp=80,443 --ipset="%LISTS%ipset-googlevideo.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=5,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%tls_clienthello_max_ru.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni,sni=fonts.google.com --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
+--filter-udp=443 --hostlist-domains=yt3.ggpht.com --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_2.bin" --dpi-desync-ttl=7 --new ^
 
---filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset="%LISTS%ipset-discord.txt" --dpi-desync=hostfakesplit --dpi-desync-repeats=4 --dpi-desync-fooling=ts --dpi-desync-hostfakesplit-mod=host=ozon.ru --new ^
+--filter-tcp=443 --ipset="%LISTS%russia-youtube-rtmps.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake,multisplit --dpi-desync-split-pos=6,midsld --ip-id=zero --dpi-desync-fake-tls=0x000F000E --dpi-desync-fake-tls-mod=none --dpi-desync-fake-tls="%FAKE%fake_tls_2.bin" --dpi-desync-fake-tls-mod=dupsid --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
+--filter-udp=443 --hostlist="%LISTS%quick_ttl_site.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin"  --dpi-desync-repeats=2 --dpi-desync-ttl=6 --dpi-desync-cutoff=n4 --new ^
 
---filter-udp=443 --hostlist-exclude="%LISTS%list-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq,hopbyhop2 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_www_google_com.bin" --new ^
---filter-tcp=80 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
---filter-tcp=443 --hostlist="%LISTS%anomaly_site.txt" --dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0 --dpi-desync-split-pos=1 --dpi-desync-fake-tls=0x1603 --dpi-desync-fake-tls=!+2 --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni --dpi-desync-fake-tcp-mod=seq --new ^
+--filter-udp=443 --hostlist-exclude="%LISTS%russia-discord.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-increment=8 --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_1.bin"  --dpi-desync-repeats=2 --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=80 --dpi-desync=fake,fakedsplit --dpi-desync-fake-http=0x0F0F0F0F --dpi-desync-split-pos=1,sld+1 --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_2.bin" --dpi-desync-fakedsplit-mod=altorder=0 --dpi-desync-fooling=ts --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%russia-discord.txt" --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,rnd,sni=www.asus.com --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=311 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_13.bin" --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
 
---filter-udp=443 --hostlist="%LISTS%list-quick_ttl.txt" --dpi-desync=fake,udplen --dpi-desync-udplen-pattern=0x0F0F0E0F --dpi-desync-fake-quic="%FAKE%fake_quic_3.bin" --dpi-desync-repeats=2 --dpi-desync-ttl=7 --dpi-desync-cutoff=n3 --new ^
---filter-tcp=443,1024-65535 --hostlist-domains=awsglobalaccelerator.com,cloudfront.net,amazon.com,amazonaws.com,awsstatic.com,epicgames.com --dpi-desync-any-protocol=1 --dpi-desync=fake,multisplit --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=0 --dpi-desync-split-pos=1 --dpi-desync-fake-tls=0x1603 --dpi-desync-fake-tls=!+2 --dpi-desync-fake-tls-mod=rnd,dupsid,sni=fonts.google.com --dpi-desync-fake-tcp-mod=seq --dpi-desync-cutoff=n5 --new ^
---filter-tcp=80,443-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --ipset-exclude="%LISTS%ipset-dns.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake,multisplit --dpi-desync-split-pos=1,sld+1 --dpi-desync-fake-tls=0x0F0F0F0F --dpi-desync-fake-tls="%FAKE%fake_tls_3.bin" --dpi-desync-fake-tls-mod=rnd,dupsid,rndsni,sni=fonts.google.com --dpi-desync-fooling=ts,badseq --dpi-desync-cutoff=n5 --new ^
---filter-udp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=1080,2053,2083,2087,2096,8443 --dpi-desync=rst,multidisorder --dpi-desync-split-pos=3 --dpi-desync-fooling=md5sig,badseq --dpi-desync-cutoff=n5 --new ^
---filter-udp=5056,27002 --dpi-desync-any-protocol=1 --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-cutoff=n15 --dpi-desync-fake-unknown-udp="%FAKE%quic_initial_www_google_com.bin" --new ^
---filter-tcp=80,443,6568 --ipset="%LISTS%ipset-anydesk.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=211 --dpi-desync-split-seqovl-pattern="%FAKE%tls_clienthello_5.bin" --dpi-desync-cutoff=n5 --new ^
+--filter-tcp=80,443 --hostlist="%LISTS%russia-blacklist.txt" --hostlist="%LISTS%custom-hostlist.txt" --hostlist="%LISTS%mycdnlist.txt" --hostlist-exclude="%LISTS%list-youtube.txt" --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,rnd,sni=www.asus.com --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=311 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_13.bin" --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
 
---filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-retrans-threshold=4 --dpi-desync=multisplit --dpi-desync-split-seqovl=314 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_4.bin" --dpi-desync-cutoff=n5
+--filter-tcp=80,443 --hostlist="%LISTS%russia-youtube2.txt" --dpi-desync=fake,multisplit --dpi-desync-split-pos=6,midsld --ip-id=zero --dpi-desync-fake-tls-mod=dupsid,sni=www.asus.com --dpi-desync-fooling=ts --dpi-desync-cutoff=n6 --new ^
+
+--filter-tcp=443 --hostlist="%LISTS%anomaly_site.txt" --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=2,endsld-2 --dpi-desync-fake-tls-mod=rnd,sni=fonts.google.com --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_3.bin" --dpi-desync-fakedsplit-mod=altorder=3 --ip-id=zero --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n6 --new ^
+--filter-tcp=443 --filter-l7=tls --hostlist-exclude="%LISTS%autohostlist.txt" --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,rnd,sni=download.max.ru --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=315 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_11.bin" --dpi-desync-fooling=badseq,ts --dpi-desync-badseq-increment=3 --dpi-desync-badack-increment=21 --dpi-desync-cutoff=n6 --new ^
+
+--filter-tcp=80,443,1024-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --ipset-exclude="%LISTS%ipset-dns.txt" --dpi-desync-any-protocol=1 --dpi-desync=fake,fakedsplit --dpi-desync-split-pos=2,endsld-2 --dpi-desync-fake-tls-mod=rnd,sni=fonts.google.com --dpi-desync-fakedsplit-pattern="%FAKE%fake_tls_3.bin" --dpi-desync-fakedsplit-mod=altorder=3 --ip-id=zero --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n6 --new ^
+--filter-udp=443,1024-65535 --ipset="%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt" --dpi-desync=fake --dpi-desync-fake-quic=0x0c000000 --dpi-desync-fake-quic="%FAKE%fake_quic_2.bin" --dpi-desync-ttl=5 --new ^
+
+--filter-tcp=1080,2053,2083,2087,2096,8443 --hostlist-domains=discord.media --dpi-desync=rst,multidisorder --dpi-desync-split-pos=3 --dpi-desync-fooling=md5sig,badseq --dpi-desync-cutoff=n4 --new ^
+--filter-tcp=443 --hostlist-auto="%LISTS%autohostlist.txt" --hostlist-exclude="%LISTS%exclude-autohostlist.txt" --hostlist-auto-retrans-threshold=5 --dpi-desync=fake,multisplit --ip-id=seqgroup --dpi-desync-fake-tls-mod=dupsid,sni=max.ru --dpi-desync-split-pos=6 --dpi-desync-split-seqovl=226 --dpi-desync-split-seqovl-pattern="%FAKE%fake_tls_10.bin" --dpi-desync-fooling=ts,badsum --dpi-desync-cutoff=n6
+
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
 if exist "%ProjectDir%tools\tray\GoodbyeZapretTray.exe" (
