@@ -12,21 +12,6 @@ if not "%1"=="am_admin" (
 set "ParentDirPathForCheck=%~dp0"
 if "%ParentDirPathForCheck:~-1%"=="\" set "ParentDirPathForCheck=%ParentDirPathForCheck:~0,-1%"
 
-
-:: Извлекаем имя папки и проверяем на пробелы
-for %%A in ("%ParentDirPathForCheck%") do set "FolderName=%%~nxA"
-
-:: Проверка на пробелы
-set "tempvar=%FolderName%"
-echo."%tempvar%"| findstr /c:" " >nul && (
-    cls
-    echo.
-    echo  ERROR: The folder name contains spaces.
-    echo.
-    pause
-    exit /b
-)
-
 :: Включаем для манипуляции переменными
 setlocal EnableDelayedExpansion
 
@@ -35,7 +20,6 @@ set "ErrorCount=0"
 :: --- Определяем архитектуру системы
 set "os_arch="
 if /I "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "os_arch=64"
-if /I "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "os_arch=64"
 if /I "%PROCESSOR_ARCHITECTURE%"=="x86"   set "os_arch=32"
 if defined PROCESSOR_ARCHITEW6432 set "os_arch=64"
 
@@ -81,23 +65,6 @@ if "%GoodbyeZapret_Config%"=="NotFound" (
 
 call :ui_header
 
-REM Проверка и изменение шрифта консоли
-for /f "tokens=2*" %%A in ('reg query "HKEY_CURRENT_USER\Console" /v "FaceName" 2^>nul ^| findstr /i "FaceName"') do (
-    set "CurrentFont=%%B"
-)
-
-if /i not "%CurrentFont%"=="__DefaultTTFont__" (
-    reg add "HKEY_CURRENT_USER\Console" /v "FaceName" /t REG_SZ /d "__DefaultTTFont__" /f >nul 2>&1
-    if errorlevel 1 (
-        call :ui_err "Ошибка при изменении шрифта консоли"
-    ) else (
-        call :ui_info "Шрифт консоли изменен с %CurrentFont% на __DefaultTTFont__"
-        timeout /t 2 >nul
-        powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -WorkingDirectory '%~dp0' -Verb RunAs -ArgumentList 'am_admin'" & exit /b
-        exit /b
-    )
-)
-
 
 REM Проверка, выполнялась ли настройка ранее
 
@@ -113,131 +80,6 @@ if "%FirstLaunch%"=="0" (
 
 call :ui_info "Первый запуск, выполняю проверку и настройку..."
 
-REM /// UAC Settings ///
-set "L_ConsentPromptBehaviorAdmin=0"
-set "L_ConsentPromptBehaviorUser=3"
-set "L_EnableInstallerDetection=1"
-set "L_EnableLUA=1"
-set "L_EnableSecureUIAPaths=1"
-set "L_FilterAdministratorToken=0"
-set "L_PromptOnSecureDesktop=0"
-set "L_ValidateAdminCodeSignatures=0"
-
-REM === Код проверки и исправления UAC параметров ===
-REM UAC registry path
-set "UAC_HKLM=HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
-
-REM Главный цикл для проверки и обновления значений UAC
-set "UAC_check=Success"
-for %%i in (
-    ConsentPromptBehaviorAdmin
-    ConsentPromptBehaviorUser
-    EnableInstallerDetection
-    EnableLUA
-    EnableSecureUIAPaths
-    FilterAdministratorToken
-    PromptOnSecureDesktop
-    ValidateAdminCodeSignatures
-) do (
-    REM Check if key exists before reading
-    reg query "%UAC_HKLM%" /v "%%i" >nul 2>&1
-    if !errorlevel! equ 0 (
-        for /f "tokens=3" %%a in ('reg query "%UAC_HKLM%" /v "%%i" 2^>nul ^| find /i "%%i"') do (
-            REM Удаляем префикс "0x" из текущего значения
-            set "current_value=%%a"
-            set "current_value=!current_value:0x=!"
-
-            REM Получаем ожидаемое значение
-            call set "expected_value=%%L_%%i%%"
-
-            REM Сравниваем значения
-            if not "!current_value!" == "!expected_value!" (
-                call :ui_warn "UAC parameter '%%i' has unexpected value. Current: 0x!current_value!, Expected: 0x!expected_value!."
-                reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
-                if !errorlevel! equ 1 (
-                    call :ui_err "Failed to change UAC parameter '%%i'. Possibly insufficient privileges."
-                    set "UAC_check=Error"
-                ) else (
-                    call :ui_info "UAC parameter '%%i' successfully changed to 0x!expected_value!."
-                )
-            )
-        )
-    ) else (
-        REM Ключ не существует, создаем его
-        call set "expected_value=%%L_%%i%%"
-        reg add "%UAC_HKLM%" /v "%%i" /t REG_DWORD /d !expected_value! /f >nul 2>&1
-        if !errorlevel! equ 1 (
-            call :ui_err "Failed to create UAC parameter '%%i'. Possibly insufficient privileges."
-            set "UAC_check=Error"
-        ) else (
-            call :ui_info "UAC parameter '%%i' successfully created with value 0x!expected_value!."
-        )
-    )
-)
-
-REM Отключение "предупреждения системы безопасности"
-set "ExpectedSaveZone=1"
-set "CurrentSaveZone="
-for /f "tokens=3" %%a in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation 2^>nul ^| find /i "SaveZoneInformation"') do (
-    set "CurrentSaveZone=%%a"
-)
-if not defined CurrentSaveZone (
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d %ExpectedSaveZone% /f >nul 2>&1
-    if errorlevel 1 (
-        call :ui_err "Error installing SaveZoneInformation"
-        timeout /t 2 >nul
-    )
-) else (
-    set "CurrentSaveZone=!CurrentSaveZone:0x=!"
-    if /i not "!CurrentSaveZone!"=="%ExpectedSaveZone%" (
-        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments" /v SaveZoneInformation /t REG_DWORD /d %ExpectedSaveZone% /f >nul 2>&1
-        if errorlevel 1 (
-            call :ui_err "Error updating SaveZoneInformation"
-            timeout /t 2 >nul
-        )
-    )
-)
-set "CurrentSaveZone="
-
-
-REM /// Предупреждения при запуске любых exe ///
-REM === Проверка и установка DisableSecuritySettingsCheck ===
-reg query "HKLM\SOFTWARE\Microsoft\Internet Explorer\Security" /v "DisableSecuritySettingsCheck" 2>nul | find "0x1" >nul
-if errorlevel 1 (
-    reg add "HKLM\SOFTWARE\Microsoft\Internet Explorer\Security" /f /v "DisableSecuritySettingsCheck" /t REG_DWORD /d 1 >nul 2>&1
-)
-
-REM === Проверка и установка LowRiskFileTypes ===
-set "ExpectedLowRisk=.exe;.reg;.bat;.vbs;.cmd;.ps1;.zip;.rar;.msi;.msu;.lnk;.7z;.tar.gz;.doc;.docx;.pdf;"
-
-rem Правильное чтение значения реестра с tokens=2*
-for /f "skip=2 tokens=2*" %%i in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v "LowRiskFileTypes" 2^>nul') do set "CurrentLowRisk=%%j"
-
-if not defined CurrentLowRisk (
-    echo [INFO ] %TIME% - Setting LowRiskFileTypes=%ExpectedLowRisk%
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v LowRiskFileTypes /t REG_SZ /d "%ExpectedLowRisk%" /f >nul 2>&1
-) else (
-    if /i not "%CurrentLowRisk%"=="%ExpectedLowRisk%" (
-        echo [INFO ] %TIME% - Updating LowRiskFileTypes from "%CurrentLowRisk%" to "%ExpectedLowRisk%"
-        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Associations" /v LowRiskFileTypes /t REG_SZ /d "%ExpectedLowRisk%" /f >nul 2>&1
-    )
-)
-set "CurrentLowRisk="
-
-REM === Проверка и установка параметра 1806 в зоне 3 ===
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /v "1806" 2>nul | find "0x0" >nul
-if errorlevel 1 (
-    echo [INFO ] %TIME% - Setting parameter 1806=0 in zone 3
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\Zones\3" /f /v "1806" /t REG_DWORD /d 0 >nul 2>&1
-)
-REM ///
-
-REM Проверяем результат выполнения
-if "!UAC_check!" == "Error" (
-    call :ui_warn "Некоторые параметры UAC не удалось настроить правильно."
-)
-
-REM TESTING
 
 call :ReadConfig WinVer
 
@@ -268,8 +110,6 @@ if "%WinVer%"=="NotFound" (
 
 REM По завершению создаём метку в реестре
 call :WriteConfig FirstLaunch 0
-REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "FirstLaunch" /t REG_SZ /d "0" /f >nul 2>&1
-
 
 REM /// Language ///
 :: Получение информации о текущем языке интерфейса и выход, если язык не ru-RU
@@ -300,7 +140,6 @@ if "%GoodbyeZapret_Version%"=="NotFound" (
         call :WriteConfig GoodbyeZapret_Version "%Current_GoodbyeZapret_version%"
     )
 )
-
 
 rem /// GoodbyeZapret_Version_code — новый метод через config ///
 
@@ -519,12 +358,6 @@ REM Устанавливаем значения по умолчанию для �
 REM set "GoodbyeZapret_Current=Не выбран"
 set "GoodbyeZapret_Config=Не выбран"
 
-REM Проверяем, существует ли служба GoodbyeZapret и получаем текущую конфигурацию
-REM reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" >nul 2>&1
-REM if !errorlevel! equ 0 (
-REM     for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do set "GoodbyeZapret_Current=%%b"
-REM )
-
 REM Инициализируем флаг ремонта
 set "RepairNeed=No"
 
@@ -706,7 +539,7 @@ if "%StatusProject%"=="0" (
     )
     
     REM Clean up registry and directories 
-    reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /v "GoodbyeZapret_Config" /f >nul 2>&1
+    reg delete "HKCU\Software\ALFiX inc.\GoodbyeZapret" /f >nul 2>&1
     if exist "%ParentDirPath%\configs" rd /s /q "%ParentDirPath%\configs" >nul 2>&1
     if exist "%ParentDirPath%\bin" rd /s /q "%ParentDirPath%\bin" >nul 2>&1
     if exist "%ParentDirPath%\lists" rd /s /q "%ParentDirPath%\lists" >nul 2>&1
@@ -1555,9 +1388,6 @@ if "!batfile!"=="smart-config.bat" (
 REM Извлекаем базовое имя файла (без папки и расширения) для записи в реестр/описание
 for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
 
-REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_Config" /d "!batPath!" /f >nul
-REM reg add "HKCU\Software\ALFiX inc.\GoodbyeZapret" /t REG_SZ /v "GoodbyeZapret_ConfigPatch" /d "!BaseCfg!" /f >nul
-
 call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul
@@ -1709,14 +1539,6 @@ if !ErrorCount! equ 0 (
 )
 
 :CurrentStatus
-REM REM Check Auto-update setting from registry
-REM reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" >nul 2>&1
-REM if %errorlevel% equ 0 (
-REM     for /f "tokens=2*" %%a in ('reg query "HKEY_CURRENT_USER\Software\ALFiX inc.\GoodbyeZapret" /v "Auto-update" 2^>nul ^| find /i "Auto-update"') do set "Auto-update=%%b"
-REM ) else (
-REM     set "Auto-update=1"
-REM ) 
-
 REM Check BFE service state
 sc query BFE | findstr "STATE" >nul 2>&1
 if %errorlevel% equ 0 (
