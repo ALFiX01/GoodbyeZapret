@@ -1,6 +1,4 @@
 <div align="center">
-  <h1>GoodbyeZapret</h1>
-  
   <a href="https://github.com/ALFiX01/GoodbyeZapret">
     <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/Design.png?raw=true" alt="GoodbyeZapret Logo Banner" >
   </a>
