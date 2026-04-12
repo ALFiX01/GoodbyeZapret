@@ -133,6 +133,10 @@
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--blob=tls7:@\"%FAKE%fake_tls_7.bin\"",
         "--filter-tcp=80,443 --filter-l7=tls --ipset=\"%LISTS%ipset-youtube.txt\" --out-range=-d8 --lua-desync=fake:blob=fake_default_tls:tcp_flags_unset=ack:tls_mod=rnd,rndsni,padencap --lua-desync=multisplit:pos=2,midsld-2:seqovl=1:seqovl_pattern=tls7 --lua-desync=multidisorder:pos=1,host+2,sld+2,sld+5,sniext+1,sniext+2,endhost-2:seqovl=1"
+      ],
+      "34": [
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--filter-tcp=80,443 --hostlist=\"%LISTS%list-youtube.txt\" --out-range=-d8 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000"
       ]
     },
     "YouTubeGoogleVideo": {
@@ -265,6 +269,11 @@
       "35": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d8 --lua-desync=send:repeats=2 --lua-desync=fake:blob=fake_default_tls:ip_ttl=1:ip6_ttl=1:ip_autottl=4,3-20:ip6_autottl=4,3-20:tls_mod=rnd,rndsni,padencap --lua-desync=multisplit:seqovl=211:seqovl_pattern=tls_google --lua-desync=tls_aggressive:fakes=11:ttl_start=1:ttl_step=2:seqovl=211:badseq:split_sni"
+      ],
+      "36": [
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--blob=stun_pat:@\"%FAKE%stun.bin\"",
+        "--filter-tcp=80,443 --ipset=\"%LISTS%ipset-googlevideo.txt\" --out-range=-d8 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000 --lua-desync=fake:blob=stun_pat:badsum:payload=all --lua-desync=multisplit:pos=2,32:payload=all"
       ]
     },
     "YouTubeQuic": {
@@ -507,6 +516,10 @@
       "29": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --ipset=\"%LISTS%ipset-discord.txt\" --out-range=-n8 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20 --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+      ],
+      "30": [
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --hostlist=\"%LISTS%list-discord.txt\" --out-range=-d10 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000"
       ]
     },
     "DiscordMedia": {
@@ -521,6 +534,10 @@
       "3": [
         "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
         "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --hostlist-domains=discord.media --out-range=-d8 --lua-desync=send:repeats=2 --lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20 --lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+      ],
+      "4": [
+        "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\"",
+        "--filter-tcp=80,443,1080,2053,2083,2087,2096,8443 --out-range=-d10 --hostlist-domains=discord.media --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000"
       ]
     },
     "DiscordQuic": {
@@ -725,100 +742,104 @@
       "--filter-l7=discord,wireguard,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp"
       ],
       "2": [
-      "--filter-l7=stun,discord --out-range=-n4 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=5"
+      "--blob=fake_default_udp:0x00000000000000000000000000000000",
+      "--filter-l7=stun,discord --payload=stun,discord_ip_discovery --out-range=-n8 --lua-desync=fake:blob=fake_default_udp:repeats=6"
       ],
       "3": [
-      "--filter-l7=stun,discord --out-range=-n4 --payload=stun,discord_ip_discovery --out-range=-d10 --lua-desync=fake:blob=0x00"
+      "--filter-l7=stun,discord --out-range=-n4 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=5"
       ],
       "4": [
-      "--filter-l7=stun,discord --out-range=-d10 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00:repeats=6"
+      "--filter-l7=stun,discord --out-range=-n4 --payload=stun,discord_ip_discovery --out-range=-d10 --lua-desync=fake:blob=0x00"
       ],
       "5": [
-      "--filter-l7=discord,stun --out-range=-d10 --lua-desync=fake:blob=0x00:repeats=6"
+      "--filter-l7=stun,discord --out-range=-d10 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00:repeats=6"
       ],
       "6": [
-      "--filter-l7=discord,stun --out-range=-d10 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
+      "--filter-l7=discord,stun --out-range=-d10 --lua-desync=fake:blob=0x00:repeats=6"
       ],
       "7": [
-      "--blob=fake_default_udp:0x00000000000000000000000000000000",
-      "--filter-l7=discord,stun --out-range=-d3 --lua-desync=fake:blob=fake_default_udp:repeats=8"
+      "--filter-l7=discord,stun --out-range=-d10 --payload=stun,discord_ip_discovery --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
       ],
       "8": [
       "--blob=fake_default_udp:0x00000000000000000000000000000000",
-      "--filter-l7=discord,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp:repeats=6"
+      "--filter-l7=discord,stun --out-range=-d3 --lua-desync=fake:blob=fake_default_udp:repeats=8"
       ],
       "9": [
-      "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-d10 --lua-desync=fake:blob=0x00:repeats=4:ip_autottl=0,3-20:ip6_autottl=0,3-20"
+      "--blob=fake_default_udp:0x00000000000000000000000000000000",
+      "--filter-l7=discord,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp:repeats=6"
       ],
       "10": [
+      "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-d10 --lua-desync=fake:blob=0x00:repeats=4:ip_autottl=0,3-20:ip6_autottl=0,3-20"
+      ],
+      "11": [
       "--blob=fake_default_udp:0x00000000000000000000000000000000",
       "--filter-l7=discord,wireguard,stun --out-range=-d10 --lua-desync=fake:blob=fake_default_udp"
       ],
-      "11": [
+      "12": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --out-range=-n2 --lua-desync=fake:blob=quic_google"
       ],
-      "12": [
+      "13": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --out-range=-d3 --lua-desync=fake:blob=quic_google:repeats=6"
       ],
-      "13": [
+      "14": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --out-range=-n5 --lua-desync=fake:blob=quic_google:repeats=10"
       ],
-      "14": [
+      "15": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-d3 --lua-desync=fake:blob=quic_google:repeats=6"
       ],
-      "15": [
+      "16": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n5 --lua-desync=fake:blob=quic_google:repeats=10"
       ],
-      "16": [
+      "17": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n4 --lua-desync=fake:blob=quic_google"
       ],
-      "17": [
+      "18": [
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-d10 --lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
       ],
-      "18": [
+      "19": [
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=0x00"
       ],
-      "19": [
+      "20": [
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=0x00:repeats=4"
       ],
-      "20": [
+      "21": [
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=0x00:repeats=6"
       ],
-      "21": [
+      "22": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:payload=all:repeats=10"
       ],
-      "22": [
+      "23": [
       "--blob=fake_default_udp:0x00000000000000000000000000000000",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-d4 --lua-desync=fake:blob=fake_default_udp:repeats=8"
       ],
-      "23": [
+      "24": [
       "--blob=fake_default_udp:0x00000000000000000000000000000000",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=fake_default_udp"
       ],
-      "24": [
+      "25": [
       "--blob=quic6:@\"%FAKE%quic_6.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n3 --lua-desync=fake:blob=quic6:repeats=2:ip_autottl=-1,3-20:ip6_autottl=-1,3-20 --lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
       ],
-      "25": [
+      "26": [
       "--blob=quic6:@\"%FAKE%quic_6.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n3 --lua-desync=fake:blob=quic6:repeats=2 --lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
       ],
-      "26": [
+      "27": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=quic_google:repeats=12:ip_autottl=2,3-20:ip6_autottl=2,3-20:payload=unknown"
       ],
-      "27": [
+      "28": [
       "--blob=quic_test:@\"%FAKE%quic_test_00.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n2 --lua-desync=fake:blob=quic_test:repeats=2"
       ],
-      "28": [
+      "29": [
       "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\"",
       "--filter-l7=discord,stun --payload=stun,discord_ip_discovery --out-range=-n8 --lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:payload=all:repeats=10"
       ]
