@@ -7,6 +7,7 @@ on:
     # Игнорируем изменения в папке Files, чтобы не создавать бесконечный цикл
     paths-ignore:
       - 'Files/**'
+      - 'README.md'
 
 permissions:
   contents: write
