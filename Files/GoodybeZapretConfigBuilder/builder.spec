@@ -5,7 +5,11 @@ a = Analysis(
     ['builder.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('strategies.json', '.'),
+        ('../../Project/tools/config_builder/strategiesZ1.json', '.'),
+        ('../../Project/tools/config_builder/strategiesZ2.json', '.'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

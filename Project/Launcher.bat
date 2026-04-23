@@ -42,7 +42,7 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=3.5.2"
+set "Current_GoodbyeZapret_version=4.0.0"
 set "Current_GoodbyeZapret_version_code=12A0"
 set "branch=Stable"
 set "beta_code=0"
@@ -54,6 +54,7 @@ if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\App
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
 
 if not exist "%CONFIG_FILE%" call :InitConfigFromRegistry
+REM call :SyncTextPresets >nul 2>&1
 
 REM Читаем значение текущего конфига из config.txt
 set "GoodbyeZapret_Config="
@@ -653,13 +654,16 @@ if "%UpdateNeedShowScreen%"=="1" (
 
 
 :MainMenu
+cls
 call :ui_info "Загружаю интерфейс..."
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
 :MainMenu_without_ui_info
 REM call :ResizeMenuWindow
-mode con: cols=92 lines=41
-if /i "%WiFi%"=="Off" mode con: cols=92 lines=42
+set /a MainMenuLines=41
+if /i "%WiFi%"=="Off" set /a MainMenuLines+=1
+if "%CheckStatus%"=="FileCheckError" set /a MainMenuLines+=1
+mode con: cols=92 lines=%MainMenuLines%
 REM Check for last working config in registry
 
 call :ReadConfig GoodbyeZapret_Config
@@ -783,7 +787,6 @@ echo.
 echo.
 echo.
 echo.
-echo.
 echo                               %COL%[96m^[ 1 ^]%COL%[37m Состояние GoodbyeZapret
 echo.
 echo                               %COL%[96m^[ 2 ^]%COL%[37m Конфигуратор стратегий
@@ -796,6 +799,7 @@ echo                               %COL%[96m^[ 5 ^]%COL%[37m Проверить 
 echo.
 echo                               %COL%[96m^[ 6 ^]%COL%[37m Открыть инструкцию
 echo.
+echo                               %COL%[96m^[ 7 ^]%COL%[37m Прокси для тг
 echo.
 echo.
 echo.
@@ -818,6 +822,7 @@ if /i "%choice%"=="3" goto ConfigSelectorMenu_without_ui_info
 if /i "%choice%"=="4" goto MenuBypassSettings_without_ui_info
 if /i "%choice%"=="5" Start https://hyperion-cs.github.io/dpi-checkers/ru/tcp-16-20
 if /i "%choice%"=="6" goto OpenInstructions
+if /i "%choice%"=="7" goto TgWsProxyMenu
 goto MainMenu
 
 :MenuBypassSettings
@@ -987,7 +992,7 @@ goto MenuBypassSettings_without_ui_info
 
 
 :ConfigSelectorMenu
-call :ui_info "Загружаю интерфейс..."
+call :ui_info "Загружаю конфиги..."
 REM ------ New: run quick problem check silently ------
 REM ----------------------------------------------------
 :ConfigSelectorMenu_without_ui_info
@@ -1090,7 +1095,6 @@ if /i "%branch%"=="beta" (
     echo             %COL%[90mГотовые конфиги менее эффективны. Используйте конфигуратор стратегий %COL%[37m
 )
 
-
 REM call :timer_end
 
 REM ---------------------------------------------------------
@@ -1105,7 +1109,7 @@ set "counter=0"
 
 REM -- Ensure pagination variables exist --
 if not defined Page set "Page=1"
-if not defined PageSize set "PageSize=20"
+if not defined PageSize set "PageSize=23"
 REM ---------------------------------------
 
 REM ---------- Pagination indices ----------
@@ -1122,36 +1126,48 @@ if not exist "%ParentDirPath%\configs\Preset" (
     pause >nul
 )
 
-dir /b "%ParentDirPath%\configs\Preset" | findstr . >nul
-if errorlevel 1 (
-    echo.
-    echo  ОШИБКА - конфиги не найдены.
-    echo  Папка конфигов = %ParentDirPath%\configs\Preset
-    pause >nul
-)
-
 setlocal EnableDelayedExpansion
 set "hasActiveOrStarted=0"
 set /a counter=0
 
-REM === Получаем список .bat с natural sort =========================
-chcp 850 >nul 2>&1
-powershell -NoProfile -Command ^
-    "Get-ChildItem '%ParentDirPath%\configs\Preset','%ParentDirPath%\configs\Custom' -Filter *.bat |" ^
-    "Sort-Object { [regex]::Replace($_.Name, '\d+', { param($m) $m.Value.PadLeft(20,'0') }) } |" ^
-    "ForEach-Object { $_.FullName }" ^
-    > "%temp%\cfg_list.tmp"
-chcp 65001 >nul 2>&1
+REM === Получаем список конфигов с приоритетом .txt ====================
+call :BuildConfigList
+if not defined ConfigListFile (
+    echo.
+    echo  ОШИБКА - не удалось собрать список конфигов.
+    pause >nul
+    goto MainMenu
+)
+if not exist "%ConfigListFile%" (
+    echo.
+    echo  ОШИБКА - конфиги не найдены.
+    echo  Папка конфигов = %ParentDirPath%\configs
+    pause >nul
+    goto MainMenu
+)
+if "!ConfigListCount!"=="0" (
+    echo.
+    echo  ОШИБКА - конфиги не найдены.
+    echo  Папка конфигов = %ParentDirPath%\configs
+    pause >nul
+    goto MainMenu
+)
 REM === Проверка активного конфига ================================
-for /f "delims=" %%F in (%temp%\cfg_list.tmp) do (
-    if /i "%%~nF"=="%GoodbyeZapret_Config%" set "hasActiveOrStarted=1"
+for /f "usebackq tokens=1* delims=|" %%A in ("%ConfigListFile%") do (
+    for %%P in ("%%B") do (
+        if /i "%%~nP"=="%GoodbyeZapret_Config%" set "hasActiveOrStarted=1"
+    )
 )
 
 REM === Вывод ======================================================
-for /f "delims=" %%F in (%temp%\cfg_list.tmp) do (
+for /f "usebackq tokens=1* delims=|" %%A in ("%ConfigListFile%") do (
     set /a counter+=1
-    set "ConfigName=%%~nF"
-    set "ConfigFull=%%~nxF"
+    set "ConfigLabel=%%A"
+    set "ConfigRel=%%B"
+    for %%P in ("%%B") do (
+        set "ConfigName=%%~nP"
+        set "ConfigFull=%%~nxP"
+    )
 
     set "StatusText="
     set "StatusColor=%COL%[37m"
@@ -1168,16 +1184,16 @@ for /f "delims=" %%F in (%temp%\cfg_list.tmp) do (
 
     if !counter! geq !StartIndex! if !counter! leq !EndIndex! (
         if defined StatusText (
-            echo                  !Pad!%COL%[36m!counter!. %COL%[36m!ConfigName! !StatusColor!!StatusText!
+            echo                  !Pad!%COL%[36m!counter!. %COL%[36m!ConfigLabel! !StatusColor!!StatusText!
         ) else (
-            echo                  !Pad!%COL%[36m!counter!. %COL%[37m!ConfigName!
+            echo                  !Pad!%COL%[36m!counter!. %COL%[37m!ConfigLabel!
         )
     )
 
-    set "file!counter!=!ConfigFull!"
+    set "file!counter!=!ConfigRel!"
 )
 
-del "%temp%\cfg_list.tmp"
+if exist "%ConfigListFile%" del /q "%ConfigListFile%" >nul 2>&1
 
 REM ---------------------------------------------------------------------------------
 
@@ -1273,16 +1289,16 @@ if "%choice%"=="" goto MainMenu
 REM Handle configuration file selection and validation
 if "%choice:~-1%"=="s" (
     REM Manual start mode - open config file in explorer
-    set "batFile=!file%choice:~0,-1%!"
-
-    REM Определяем, в какой папке лежит выбранный bat
-    set "batRel="
-    if exist "%ParentDirPath%\configs\Preset\!batFile!" set "batRel=Preset\!batFile!" && set "batPath=Preset"
-    if exist "%ParentDirPath%\configs\Custom\!batFile!" set "batRel=Custom\!batFile!" && set "batPath=Custom"
+    set "batRel=!file%choice:~0,-1%!"
+    if defined batRel for %%A in ("!batRel!") do set "batFile=%%~nxA"
 
     if defined batRel (
-        echo Запустите "%ParentDirPath%\configs\!batPath!\!batFile!" вручную
-        explorer "%ParentDirPath%\configs\!batPath!\!batFile!"
+        for %%A in ("!batRel!") do set "CfgExt=%%~xA"
+        if /I "!CfgExt!"==".txt" (
+            call :StartTextPreset "%ParentDirPath%\configs\!batRel!"
+        ) else (
+            start "" "%ParentDirPath%\configs\!batRel!"
+        )
         goto :end
     ) else (
         echo Неверный выбор. Пожалуйста, попробуйте снова.
@@ -1290,12 +1306,8 @@ if "%choice:~-1%"=="s" (
     )
 ) else (
     REM Service installation mode
-    set "batFile=!file%choice%!"
-
-    REM Определяем папку (Preset/Custom) для установки
-    set "batRel="
-    if exist "%ParentDirPath%\configs\Preset\!batFile!" set "batRel=Preset\!batFile!" & set "batPath=Preset"
-    if exist "%ParentDirPath%\configs\Custom\!batFile!" set "batRel=Custom\!batFile!" & set "batPath=Custom"
+    set "batRel=!file%choice%!"
+    if defined batRel for %%A in ("!batRel!") do set "batFile=%%~nxA"
 )
 
 REM Initialize color variables if not already set
@@ -1366,6 +1378,10 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
 )
 
 call :ui_info "Устанавливаю !batFile! в службу GoodbyeZapret..."
+for %%A in ("!batRel!") do (
+    set "BaseCfg=%%~nA"
+    set "CfgExt=%%~xA"
+)
 
 if "!batfile!"=="smart-config.bat" (
     set "LUA_DIR=%ParentDirPath%\bin\lua"
@@ -1380,13 +1396,15 @@ if "!batfile!"=="smart-config.bat" (
     sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\SmartConfig.exe\" --bin \"%ParentDirPath%\bin\" --lua \"%ParentDirPath%\bin\lua\" --learned-init \"%ParentDirPath%\bin\lua\learned-strategies.lua\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1 
 ) else (
-    sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!batFile!\"\"" >nul 2>&1
-    sc config "GoodbyeZapret" start= auto >nul 2>&1 
+    if /I "!CfgExt!"==".txt" (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\tools\Run_Config_Preset.bat\" --service \"%ParentDirPath%\configs\!batRel!\"\"" >nul 2>&1
+        sc config "GoodbyeZapret" start= auto >nul 2>&1
+    ) else (
+        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batRel!\"\"" >nul 2>&1
+        sc config "GoodbyeZapret" start= auto >nul 2>&1 
+    )
 )
 
-
-REM Извлекаем базовое имя файла (без папки и расширения) для записи в реестр/описание
-for %%A in ("!batRel!") do set "BaseCfg=%%~nA"
 
 call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
@@ -1397,7 +1415,7 @@ call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
 
 set installing_service=0
 
-if not "!batfile!"=="smart-config.bat" (
+if /I not "!CfgExt!"==".txt" if not "!batfile!"=="smart-config.bat" (
     if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
         echo.
         REM Цветной текст
@@ -1407,15 +1425,15 @@ if not "!batfile!"=="smart-config.bat" (
 )
 
 if /I not "!batfile!"=="smart-config.bat" if /I not "!batfile!"=="ConfiguratorFix.bat" (
-    tasklist | find /I "Winws.exe" >nul
+    call :WaitForBypassProcess 5
     if errorlevel 1 (
-        tasklist | find /I "Winws2.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo ОШИБКА: Процес обхода ^(Winws.exe или Winws2.exe^) не запущен.
-            echo.
-            timeout /t 2 >nul 2>&1
+        echo.
+        echo ОШИБКА: Процес обхода ^(Winws.exe или Winws2.exe^) не запущен.
+        if /I "!CfgExt!"==".txt" (
+            echo Для текстовых пресетов запуск идёт через промежуточный PowerShell-раннер и может потребовать чуть больше времени.
         )
+        echo.
+        timeout /t 2 >nul 2>&1
     )
 )
 goto :end
@@ -2191,7 +2209,6 @@ if /i "%choice%"=="U" ( goto FullUpdate )
 if /i "%choice%"=="г" ( goto FullUpdate )
 goto Update_Need_screen
 
-
 :ConfigAutoFinder
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -2205,15 +2222,12 @@ REM Базовый путь должен совпадать с логикой в
 set "BasePath=%ParentDirPath%"
 
 REM === Подсчет количества конфигов ===
-set "PresetCount=0"
-set "CustomCount=0"
-for /f %%A in ('dir /b /a:-d "%BasePath%\configs\Preset\*.bat" 2^>nul ^| find /v /c ""') do set "PresetCount=%%A"
-for /f %%A in ('dir /b /a:-d "%BasePath%\configs\Custom\*.bat" 2^>nul ^| find /v /c ""') do set "CustomCount=%%A"
-set /a BatCount=PresetCount+CustomCount
+call :CountConfigs
+set /a BatCount=ConfigListCount
 
 REM === Пагинация ===
 if not defined Page set "Page=1"
-if not defined PageSize set "PageSize=21"
+if not defined PageSize set "PageSize=23"
 set /a TotalPages=(BatCount+PageSize-1)/PageSize
 if %TotalPages% lss 1 set /a TotalPages=1
 if %Page% lss 1 set /a Page=1
@@ -2229,53 +2243,23 @@ if %Remaining% gtr %PageSize% set /a Remaining=%PageSize%
 set /a VisibleOnPage=Remaining
 
 REM === Базовое количество строк интерфейса ===
-set /a BaseLines=25
+REM 23 строки - это весь экран без списка конфигов.
+REM Дополнительно учитываем реальную пагинацию:
+REM 1) пустую строку перед навигацией;
+REM 2) строку "Следующая страница" только если она реально выводится.
+REM 3) нижний запас после строки ввода ":>".
+set /a BaseLines=23
 set /a ListBatCount=BaseLines+VisibleOnPage
-
-REM === Пагинация: если страниц больше одной, добавляем 2 строки ===
-if %TotalPages% gtr 1 set /a ListBatCount+=2
-
-REM === Проверка сервисов для YesCount ===
-set "YesCount=0"
-sc query "GoodbyeZapret" >nul 2>&1
-if %errorlevel% equ 0 ( set /a YesCount+=1 ) else ( set /a YesCount-=1 )
-
-tasklist | find /i "Winws" >nul 2>&1
-if %errorlevel% equ 0 set /a YesCount+=1
-
-for %%S in ("WinDivert" "WinDivert14" "monkey") do (
-    sc query %%~S 2>nul | find /I "RUNNING" >nul
-    if not errorlevel 1 (
-        set /a YesCount+=1
-        goto :DoneStartCheck_YesCount
-    )
+if %TotalPages% gtr 1 (
+    set /a ListBatCount+=1
+    if %Page% lss %TotalPages% set /a ListBatCount+=1
 )
-
-:DoneStartCheck_YesCount
-
-REM === Предупреждения о сети и проверке файлов ===
-if /i "%WiFi%"=="Off" set /a ListBatCount+=1
-REM if /i "%CheckStatus%"=="FileCheckError" set /a ListBatCount+=1
-if not defined CheckStatus set "CheckStatus=WithoutChecked"
-if not "%CheckStatus%"=="Checked" if not "%CheckStatus%"=="WithoutChecked" set /a ListBatCount+=1
-
-REM === Корректировка по YesCount ===
-if /I "%TotalCheck%"=="Problem" (
-    REM Ветка для Problem (оставляю как у тебя)
-    if %YesCount% equ 2 ( set /a ListBatCount+=1 )
-) else (
-    if %YesCount% equ 1 (
-        set /a ListBatCount+=2
-    ) else if %YesCount% equ 2 (
-        REM ничего не добавляем
-    ) else (
-        set /a ListBatCount-=1
-    )
-)
+set /a BottomPaddingLines=2
+set /a ListBatCount+=BottomPaddingLines
 
 REM === Ограничения по высоте ===
-set /a MaxWinLines=52
-set /a MinWinLines=28
+set /a MaxWinLines=54
+set /a MinWinLines=34
 if %ListBatCount% gtr %MaxWinLines% set /a ListBatCount=%MaxWinLines%
 if %ListBatCount% lss %MinWinLines% set /a ListBatCount=%MinWinLines%
 
@@ -2285,16 +2269,69 @@ set "DEBUG_mode=0"
 if "%DEBUG_mode%"=="1" (
  echo WiFi - %WiFi%
  echo CheckStatus - %CheckStatus%
- echo YesCount - %YesCount%
- echo TotalCheck - %TotalCheck%
  echo BatCount - %BatCount%
+ echo Page - %Page% / %TotalPages%
+ echo VisibleOnPage - %VisibleOnPage%
  echo ListBatCount - %ListBatCount%
  pause
 ) 
 
-mode con: cols=92 lines=%ListBatCount%
+call :SetConsoleSize 92 %ListBatCount%
 goto :eof
 
+:SetConsoleSize
+set "TargetCols=%~1"
+set "TargetLines=%~2"
+if not defined TargetCols exit /b 1
+if not defined TargetLines exit /b 1
+
+REM Быстрый путь для conhost.
+set "ConsoleModeFailed=0"
+mode con: cols=%TargetCols% lines=%TargetLines% >nul 2>&1
+if errorlevel 1 set "ConsoleModeFailed=1"
+
+set "GZ_TARGET_COLS=%TargetCols%"
+set "GZ_TARGET_LINES=%TargetLines%"
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "try {" ^
+    "    $ErrorActionPreference='Stop';" ^
+    "    $raw = $Host.UI.RawUI;" ^
+    "    $targetWidth = [int]$env:GZ_TARGET_COLS;" ^
+    "    $targetHeight = [int]$env:GZ_TARGET_LINES;" ^
+    "    $largest = $raw.LargestWindowSize;" ^
+    "    if ($largest.Width -gt 0 -and $targetWidth -gt $largest.Width) { $targetWidth = $largest.Width };" ^
+    "    if ($largest.Height -gt 0 -and $targetHeight -gt $largest.Height) { $targetHeight = $largest.Height };" ^
+    "    if ($targetWidth -lt 40) { $targetWidth = 40 };" ^
+    "    if ($targetHeight -lt 15) { $targetHeight = 15 };" ^
+    "    $window = $raw.WindowSize;" ^
+    "    if ($window.Width -gt $targetWidth -or $window.Height -gt $targetHeight) {" ^
+    "        $raw.WindowSize = New-Object Management.Automation.Host.Size -ArgumentList ([Math]::Min($window.Width, $targetWidth)), ([Math]::Min($window.Height, $targetHeight));" ^
+    "    };" ^
+    "    $buffer = $raw.BufferSize;" ^
+    "    if ($buffer.Width -lt $targetWidth -or $buffer.Height -lt $targetHeight) {" ^
+    "        $raw.BufferSize = New-Object Management.Automation.Host.Size -ArgumentList ([Math]::Max($buffer.Width, $targetWidth)), ([Math]::Max($buffer.Height, $targetHeight));" ^
+    "    };" ^
+    "    $raw.BufferSize = New-Object Management.Automation.Host.Size -ArgumentList $targetWidth, $targetHeight;" ^
+    "    $raw.WindowSize = New-Object Management.Automation.Host.Size -ArgumentList $targetWidth, $targetHeight;" ^
+    "} catch { exit 1 }" ^
+    >nul 2>&1
+chcp 65001 >nul 2>&1
+if errorlevel 1 if "%ConsoleModeFailed%"=="1" mode con: cols=%TargetCols% lines=45 >nul 2>&1
+exit /b 0
+
+:WaitForBypassProcess
+set "WaitBypassSeconds=%~1"
+if not defined WaitBypassSeconds set "WaitBypassSeconds=3"
+if %WaitBypassSeconds% lss 1 set "WaitBypassSeconds=1"
+for /L %%S in (1,1,%WaitBypassSeconds%) do (
+    tasklist /FI "IMAGENAME eq winws.exe" 2>nul | find /I "winws.exe" >nul
+    if not errorlevel 1 exit /b 0
+    tasklist /FI "IMAGENAME eq winws2.exe" 2>nul | find /I "winws2.exe" >nul
+    if not errorlevel 1 exit /b 0
+    if %%S lss %WaitBypassSeconds% timeout /t 1 >nul 2>&1
+)
+exit /b 1
 
 :OpenInstructions
 if exist "%ParentDirPath%\instructions.html" (
@@ -2305,6 +2342,337 @@ if exist "%ParentDirPath%\instructions.html" (
 )
 goto MainMenu
 
+:TgWsProxyMenu
+title GoodbyeZapret - ТГ прокси
+REM mode con: cols=92 lines=38 >nul 2>&1
+
+REM Display status based on running count
+if %YesCount% equ 3 (
+    REM запущены все сервисы
+    cls
+    echo.
+    echo           %COL%[92m  ______                ____            _____                         __ 
+) else if %YesCount% equ 2 (
+    REM запущены Winws и WinDivert
+    cls
+    echo.
+    echo           %COL%[33m  ______                ____            _____                         __ 
+) else (
+    REM запущен только GoodbyeZapret
+    cls
+    echo.
+    echo           %COL%[90m  ______                ____            _____                         __ 
+)
+
+echo            / ____/___  ____  ____/ / /_  __  ____/__  /  ____ _____  ________  / /_
+echo           / / __/ __ \/ __ \/ __  / __ \/ / / / _ \/ /  / __ `/ __ \/ ___/ _ \/ __/
+echo          / /_/ / /_/ / /_/ / /_/ / /_/ / /_/ /  __/ /__/ /_/ / /_/ / /  /  __/ /_
+echo          \____/\____/\____/\__,_/_.___/\__, /\___/____/\__,_/ .___/_/   \___/\__/
+echo                                        /____/              /_/
+
+
+set "TgWsProxyDir=%ParentDirPath%\tools\tg-ws-proxy"
+set "TgWsProxyExe=%TgWsProxyDir%\TgWsProxy_windows.exe"
+set "TgWsProxyDataDir=%APPDATA%\TgWsProxy"
+set "TgWsProxyShortcut=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\GoodbyeZapret TG WS Proxy.lnk"
+set "TgWsProxyInstalled=No"
+set "TgWsProxyRunning=No"
+set "TgWsProxyAutostart=Off"
+
+if exist "%TgWsProxyExe%" set "TgWsProxyInstalled=Yes"
+tasklist /FI "IMAGENAME eq TgWsProxy_windows.exe" 2>nul | find /I "TgWsProxy_windows.exe" >nul && set "TgWsProxyRunning=Yes"
+if exist "%TgWsProxyShortcut%" set "TgWsProxyAutostart=On"
+
+call :ReadConfig TgWsProxy_Version
+if "%TgWsProxy_Version%"=="NotFound" set "TgWsProxy_Version=Неизвестно"
+if "%TgWsProxyInstalled%"=="No" set "TgWsProxy_Version=Не установлен"
+call :LoadTgWsProxyLink
+
+
+echo.
+echo  %COL%[37mTG WS Proxy для Telegram Desktop
+echo  %COL%[90mОтдельный локальный MTProto proxy. Не встраивается в текущий winws-конфиг.%COL%[37m
+echo.
+if "%TgWsProxyInstalled%"=="Yes" (
+    echo  %COL%[36mСтатус:%COL%[37m установлен
+    echo  %COL%[36mВерсия:%COL%[37m %TgWsProxy_Version%
+) else (
+    echo  %COL%[36mСтатус:%COL%[37m не установлен
+    echo  %COL%[36mВерсия:%COL%[37m -
+)
+if "%TgWsProxyRunning%"=="Yes" (
+    echo  %COL%[36mПроцесс:%COL%[92m запущен
+) else (
+    echo  %COL%[36mПроцесс:%COL%[90m не запущен
+)
+if "%TgWsProxyAutostart%"=="On" (
+    echo  %COL%[36mАвтозапуск:%COL%[92m включен
+) else (
+    echo  %COL%[36mАвтозапуск:%COL%[90m выключен
+)
+echo.
+if "%TgWsProxyLinkState%"=="Ready" (
+    echo  %COL%[36mСсылка на добавление прокси:%COL%[37m
+    if /i "%TgWsProxyLinkKind%"=="CfProxy" (
+        echo  %COL%[90mФормат: доменный CF-proxy / MTProto ee-secret%COL%[37m
+    ) else (
+        echo  %COL%[90mФормат: локальный MTProto proxy%COL%[37m
+    )
+    echo( !TgWsProxyLink!
+) else (
+    echo  %COL%[36mСсылка на добавление прокси:%COL%[90m недоступна
+    if "%TgWsProxyLinkState%"=="Missing" echo  %COL%[90mНе найден файл %APPDATA%\TgWsProxy\config.json%COL%[37m
+    if "%TgWsProxyLinkState%"=="Invalid" echo  %COL%[90mПроверьте host/port/secret в config.json%COL%[37m
+)
+echo.
+echo  %COL%[90m────────────────────────────────────────────────────────────────────────────────────%COL%[37m
+echo.
+echo  %COL%[96m^[ 1 ^]%COL%[37m Скачать / обновить
+echo.
+echo  %COL%[96m^[ 2 ^]%COL%[37m Запустить
+echo.
+echo  %COL%[96m^[ 3 ^]%COL%[37m Открыть папку данных
+echo.
+echo  %COL%[96m^[ 4 ^]%COL%[37m Открыть релиз TG на GitHub
+echo.
+echo  %COL%[96m^[ 5 ^]%COL%[37m Добавить прокси в Telegram
+echo.
+echo  %COL%[96m^[ 6 ^]%COL%[37m Скопировать ссылку в буфер обмена
+echo.
+if "%TgWsProxyAutostart%"=="On" (
+    echo  %COL%[96m^[ 7 ^]%COL%[37m Убрать прокси из автозапуска
+) else (
+    echo  %COL%[96m^[ 7 ^]%COL%[37m Добавить прокси в автозапуск
+)
+echo.
+echo  %COL%[91m^[ B ^]%COL%[37m Вернуться в главное меню
+echo.
+set /p "choice=%DEL%                                           %COL%[90m:> "
+
+if /i "%choice%"=="1" goto TgWsProxyInstallOrUpdate
+if /i "%choice%"=="2" goto TgWsProxyStart
+if /i "%choice%"=="3" goto TgWsProxyOpenData
+if /i "%choice%"=="4" goto TgWsProxyOpenRelease
+if /i "%choice%"=="5" goto TgWsProxyOpenLink
+if /i "%choice%"=="6" goto TgWsProxyCopyLink
+if /i "%choice%"=="7" goto TgWsProxyToggleAutostart
+if /i "%choice%"=="B" goto MainMenu_without_ui_info
+if /i "%choice%"=="и" goto MainMenu_without_ui_info
+goto TgWsProxyMenu
+
+
+:TgWsProxyInstallOrUpdate
+set "TgWsProxyDir=%ParentDirPath%\tools\tg-ws-proxy"
+set "TgWsProxyExe=%TgWsProxyDir%\TgWsProxy_windows.exe"
+set "TgWsProxyTagFile=%TEMP%\tgws_release_tag.txt"
+
+tasklist /FI "IMAGENAME eq TgWsProxy_windows.exe" 2>nul | find /I "TgWsProxy_windows.exe" >nul
+if not errorlevel 1 (
+    call :ui_warn "TG WS Proxy уже запущен. Закройте его перед обновлением."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+
+if exist "%TgWsProxyTagFile%" del /q "%TgWsProxyTagFile%" >nul 2>&1
+set "TGWS_DEST=%TgWsProxyExe%"
+set "TGWS_TAG_FILE=%TgWsProxyTagFile%"
+
+call :ui_info "Получаю актуальный релиз TG WS Proxy..."
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $release = Invoke-RestMethod -Headers @{ 'User-Agent'='GoodbyeZapret' } -Uri 'https://api.github.com/repos/Flowseal/tg-ws-proxy/releases/latest'; $asset = $release.assets | Where-Object { $_.name -eq 'TgWsProxy_windows.exe' } | Select-Object -First 1; if ($null -eq $asset) { exit 1 }; [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($env:TGWS_DEST)) | Out-Null; Invoke-WebRequest -Headers @{ 'User-Agent'='GoodbyeZapret' } -Uri $asset.browser_download_url -OutFile $env:TGWS_DEST; [System.IO.File]::WriteAllText($env:TGWS_TAG_FILE, $release.tag_name)" >nul 2>&1
+chcp 65001 >nul 2>&1
+
+if errorlevel 1 (
+    call :ui_err "Не удалось скачать TG WS Proxy."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+
+if not exist "%TgWsProxyExe%" (
+    call :ui_err "Файл TG WS Proxy не найден после загрузки."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+
+set "TgWsProxyTag="
+if exist "%TgWsProxyTagFile%" set /p "TgWsProxyTag="<"%TgWsProxyTagFile%"
+if not defined TgWsProxyTag set "TgWsProxyTag=Неизвестно"
+call :WriteConfig TgWsProxy_Version "%TgWsProxyTag%"
+call :ui_ok "TG WS Proxy %TgWsProxyTag% установлен."
+timeout /t 2 >nul
+goto TgWsProxyMenu
+
+
+:TgWsProxyStart
+set "TgWsProxyExe=%ParentDirPath%\tools\tg-ws-proxy\TgWsProxy_windows.exe"
+if not exist "%TgWsProxyExe%" (
+    call :ui_warn "TG WS Proxy ещё не установлен. Сначала скачайте его."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+
+tasklist /FI "IMAGENAME eq TgWsProxy_windows.exe" 2>nul | find /I "TgWsProxy_windows.exe" >nul
+if not errorlevel 1 (
+    call :ui_warn "TG WS Proxy уже запущен."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+
+start "" "%TgWsProxyExe%"
+call :ui_ok "TG WS Proxy запущен. Дальше настройка выполняется через его трей."
+timeout /t 2 >nul
+goto TgWsProxyMenu
+
+
+:TgWsProxyOpenData
+set "TgWsProxyDataDir=%APPDATA%\TgWsProxy"
+if exist "%TgWsProxyDataDir%" (
+    start "" "%TgWsProxyDataDir%"
+    goto TgWsProxyMenu
+)
+
+call :ui_warn "Папка данных ещё не создана. Сначала запустите TG WS Proxy."
+timeout /t 2 >nul
+goto TgWsProxyMenu
+
+
+:TgWsProxyOpenRelease
+start "" "https://github.com/Flowseal/tg-ws-proxy/releases/latest"
+goto TgWsProxyMenu
+
+
+:TgWsProxyOpenLink
+call :LoadTgWsProxyLink
+if not "%TgWsProxyLinkState%"=="Ready" (
+    call :ui_warn "Ссылка недоступна. Сначала настройте TG WS Proxy."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+call :ResolveTelegramDesktopExe
+set "TGWS_LINK=!TgWsProxyLink!"
+chcp 850 >nul 2>&1
+if defined TelegramDesktopExe (
+    start "" "!TelegramDesktopExe!" -- "!TGWS_LINK!" >nul 2>&1
+) else (
+    start "" "!TGWS_LINK!" >nul 2>&1
+)
+chcp 65001 >nul 2>&1
+if errorlevel 1 (
+    call :ui_err "Не удалось открыть ссылку в Telegram."
+    timeout /t 2 >nul
+)
+goto TgWsProxyMenu
+
+
+:TgWsProxyCopyLink
+call :LoadTgWsProxyLink
+if not "%TgWsProxyLinkState%"=="Ready" (
+    call :ui_warn "Ссылка недоступна. Сначала настройте TG WS Proxy."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+set "TGWS_LINK=!TgWsProxyLink!"
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Set-Clipboard -Value $env:TGWS_LINK" >nul 2>&1
+chcp 65001 >nul 2>&1
+if errorlevel 1 (
+    call :ui_err "Не удалось скопировать ссылку в буфер обмена."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+call :ui_ok "Ссылка скопирована в буфер обмена."
+timeout /t 2 >nul
+goto TgWsProxyMenu
+
+
+:TgWsProxyToggleAutostart
+set "TgWsProxyExe=%ParentDirPath%\tools\tg-ws-proxy\TgWsProxy_windows.exe"
+set "TgWsProxyShortcut=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\GoodbyeZapret TG WS Proxy.lnk"
+
+if not exist "%TgWsProxyExe%" (
+    call :ui_warn "TG WS Proxy ещё не установлен. Сначала скачайте его."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+
+if exist "%TgWsProxyShortcut%" goto TgWsProxyDisableAutostart
+goto TgWsProxyEnableAutostart
+
+
+:TgWsProxyEnableAutostart
+call :ui_info "Добавляю TG WS Proxy в автозапуск..."
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Startup\GoodbyeZapret TG WS Proxy.lnk'; $ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut($lnk); $sc.TargetPath = '%TgWsProxyExe%'; $sc.WorkingDirectory = '%TgWsProxyDir%'; $sc.IconLocation = '%TgWsProxyExe%,0'; $sc.Save()" >nul 2>&1
+chcp 65001 >nul 2>&1
+if errorlevel 1 (
+    call :ui_err "Не удалось добавить TG WS Proxy в автозапуск."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+call :SetTgWsProxyAutostartFlag true
+call :ui_ok "TG WS Proxy добавлен в автозапуск."
+timeout /t 2 >nul
+goto TgWsProxyMenu
+
+
+:TgWsProxyDisableAutostart
+call :ui_info "Удаляю TG WS Proxy из автозапуска..."
+if exist "%TgWsProxyShortcut%" del /q "%TgWsProxyShortcut%" >nul 2>&1
+if exist "%TgWsProxyShortcut%" (
+    call :ui_err "Не удалось удалить TG WS Proxy из автозапуска."
+    timeout /t 2 >nul
+    goto TgWsProxyMenu
+)
+call :SetTgWsProxyAutostartFlag false
+call :ui_ok "TG WS Proxy убран из автозапуска."
+timeout /t 2 >nul
+goto TgWsProxyMenu
+
+
+:SetTgWsProxyAutostartFlag
+set "TgWsProxyConfigFile=%APPDATA%\TgWsProxy\config.json"
+if not exist "%TgWsProxyConfigFile%" goto :eof
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$cfgPath = Join-Path $env:APPDATA 'TgWsProxy\config.json'; if (-not (Test-Path -LiteralPath $cfgPath)) { exit 0 }; $cfg = Get-Content -LiteralPath $cfgPath -Raw | ConvertFrom-Json; $cfg.autostart = [System.Convert]::ToBoolean('%~1'); $cfg | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $cfgPath -Encoding UTF8"
+chcp 65001 >nul 2>&1
+goto :eof
+
+
+:ResolveTelegramDesktopExe
+set "TelegramDesktopExe="
+for %%P in (
+    "%APPDATA%\Telegram Desktop\Telegram.exe"
+    "%LOCALAPPDATA%\Programs\Telegram Desktop\Telegram.exe"
+    "%LOCALAPPDATA%\Telegram Desktop\Telegram.exe"
+    "%ProgramFiles%\Telegram Desktop\Telegram.exe"
+    "%ProgramFiles(x86)%\Telegram Desktop\Telegram.exe"
+) do (
+    if not defined TelegramDesktopExe if exist "%%~P" set "TelegramDesktopExe=%%~P"
+)
+
+if defined TelegramDesktopExe goto :eof
+
+for /f "usebackq delims=" %%P in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$cmd=(Get-ItemProperty 'Registry::HKEY_CLASSES_ROOT\tg\shell\open\command' -Name '(default)' -ErrorAction SilentlyContinue).'(default)'; if($cmd -match '\"([^\"]*Telegram\.exe)\"'){ $p=$matches[1]; if(Test-Path -LiteralPath $p){ $p } }"`) do (
+    if not defined TelegramDesktopExe set "TelegramDesktopExe=%%P"
+)
+goto :eof
+
+
+:LoadTgWsProxyLink
+set "TgWsProxyLink="
+set "TgWsProxyLinkKind="
+set "TgWsProxyLinkState=Missing"
+set "TgWsProxyLinkServer="
+set "TgWsProxyLinkPort="
+set "TgWsProxyLinkSecret="
+set "TgWsProxyConfigFile=%APPDATA%\TgWsProxy\config.json"
+if not exist "%TgWsProxyConfigFile%" goto :eof
+chcp 850 >nul 2>&1
+for /f "usebackq tokens=1,* delims==" %%A in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$cfgPath = Join-Path $env:APPDATA 'TgWsProxy\config.json'; if (-not (Test-Path -LiteralPath $cfgPath)) { 'TgWsProxyLinkState=Missing'; exit 0 }; $cfg = Get-Content -LiteralPath $cfgPath -Raw | ConvertFrom-Json; $proxyHost = [string]$cfg.host; if ([string]::IsNullOrWhiteSpace($proxyHost)) { $proxyHost = '127.0.0.1' }; $proxyPort = [string]$cfg.port; if ([string]::IsNullOrWhiteSpace($proxyPort)) { $proxyPort = '1443' }; $secret = [string]$cfg.secret; if ([string]::IsNullOrWhiteSpace($secret)) { 'TgWsProxyLinkState=Invalid'; exit 0 }; $domain = [string]$cfg.cfproxy_user_domain; if (-not [string]::IsNullOrWhiteSpace($domain)) { $domain = $domain.Trim(); $hex = -join ([System.Text.Encoding]::ASCII.GetBytes($domain) | ForEach-Object { $_.ToString('x2') }); 'TgWsProxyLinkKind=CfProxy'; 'TgWsProxyLinkServer=' + $domain; 'TgWsProxyLinkPort=443'; 'TgWsProxyLinkSecret=ee' + $secret + $hex; 'TgWsProxyLink=https://t.me/proxy?server=' + $domain + '&port=443&secret=ee' + $secret + $hex } else { 'TgWsProxyLinkKind=Local'; 'TgWsProxyLinkServer=' + $proxyHost; 'TgWsProxyLinkPort=' + $proxyPort; 'TgWsProxyLinkSecret=' + $secret; 'TgWsProxyLink=https://t.me/proxy?server=' + $proxyHost + '&port=' + $proxyPort + '&secret=' + $secret }; 'TgWsProxyLinkState=Ready'"`) do (
+    set "%%A=%%B"
+)
+chcp 65001 >nul 2>&1
+goto :eof
 
 :OpenConfiguratorInstructions
 if exist "%ParentDirPath%\tools\config_builder\Configurator-Instructions.html" (
@@ -2316,8 +2684,80 @@ if exist "%ParentDirPath%\tools\config_builder\Configurator-Instructions.html" (
 goto ConfiguratorMenu
 
 
-:: Функция: чтение значения
-:: Использование: call :ReadConfig НАЗВАНИЕ_КЛЮЧА [ЗНАЧЕНИЕ_ПО_УМОЛЧАНИЮ]
+:SyncTextPresets
+if exist "%ParentDirPath%\tools\Convert_Config_To_Preset.ps1" (
+    chcp 850 >nul 2>&1
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\Convert_Config_To_Preset.ps1" -ConfigRoot "%ParentDirPath%\configs" >nul 2>&1
+    chcp 65001 >nul 2>&1
+)
+goto :eof
+
+:BuildConfigList
+if defined ConfigListFile if exist "%ConfigListFile%" del /q "%ConfigListFile%" >nul 2>&1
+set "ConfigListFile=%temp%\cfg_list_%RANDOM%_%RANDOM%.tmp"
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$configRoot = Join-Path '%ParentDirPath%' 'configs';" ^
+    "$items = Get-ChildItem (Join-Path $configRoot 'Preset'),(Join-Path $configRoot 'Custom') -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.txt','.bat','.cmd' } | ForEach-Object {" ^
+    "  $relativePath = $_.FullName.Substring($configRoot.Length).TrimStart('\');" ^
+    "  $displayName = $_.BaseName;" ^
+    "  $relativeDir = Split-Path $relativePath -Parent;" ^
+    "  if ($relativeDir -match '^[^\\]+\\(.+)$') { $displayName = '[' + $matches[1] + '] ' + $_.BaseName };" ^
+    "  [pscustomobject]@{ FullName = $_.FullName; RelativePath = $relativePath; BaseName = $_.BaseName; Extension = $_.Extension; DisplayName = $displayName; GroupRank = switch -Regex ($relativePath) { '^Custom\\' { 0; break } '^Preset\\external\\' { 2; break } '^Preset\\' { 1; break } default { 9 } } }" ^
+    "};" ^
+    "$sorted = $items | Sort-Object GroupRank, @{Expression={[regex]::Replace($_.BaseName, '\d+', { param($m) $m.Value.PadLeft(20,'0') })}}, @{Expression={ switch ($_.Extension.ToLower()) { '.txt' {0} '.bat' {1} '.cmd' {2} default {9} } }}, RelativePath;" ^
+    "$seen=@{}; foreach($item in $sorted){ $key = $item.BaseName.ToLowerInvariant(); if(-not $seen.ContainsKey($key)){ $seen[$key] = $true; '{0}|{1}' -f $item.DisplayName, $item.RelativePath } }" ^
+    > "%ConfigListFile%"
+chcp 65001 >nul 2>&1
+set "ConfigListCount=0"
+if exist "%ConfigListFile%" for /f %%A in ('find /v /c "" ^< "%ConfigListFile%"') do set "ConfigListCount=%%A"
+goto :eof
+
+:CountConfigs
+set "ConfigListCount=0"
+set "ConfigCountFile=%temp%\cfg_count_%RANDOM%_%RANDOM%.tmp"
+if exist "%ConfigCountFile%" del /q "%ConfigCountFile%" >nul 2>&1
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "$configRoot = Join-Path '%ParentDirPath%' 'configs';" ^
+    "$items = Get-ChildItem (Join-Path $configRoot 'Preset'),(Join-Path $configRoot 'Custom') -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.txt','.bat','.cmd' } | Sort-Object @{Expression={[regex]::Replace($_.BaseName, '\d+', { param($m) $m.Value.PadLeft(20,'0') })}}, @{Expression={ switch ($_.Extension.ToLower()) { '.txt' {0} '.bat' {1} '.cmd' {2} default {9} } }}, FullName;" ^
+    "$seen=@{}; $count=0; foreach($item in $items){ $key = $item.BaseName.ToLowerInvariant(); if(-not $seen.ContainsKey($key)){ $seen[$key] = $true; $count++ } }; $count" ^
+    > "%ConfigCountFile%"
+chcp 65001 >nul 2>&1
+if exist "%ConfigCountFile%" set /p "ConfigListCount="<"%ConfigCountFile%"
+if exist "%ConfigCountFile%" del /q "%ConfigCountFile%" >nul 2>&1
+goto :eof
+
+:StartTextPreset
+set "PresetToRun=%~1"
+if not defined PresetToRun exit /b 1
+taskkill /F /IM winws.exe /T >nul 2>&1
+taskkill /F /IM winws2.exe /T >nul 2>&1
+ipconfig /flushdns >nul 2>&1
+chcp 850 >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\Start_Config_Preset.ps1" -PresetFile "%PresetToRun%" -ProjectDir "%ParentDirPath%"
+chcp 65001 >nul 2>&1  
+exit /b %errorlevel%
+
+:ResolveConfiguratorFixConfig
+set "ConfiguratorFixFile="
+set "ConfiguratorFixRel="
+set "ConfiguratorFixExt="
+if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.txt" (
+    set "ConfiguratorFixFile=ConfiguratorFix.txt"
+    set "ConfiguratorFixRel=Custom\ConfiguratorFix.txt"
+    set "ConfiguratorFixExt=.txt"
+    goto :eof
+)
+if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+    set "ConfiguratorFixFile=ConfiguratorFix.bat"
+    set "ConfiguratorFixRel=Custom\ConfiguratorFix.bat"
+    set "ConfiguratorFixExt=.bat"
+)
+goto :eof
+
+REM Функция: чтение значения
+REM Использование: call :ReadConfig НАЗВАНИЕ_КЛЮЧА [ЗНАЧЕНИЕ_ПО_УМОЛЧАНИЮ]
 :ReadConfig
 if "%Configurator%"=="1" (
     set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt" 
@@ -2342,7 +2782,7 @@ for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
     )
 )
 
-:: БАРЬЕР: Перенос переменной RES из setlocal в основной контекст
+REM БАРЬЕР: Перенос переменной RES из setlocal в основной контекст
 if defined RES (
     for /f "delims=" %%V in ("%RES%") do (
         set "RES=%%V"
@@ -2354,7 +2794,7 @@ if defined RES (
 )
 
 :CheckDefault
-:: Если ключ не найден (FOUND=0), проверяем аргумент %2 (значение по умолчанию)
+REM Если ключ не найден (FOUND=0), проверяем аргумент %2 (значение по умолчанию)
 if "%FOUND%"=="0" (
     if not "%~2"=="" (
         set "RES=%~2"
@@ -2365,35 +2805,36 @@ if "%FOUND%"=="0" (
     )
 )
 
-:: Очистка кавычек, если значение было найдено или задано дефолтом (и не равно NotFound)
-if not "%RES%"=="NotFound" if defined RES (
-  if not "%RES%"=="%RES:"=%" set "RES=%RES:~1,-1%"
+REM Очистка обрамляющих кавычек у найденного или дефолтного значения.
+REM Важно: здесь нельзя сравнивать RES через обычное percent-expansion.
+if defined RES (
+    set "RES=!RES:"=!"
 )
 
-:: Финальное присвоение результата переменной с именем ключа
+REM Финальное присвоение результата переменной с именем ключа
 set "%~1=%RES%"
 
 set "Configurator=0"
 goto :eof
 
 
-:: Функция: запись значения с пробелами
+REM Функция: запись значения с пробелами
 :WriteConfig
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
-:: Вызов: call :WriteConfig VariableName "Значение с пробелами"
+REM Вызов: call :WriteConfig VariableName "Значение с пробелами"
 
 set "TEMP_FILE=%~dp0config_temp.txt"
 if exist "%TEMP_FILE%" del "%TEMP_FILE%"
 
 set "found=0"
 
-:: 1) Сохраняем ключ ДО shift
+REM 1) Сохраняем ключ ДО shift
 set "KEY=%~1"
 
-:: 2) Значение берём из %~2 (одно аргументированное значение в кавычках)
+REM 2) Значение берём из %~2 (одно аргументированное значение в кавычках)
 set "VALUE=%~2"
 
-:: Переписываем файл, меняя только нужную строку
+REM Переписываем файл, меняя только нужную строку
 for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
     if /i "%%~A"=="!KEY!" (
         >>"%TEMP_FILE%" echo %%A="!VALUE!"
@@ -2403,7 +2844,7 @@ for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
     )
 )
 
-:: 3) Если ключа не было — добавляем
+REM 3) Если ключа не было — добавляем
 if "!found!"=="0" (
     >>"%TEMP_FILE%" echo !KEY!="!VALUE!"
 )
@@ -2425,7 +2866,7 @@ move /y "%TEMP_FILE%" "%CONFIG_FILE%" >nul 2>&1
 goto :eof
 
 
-:: Функция: инициализация конфига из реестра
+REM Функция: инициализация конфига из реестра
 :InitConfigFromRegistry
 
 REM Переключаемся на кодовую страницу, поддерживающую символы Unicode
@@ -2450,7 +2891,6 @@ for /f "usebackq delims=" %%a in (`powershell -Command "(Get-CimInstance Win32_O
         )
     )
 )
-
 
 set "CONFIG_FILE=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt"
 set "VARS=WinVer FirstLaunch GoodbyeZapret_Version GoodbyeZapret_Config GoodbyeZapret_ConfigPatch GoodbyeZapret_LastStartConfig GoodbyeZapret_LastWorkConfig GoodbyeZapret_Version_code"
@@ -2584,7 +3024,8 @@ echo    %COL%[92m[ S ] Запустить обход
 echo    %COL%[94m[ A ] Автоподбор стратегии
 echo    %COL%[92m[ С ] Быстро проверить обход
 echo    %COL%[91m[ K ] Остановить обход
-if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+call :ResolveConfiguratorFixConfig
+if defined ConfiguratorFixRel (
     if "%GoodbyeZapretStart%"=="Yes" (
         echo    %COL%[91m[ D ] Удалить из автозапуска
     ) else (
@@ -2617,15 +3058,18 @@ if /i "%opt%"=="И" goto MainMenu_without_ui_info
 if /i "%opt%"=="C" goto START_with_checking
 if /i "%opt%"=="с" goto START_with_checking
 
-if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
+call :ResolveConfiguratorFixConfig
+if defined ConfiguratorFixRel (
     if /i "%opt%"=="U" ( 
     cls
     echo.
     echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
     "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
-        set "batFile=ConfiguratorFix.bat"
-        set "batRel=Custom\ConfiguratorFix.bat"
-        set "batPath=Custom"
+        call :ResolveConfiguratorFixConfig
+        if defined ConfiguratorFixRel (
+            set "batFile=!ConfiguratorFixFile!"
+            set "batRel=!ConfiguratorFixRel!"
+        )
         set "PanelBack=Configurator"
         call :remove_service_before_installing
         call :install_GZ_service
@@ -2636,9 +3080,11 @@ if /i "%opt%"=="г" (
         echo.
         echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
         "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
-        set "batFile=ConfiguratorFix.bat"
-        set "batRel=Custom\ConfiguratorFix.bat"
-        set "batPath=Custom"
+        call :ResolveConfiguratorFixConfig
+        if defined ConfiguratorFixRel (
+            set "batFile=!ConfiguratorFixFile!"
+            set "batRel=!ConfiguratorFixRel!"
+        )
         set "PanelBack=Configurator"
         call :remove_service_before_installing
         call :install_GZ_service
@@ -2841,7 +3287,7 @@ echo.
 echo  %COL%[36mВыберите модуль для автоподбора:
 echo.
 echo    %COL%[96m[ 1 ]%COL%[37m  YouTube
-echo    %COL%[96m[ 2 ]%COL%[37m  YouTube GoogleVideo
+echo    %COL%[96m[ 2 ]%COL%[37m  YouTube GoogleVideo ^(Может работать не точно^)
 echo.
 echo    %COL%[96m[ 3 ]%COL%[37m  Twitch
 echo.
@@ -2861,37 +3307,22 @@ set /p "AutoChoice=%DEL%   %COL%[90m:> "
 set "AutoVar="
 set "AutoMaxVar="
 set "AutoName="
+set "AutoTrackedVars=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA STUN CDN AMZTCP AMZUDP BL CUSTOM"
 
 if /i "%AutoChoice%"=="B" goto MENU
-if "%AutoChoice%"=="1"  (set "AutoVar=YT"     & set "AutoMaxVar=MAX_YouTube"            & set "AutoName=YouTube")
-if "%AutoChoice%"=="2"  (set "AutoVar=YTGV"   & set "AutoMaxVar=MAX_YouTubeGoogleVideo" & set "AutoName=YouTube GoogleVideo")
-if "%AutoChoice%"=="3"  (set "AutoVar=TW"     & set "AutoMaxVar=MAX_Twitch"             & set "AutoName=Twitch")
-if "%AutoChoice%"=="4"  (set "AutoVar=DSUPD"  & set "AutoMaxVar=MAX_DiscordUpdate"      & set "AutoName=Discord Update")
-if "%AutoChoice%"=="5"  (set "AutoVar=DS"     & set "AutoMaxVar=MAX_Discord"            & set "AutoName=Discord")
-if "%AutoChoice%"=="6"  (set "AutoVar=CDN"    & set "AutoMaxVar=MAX_CDN"                & set "AutoName=CDN")
-if "%AutoChoice%"=="7" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
-if "%AutoChoice%"=="8" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_blacklist"          & set "AutoName=Blacklist")
-if "%AutoChoice%"=="9" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & set "AutoName=Личные списки")
+call :ConfiguratorAutoResolveChoice "%AutoChoice%"
 
-if not defined AutoVar goto ConfiguratorAutoPicker
+if not defined AutoVar (
+    echo.
+    echo  %COL%[91m[WARN]%COL%[37m Неверный выбор модуля.
+    timeout /t 1 >nul 2>&1
+    goto ConfiguratorAutoPicker
+)
 
 call set "AutoMax=%%%AutoMaxVar%%%"
 if not defined AutoMax set "AutoMax=0"
 call set "AutoPrev=%%%AutoVar%%%"
-set "AutoPrev_YT=!YT!"
-set "AutoPrev_YTGV=!YTGV!"
-set "AutoPrev_YTQ=!YTQ!"
-set "AutoPrev_TW=!TW!"
-set "AutoPrev_DSUPD=!DSUPD!"
-set "AutoPrev_DS=!DS!"
-set "AutoPrev_DSQ=!DSQ!"
-set "AutoPrev_DSMEDIA=!DSMEDIA!"
-set "AutoPrev_STUN=!STUN!"
-set "AutoPrev_CDN=!CDN!"
-set "AutoPrev_AMZTCP=!AMZTCP!"
-set "AutoPrev_AMZUDP=!AMZUDP!"
-set "AutoPrev_BL=!BL!"
-set "AutoPrev_CUSTOM=!CUSTOM!"
+for %%V in (!AutoTrackedVars!) do set "AutoPrev_%%V=!%%V!"
 call :ConfiguratorAutoBackup
 
 set "AutoZeroOthers=1"
@@ -2929,7 +3360,6 @@ goto MENU
 
 :ConfiguratorAutoCancel
 call :ConfiguratorAutoRestoreAll
-set "%AutoVar%=!AutoPrev!"
 set /a AutoIndex=AutoPrev
 call :ConfiguratorAutoApply
 echo.
@@ -2939,7 +3369,6 @@ goto MENU
 
 :ConfiguratorAutoNotFound
 call :ConfiguratorAutoRestoreAll
-set "%AutoVar%=!AutoPrev!"
 set /a AutoIndex=AutoPrev
 call :ConfiguratorAutoApply
 echo.
@@ -2958,10 +3387,15 @@ echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
 "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
-if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
-	set "currentDir=%~dp0"
+call :ConfiguratorAutoStopRunning
+call :ResolveConfiguratorFixConfig
+if defined ConfiguratorFixRel (
     echo  [*] Запуск...
-    explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    if /I "!ConfiguratorFixExt!"==".txt" (
+        call :StartTextPreset "%ParentDirPath%\configs\Custom\ConfiguratorFix.txt"
+    ) else (
+        start "" "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    )
 )
 echo  [*] Проверяем процесс обхода...
 timeout /t 3 >nul 2>&1
@@ -2990,28 +3424,35 @@ if !ENGN! equ 1 (
 )
 exit /b
 
+:ConfiguratorAutoResolveChoice
+set "AutoVar="
+set "AutoMaxVar="
+set "AutoName="
+if "%~1"=="1" (set "AutoVar=YT"     & set "AutoMaxVar=MAX_YouTube"            & set "AutoName=YouTube")
+if "%~1"=="2" (set "AutoVar=YTGV"   & set "AutoMaxVar=MAX_YouTubeGoogleVideo" & set "AutoName=YouTube GoogleVideo")
+if "%~1"=="3" (set "AutoVar=TW"     & set "AutoMaxVar=MAX_Twitch"             & set "AutoName=Twitch")
+if "%~1"=="4" (set "AutoVar=DSUPD"  & set "AutoMaxVar=MAX_DiscordUpdate"      & set "AutoName=Discord Update")
+if "%~1"=="5" (set "AutoVar=DS"     & set "AutoMaxVar=MAX_Discord"            & set "AutoName=Discord")
+if "%~1"=="6" (set "AutoVar=CDN"    & set "AutoMaxVar=MAX_CDN"                & set "AutoName=CDN")
+if "%~1"=="7" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
+if "%~1"=="8" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_blacklist"          & set "AutoName=Blacklist")
+if "%~1"=="9" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & set "AutoName=Личные списки")
+exit /b
+
+:ConfiguratorAutoStopRunning
+taskkill /F /IM winws.exe /T >nul 2>&1
+taskkill /F /IM winws2.exe /T >nul 2>&1
+exit /b
+
 :ConfiguratorAutoSetTestVars
 if "!AutoZeroOthers!"=="1" (
-    for %%V in (YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA STUN CDN AMZTCP AMZUDP BL CUSTOM) do set "%%V=0"
+    for %%V in (!AutoTrackedVars!) do set "%%V=0"
 )
 for %%V in (!AutoVar!) do set "%%V=!AutoIndex!"
 exit /b
 
 :ConfiguratorAutoRestoreAll
-set "YT=!AutoPrev_YT!"
-set "YTGV=!AutoPrev_YTGV!"
-set "YTQ=!AutoPrev_YTQ!"
-set "TW=!AutoPrev_TW!"
-set "DSUPD=!AutoPrev_DSUPD!"
-set "DS=!AutoPrev_DS!"
-set "DSQ=!AutoPrev_DSQ!"
-set "DSMEDIA=!AutoPrev_DSMEDIA!"
-set "STUN=!AutoPrev_STUN!"
-set "CDN=!AutoPrev_CDN!"
-set "AMZTCP=!AutoPrev_AMZTCP!"
-set "AMZUDP=!AutoPrev_AMZUDP!"
-set "BL=!AutoPrev_BL!"
-set "CUSTOM=!AutoPrev_CUSTOM!"
+for %%V in (!AutoTrackedVars!) do set "%%V=!AutoPrev_%%V!"
 exit /b
 
 :ConfiguratorAutoBackup
@@ -3022,17 +3463,17 @@ if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\App
 >>"%AutoBackupFile%" echo ENGN="!ENGN!"
 >>"%AutoBackupFile%" echo YT="!YT!"
 >>"%AutoBackupFile%" echo YTGV="!YTGV!"
->>"%AutoBackupFile%" echo YTQ="!YTQ!""
->>"%AutoBackupFile%" echo TW="!TW!""
+>>"%AutoBackupFile%" echo YTQ="!YTQ!"
+>>"%AutoBackupFile%" echo TW="!TW!"
 >>"%AutoBackupFile%" echo DSUPD="!DSUPD!"
 >>"%AutoBackupFile%" echo DS="!DS!"
->>"%AutoBackupFile%" echo DSQ="!DSQ!""
+>>"%AutoBackupFile%" echo DSQ="!DSQ!"
 >>"%AutoBackupFile%" echo DSMEDIA="!DSMEDIA!"
 >>"%AutoBackupFile%" echo STUN="!STUN!"
 >>"%AutoBackupFile%" echo CDN="!CDN!"
->>"%AutoBackupFile%" echo AMZTCP="!AMZTCP!""
+>>"%AutoBackupFile%" echo AMZTCP="!AMZTCP!"
 >>"%AutoBackupFile%" echo AMZUDP="!AMZUDP!"
->>"%AutoBackupFile%" echo BL="!BL!""
+>>"%AutoBackupFile%" echo BL="!BL!"
 >>"%AutoBackupFile%" echo CUSTOM="!CUSTOM!"
 exit /b
 
@@ -3044,15 +3485,7 @@ set "AutoDomainFile=%AutoDomainFileDefault%"
 set "AutoModuleFile="
 set "AutoDomainUsedModule=0"
 
-if /i "!AutoVar!"=="YT"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube.txt"
-if /i "!AutoVar!"=="YTGV"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube_googlevideo.txt"
-if /i "!AutoVar!"=="TW"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\twitch.txt"
-if /i "!AutoVar!"=="DSUPD" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_update.txt"
-if /i "!AutoVar!"=="DS"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord.txt"
-if /i "!AutoVar!"=="CDN"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\cdn.txt"
-if /i "!AutoVar!"=="AMZTCP" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_tcp.txt"
-if /i "!AutoVar!"=="BL"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\blacklist.txt"
-if /i "!AutoVar!"=="CUSTOM" set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\custom.txt"
+call :ConfiguratorAutoResolveDomainFile
 
 if defined AutoModuleFile if exist "!AutoModuleFile!" (
     set "AutoDomainFile=!AutoModuleFile!"
@@ -3071,6 +3504,7 @@ if not defined CURL (
 set "AutoFailed=0"
 set "AutoTotal=0"
 set "AutoFailedDomains="
+set "AutoSuccessCount=0"
 echo.
 if "!AutoDomainUsedModule!"=="1" (
     echo  [*] Автопроверка доменов ^(модульный список^)...
@@ -3104,6 +3538,16 @@ if !AutoTotal! LEQ 0 (
     exit /b
 )
 
+set /a AutoSuccessCount=AutoTotal-AutoFailed
+
+if /i "!AutoVar!"=="YTGV" (
+    if !AutoSuccessCount! GEQ 1 (
+        set "AutoCheckResult=0"
+        echo  ^[OK^] Для YouTube GoogleVideo доступен хотя бы один домен ^(!AutoSuccessCount!/!AutoTotal!^).
+        exit /b
+    )
+)
+
 if !AutoFailed! EQU 0 (
     set "AutoCheckResult=0"
     echo  ^[OK^] Все домены доступны.
@@ -3128,9 +3572,13 @@ if /i not "!AutoUrl:~0,7!"=="http://" if /i not "!AutoUrl:~0,8!"=="https://" set
 set /a AutoTotal+=1
 
 set "AutoCode="
-for /f "delims=" %%H in ('
-    curl -L -k --connect-timeout 1 -m 6 -s -o NUL -w "%%{http_code}" "!AutoUrl!"
-') do set "AutoCode=%%H"
+set "AutoCodeFile=%TEMP%\gz_autocode.tmp"
+if exist "!AutoCodeFile!" del /q "!AutoCodeFile!" >nul 2>&1
+%CURL% -L -k --connect-timeout 1 -m 6 -s -o NUL -w "%%{http_code}" "!AutoUrl!" > "!AutoCodeFile!"
+if exist "!AutoCodeFile!" (
+    set /p "AutoCode="<"!AutoCodeFile!"
+    del /q "!AutoCodeFile!" >nul 2>&1
+)
 
 if not defined AutoCode (
     set /a AutoFailed+=1
@@ -3151,6 +3599,19 @@ set /a AutoFailed+=1
 set "AutoFailedDomains=!AutoFailedDomains!!AutoUrlRaw! "
 exit /b
 
+:ConfiguratorAutoResolveDomainFile
+set "AutoModuleFile="
+if /i "!AutoVar!"=="YT"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube.txt"
+if /i "!AutoVar!"=="YTGV"    set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube_googlevideo.txt"
+if /i "!AutoVar!"=="TW"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\twitch.txt"
+if /i "!AutoVar!"=="DSUPD"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_update.txt"
+if /i "!AutoVar!"=="DS"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord.txt"
+if /i "!AutoVar!"=="CDN"     set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\cdn.txt"
+if /i "!AutoVar!"=="AMZTCP"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_tcp.txt"
+if /i "!AutoVar!"=="BL"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\blacklist.txt"
+if /i "!AutoVar!"=="CUSTOM"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\custom.txt"
+exit /b
+
 :START
 cls
 echo.
@@ -3158,10 +3619,14 @@ echo.
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
 "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
-if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
-	set "currentDir=%~dp0"
+call :ResolveConfiguratorFixConfig
+if defined ConfiguratorFixRel (
     echo  [*] Запуск...
-    explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    if /I "!ConfiguratorFixExt!"==".txt" (
+        call :StartTextPreset "%ParentDirPath%\configs\Custom\ConfiguratorFix.txt"
+    ) else (
+        start "" "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    )
 )
 echo  [*] Проверяем процесс обхода...
 timeout /t 3 >nul 2>&1
@@ -3197,10 +3662,14 @@ echo.
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
 "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
-if exist %ParentDirPath%\Configs\Custom\ConfiguratorFix.bat (
-	set "currentDir=%~dp0"
+call :ResolveConfiguratorFixConfig
+if defined ConfiguratorFixRel (
     echo  [*] Запуск...
-explorer "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    if /I "!ConfiguratorFixExt!"==".txt" (
+        call :StartTextPreset "%ParentDirPath%\configs\Custom\ConfiguratorFix.txt"
+    ) else (
+        start "" "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+    )
 )
 echo  [*] Проверяем процесс обхода...
 timeout /t 3 >nul 2>&1

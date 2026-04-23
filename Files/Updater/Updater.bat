@@ -273,13 +273,14 @@ if exist "!ExtractRoot!\lists" (
 tasklist | find /i "Winws" >nul
 
 if "%GoodbyeZapret_Config%" NEQ "None" (
-    set "batPath="
-    if exist "%ParentDirPath%\configs\Preset\%GoodbyeZapret_Config%.bat" set "batPath=Preset"
-    if exist "%ParentDirPath%\configs\Custom\%GoodbyeZapret_Config%.bat" set "batPath=Custom"
-    if exist "%ParentDirPath%\configs\%GoodbyeZapret_Config%.bat" set "batPath="
-    call :log INFO "Starting service with configuration %GoodbyeZapret_Config%"
-    if exist "%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat" (
-        sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat\"\"" >nul 2>&1
+    call :ResolveServiceConfig "%GoodbyeZapret_Config%"
+    call :log INFO "Starting service with configuration %GoodbyeZapret_Config% (!ResolvedConfigExt!)"
+    if defined ResolvedConfigRel (
+        if /I "!ResolvedConfigExt!"==".txt" (
+            sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\tools\Run_Config_Preset.bat\" --service \"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
+        ) else (
+            sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
+        )
         sc config "GoodbyeZapret" start= auto >nul 2>&1
         if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
             schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
@@ -296,8 +297,8 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         timeout /t 1 >nul 2>&1
         exit
     ) else (
-        call :log ERROR "Config file not found: %ParentDirPath%\configs\!batPath!\%GoodbyeZapret_Config%.bat"
-        echo         ^[*^] Файл конфига %GoodbyeZapret_Config%.bat не найден
+        call :log ERROR "Config file not found for base name: %GoodbyeZapret_Config%"
+        echo         ^[*^] Файл конфига %GoodbyeZapret_Config% ^(.txt/.bat/.cmd^) не найден
         timeout /t 2 >nul
         start "" "%ParentDirPath%\Launcher.bat"
         timeout /t 1 >nul
@@ -308,6 +309,48 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     start "" "%ParentDirPath%\Launcher.bat"
     exit
 )
+
+
+:ResolveServiceConfig
+set "ResolvedConfigName=%~1"
+set "ResolvedConfigRel="
+set "ResolvedConfigExt="
+set "ResolvedConfigBase=%~1"
+
+if /I "!ResolvedConfigBase:~-4!"==".txt" set "ResolvedConfigBase=!ResolvedConfigBase:~0,-4!"
+if /I "!ResolvedConfigBase:~-4!"==".bat" set "ResolvedConfigBase=!ResolvedConfigBase:~0,-4!"
+if /I "!ResolvedConfigBase:~-4!"==".cmd" set "ResolvedConfigBase=!ResolvedConfigBase:~0,-4!"
+
+if /I "!ResolvedConfigName:~-4!"==".txt" (
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Preset\!ResolvedConfigName!" set "ResolvedConfigRel=Preset\!ResolvedConfigName!" & set "ResolvedConfigExt=.txt"
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Custom\!ResolvedConfigName!" set "ResolvedConfigRel=Custom\!ResolvedConfigName!" & set "ResolvedConfigExt=.txt"
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\!ResolvedConfigName!" set "ResolvedConfigRel=!ResolvedConfigName!" & set "ResolvedConfigExt=.txt"
+)
+
+if /I "!ResolvedConfigName:~-4!"==".bat" (
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Preset\!ResolvedConfigName!" set "ResolvedConfigRel=Preset\!ResolvedConfigName!" & set "ResolvedConfigExt=.bat"
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Custom\!ResolvedConfigName!" set "ResolvedConfigRel=Custom\!ResolvedConfigName!" & set "ResolvedConfigExt=.bat"
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\!ResolvedConfigName!" set "ResolvedConfigRel=!ResolvedConfigName!" & set "ResolvedConfigExt=.bat"
+)
+
+if /I "!ResolvedConfigName:~-4!"==".cmd" (
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Preset\!ResolvedConfigName!" set "ResolvedConfigRel=Preset\!ResolvedConfigName!" & set "ResolvedConfigExt=.cmd"
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Custom\!ResolvedConfigName!" set "ResolvedConfigRel=Custom\!ResolvedConfigName!" & set "ResolvedConfigExt=.cmd"
+    if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\!ResolvedConfigName!" set "ResolvedConfigRel=!ResolvedConfigName!" & set "ResolvedConfigExt=.cmd"
+)
+
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Preset\!ResolvedConfigBase!.txt" set "ResolvedConfigRel=Preset\!ResolvedConfigBase!.txt" & set "ResolvedConfigExt=.txt"
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Custom\!ResolvedConfigBase!.txt" set "ResolvedConfigRel=Custom\!ResolvedConfigBase!.txt" & set "ResolvedConfigExt=.txt"
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\!ResolvedConfigBase!.txt" set "ResolvedConfigRel=!ResolvedConfigBase!.txt" & set "ResolvedConfigExt=.txt"
+
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Preset\!ResolvedConfigBase!.bat" set "ResolvedConfigRel=Preset\!ResolvedConfigBase!.bat" & set "ResolvedConfigExt=.bat"
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Custom\!ResolvedConfigBase!.bat" set "ResolvedConfigRel=Custom\!ResolvedConfigBase!.bat" & set "ResolvedConfigExt=.bat"
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\!ResolvedConfigBase!.bat" set "ResolvedConfigRel=!ResolvedConfigBase!.bat" & set "ResolvedConfigExt=.bat"
+
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Preset\!ResolvedConfigBase!.cmd" set "ResolvedConfigRel=Preset\!ResolvedConfigBase!.cmd" & set "ResolvedConfigExt=.cmd"
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\Custom\!ResolvedConfigBase!.cmd" set "ResolvedConfigRel=Custom\!ResolvedConfigBase!.cmd" & set "ResolvedConfigExt=.cmd"
+if not defined ResolvedConfigRel if exist "%ParentDirPath%\configs\!ResolvedConfigBase!.cmd" set "ResolvedConfigRel=!ResolvedConfigBase!.cmd" & set "ResolvedConfigExt=.cmd"
+exit /b 0
 
 
 :log

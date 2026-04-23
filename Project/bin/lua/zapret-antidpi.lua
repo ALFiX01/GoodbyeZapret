@@ -389,7 +389,8 @@ function syndata(ctx, desync)
 			dis.payload = blob(desync, desync.arg.blob, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")
 			apply_fooling(desync, dis)
 			if desync.arg.tls_mod then
-				dis.payload = tls_mod_shim(desync, dis.payload, desync.arg.tls_mod, nil)
+				local pl = tls_mod_shim(desync, dis.payload, desync.arg.tls_mod, nil)
+				if pl then dis.payload = pl end
 			end
 			if b_debug then DLOG("syndata: "..hexdump_dlog(dis.payload)) end
 			if rawsend_dissect_ipfrag(dis, desync_opts(desync)) then
@@ -449,7 +450,8 @@ function fake(ctx, desync)
 			end
 			local fake_payload = blob(desync, desync.arg.blob)
 			if desync.reasm_data and desync.arg.tls_mod then
-				fake_payload = tls_mod_shim(desync, fake_payload, desync.arg.tls_mod, desync.reasm_data)
+				local pl = tls_mod_shim(desync, fake_payload, desync.arg.tls_mod, desync.reasm_data)
+				if pl then fake_payload = pl end
 			end
 			-- check debug to save CPU
 			if b_debug then DLOG("fake: "..hexdump_dlog(fake_payload)) end

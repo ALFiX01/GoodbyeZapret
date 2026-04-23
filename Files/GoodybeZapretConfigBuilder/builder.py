@@ -2,13 +2,14 @@ import json
 import argparse
 import sys
 import os
+import re
 from pathlib import Path
 
 # --- Конфигурация ---
-VERSION = "1.5.3"
+VERSION = "1.5.4"
 
 CONFIG_FILE = "strategies.json"
-OUTPUT_BAT = "ConfiguratorFix.bat"
+OUTPUT_PRESET = "ConfiguratorFix.txt"
 OUTPUT_REL_PATH = "../../configs/Custom"
 
 CONFIG_FILE_Z1 = "strategiesZ1.json"
@@ -34,7 +35,7 @@ SERVICE_MAP = {
     "stun": "STUN"
 }
 
-# --- ШАБЛОНЫ БАТНИКА ---
+# --- LEGACY ШАБЛОНЫ БАТНИКА ---
 
 BATCH_HEADER = r"""@echo off
 setlocal EnableExtensions
@@ -121,20 +122,119 @@ def get_base_path():
         return Path(__file__).parent
 
 
-def load_config(engine="1"):
-    file_name = CONFIG_FILE_Z2 if engine == "2" else CONFIG_FILE_Z1
-    path = get_base_path() / file_name
+def get_search_roots():
+    roots = []
+    base_path = get_base_path().resolve()
+    roots.append(base_path)
 
-    # Для отладки в батнике выведем, какой файл используется
-    print(f'set "FILE_USED={file_name}"')
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        roots.append(Path(meipass).resolve())
 
-    if not path.exists():
+    if not getattr(sys, 'frozen', False) and len(base_path.parents) >= 2:
+        project_builder_dir = (base_path.parents[1] / "Project" / "tools" / "config_builder").resolve()
+        if project_builder_dir.exists():
+            roots.append(project_builder_dir)
+
+    unique_roots = []
+    seen = set()
+    for root in roots:
+        normalized = str(root).lower()
+        if normalized in seen:
+            continue
+        unique_roots.append(root)
+        seen.add(normalized)
+
+    return unique_roots
+
+
+def find_existing_file(*file_names):
+    for root in get_search_roots():
+        for file_name in file_names:
+            candidate = root / file_name
+            if candidate.exists():
+                return candidate
+    return None
+
+
+def normalize_rule_entry(rule):
+    if isinstance(rule, str):
+        return rule.strip()
+
+    if isinstance(rule, (list, tuple)):
+        parts = []
+        for item in rule:
+            if item is None:
+                continue
+            text = str(item).strip()
+            if text:
+                parts.append(text)
+        return " ".join(parts)
+
+    return ""
+
+
+def normalize_rule_list(rules):
+    if not isinstance(rules, list):
+        return rules
+
+    normalized = []
+    for rule in rules:
+        text = normalize_rule_entry(rule)
+        if text:
+            normalized.append(text)
+    return normalized
+
+
+def normalize_config_structure(data):
+    if not isinstance(data, dict):
         return {"services": {}, "prefix_rules": []}
+
+    normalized = dict(data)
+    normalized["prefix_rules"] = normalize_rule_list(normalized.get("prefix_rules", [])) or []
+
+    services = normalized.get("services", {})
+    if not isinstance(services, dict):
+        normalized["services"] = {}
+        return normalized
+
+    normalized_services = {}
+    for service_name, strategies in services.items():
+        if not isinstance(strategies, dict):
+            continue
+
+        normalized_strategies = {}
+        for strategy_id, rules in strategies.items():
+            normalized_rules = normalize_rule_list(rules)
+            if isinstance(normalized_rules, list):
+                normalized_strategies[str(strategy_id)] = normalized_rules
+
+        normalized_services[service_name] = normalized_strategies
+
+    normalized["services"] = normalized_services
+    return normalized
+
+
+def load_config(engine="1"):
+    primary_file = CONFIG_FILE_Z2 if engine == "2" else CONFIG_FILE_Z1
+    path = find_existing_file(primary_file)
+    if path is None:
+        path = find_existing_file(CONFIG_FILE)
+
+    if path is None:
+        return {"services": {}, "prefix_rules": []}
+
+    file_name = path.name
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            raw_text = f.read()
+        try:
+            return normalize_config_structure(json.loads(raw_text))
+        except json.JSONDecodeError:
+            sanitized_text = re.sub(r',(\s*[\]}])', r'\1', raw_text)
+            return normalize_config_structure(json.loads(sanitized_text))
     except Exception as e:
-        print(f"REM [ERROR] Failed to load {file_name}: {e}")
+        print(f"[ERROR] Failed to load {file_name}: {e}", file=sys.stderr)
         return {"services": {}, "prefix_rules": []}
 
 
@@ -146,7 +246,7 @@ def export_limits(data):
 
 
 def save_user_config(args, tcp_ports_value="", udp_ports_value=""):
-    """
+    r"""
     Сохраняет настройки:
     1. Параметры CLI -> %USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt
     2. GoodbyeZapret_Config -> %USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt
@@ -269,6 +369,63 @@ def fix_zapret_rule(rule):
     return rule.replace('="@', '=@"')
 
 
+def split_cmd_arguments(text):
+    tokens = []
+    buffer = []
+    in_quotes = False
+
+    for char in text:
+        if char == '"':
+            in_quotes = not in_quotes
+            buffer.append(char)
+            continue
+
+        if char.isspace() and not in_quotes:
+            if buffer:
+                tokens.append("".join(buffer))
+                buffer = []
+            continue
+
+        buffer.append(char)
+
+    if buffer:
+        tokens.append("".join(buffer))
+
+    return tokens
+
+
+def normalize_preset_arg(value: str, cdn_level: str, tcp_ports_value: str = "", udp_ports_value: str = "") -> str:
+    normalized = value.replace("%CDN_BypassLevel%", cdn_level)
+    normalized = normalized.replace("%tcp_ports%", tcp_ports_value)
+    normalized = normalized.replace("%udp_ports%", udp_ports_value)
+    normalized = normalized.replace("%BIN%", "{{BIN}}")
+    normalized = normalized.replace("%LISTS%", "{{LISTS}}")
+    normalized = normalized.replace("%FAKE%", "{{FAKE}}")
+    normalized = normalized.replace("%ProjectDir%", "{{PROJECT}}")
+    return fix_zapret_rule(normalized)
+
+
+def resolve_output_dir():
+    base_path = get_base_path()
+    candidates = []
+
+    if getattr(sys, 'frozen', False):
+        candidates.append((base_path / OUTPUT_REL_PATH).resolve())
+    else:
+        if len(base_path.parents) >= 2:
+            candidates.append((base_path.parents[1] / "Project" / "configs" / "custom").resolve())
+        candidates.append((base_path / OUTPUT_REL_PATH).resolve())
+
+    for candidate in candidates:
+        if candidate.parent.exists():
+            candidate.mkdir(parents=True, exist_ok=True)
+            return candidate
+
+    fallback = candidates[0]
+    fallback.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
 def is_blob_rule(rule: str) -> bool:
     if not rule:
         return False
@@ -298,7 +455,7 @@ def is_filter_profile(rule: str) -> bool:
     )
 
 
-def generate_bat_file(args, data):
+def generate_preset_file(args, data):
     services_config = data.get("services", {})
     prefix_rules = data.get("prefix_rules", [])
 
@@ -422,66 +579,47 @@ def generate_bat_file(args, data):
     udp_ports_value = udp_ports_str or ""
     # --- КОНЕЦ НОВОГО КОДА ---
 
-    lines = []
-    lines.append(BATCH_HEADER)
-    lines.append(
-        BATCH_INFO_TEMPLATE.format(
-            cdn_level=args.cdn_level,
-            version=VERSION,
-            tcp_ports_value=tcp_ports_value,
-            udp_ports_value=udp_ports_value,
+    preset_lines = [
+        "# Preset: ConfiguratorFix",
+        f"# Engine: {target_exe}",
+        f"# GeneratedBy: builder.py v{VERSION}",
+        ""
+    ]
+
+    for rule in prefix_rules:
+        cleaned_rule = fix_zapret_rule(rule)
+        preset_lines.extend(
+            normalize_preset_arg(token, args.cdn_level, tcp_ports_value, udp_ports_value)
+            for token in split_cmd_arguments(cleaned_rule)
+            if token
         )
-    )
 
-    # --- MAIN PROCESS (включая STUN) ---
-    if all_rules or prefix_rules:
-        cmd_main = f'start "GoodbyeZapret: %CONFIG_NAME%" /min "%BIN%{target_exe}" ^\n'
+    filter_indices = [
+        i for i, r in enumerate(all_rules)
+        if is_filter_profile(fix_zapret_rule(r))
+    ]
+    last_filter_index = filter_indices[-1] if filter_indices else -1
 
-        # Добавляем префиксы (уже с подставленными портами или без аргументов портов)
-        for rule in prefix_rules:
-            cleaned_rule = fix_zapret_rule(rule)
-            cmd_main += f"{cleaned_rule} ^\n"
+    for i, rule in enumerate(all_rules):
+        cleaned_rule = fix_zapret_rule(rule)
+        tokens = split_cmd_arguments(cleaned_rule)
+        if is_filter_profile(cleaned_rule) and i != last_filter_index and "--new" not in tokens:
+            tokens.append("--new")
 
-        # Подготовка индексов фильтровых профилей
-        filter_indices = [
-            i for i, r in enumerate(all_rules)
-            if is_filter_profile(fix_zapret_rule(r))
-        ]
-        last_filter_index = filter_indices[-1] if filter_indices else -1
+        preset_lines.extend(
+            normalize_preset_arg(token, args.cdn_level, tcp_ports_value, udp_ports_value)
+            for token in tokens
+            if token
+        )
 
-        # Добавляем правила
-        for i, rule in enumerate(all_rules):
-            suffix = " ^" if i < len(all_rules) - 1 else ""
-            cleaned_rule = fix_zapret_rule(rule)
-
-            if is_blob_rule(cleaned_rule):
-                # blob-аргументы должны идти без --new
-                cmd_main += f"{cleaned_rule}{suffix}\n"
-            elif is_filter_profile(cleaned_rule):
-                # фильтровые: --new только если это не последний filter-профиль
-                if i != last_filter_index:
-                    cmd_main += f"{cleaned_rule} --new{suffix}\n"
-                else:
-                    cmd_main += f"{cleaned_rule}{suffix}\n"
-            else:
-                # все остальные аргументы просто добавляются к профилю без --new
-                cmd_main += f"{cleaned_rule}{suffix}\n"
-
-        lines.append(cmd_main)
-
-    lines.append(BATCH_TRAY)
-    lines.append(BATCH_PREPARING)
-
-    base_path = get_base_path()
-    output_dir = (base_path / OUTPUT_REL_PATH).resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    out_path = output_dir / OUTPUT_BAT
+    output_dir = resolve_output_dir()
+    out_path = output_dir / OUTPUT_PRESET
 
     try:
         with open(out_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
+            f.write("\n".join(preset_lines) + "\n")
     except Exception as e:
-        print(f"REM [ERROR] Could not write batch file: {e}")
+        print(f"[ERROR] Could not write preset file: {e}", file=sys.stderr)
 
     return tcp_ports_value, udp_ports_value
 
@@ -516,7 +654,7 @@ def main():
     if args.get_limits:
         export_limits(data)
     else:
-        tcp_ports_value, udp_ports_value = generate_bat_file(args, data)
+        tcp_ports_value, udp_ports_value = generate_preset_file(args, data)
         save_user_config(args, tcp_ports_value, udp_ports_value)
 
 

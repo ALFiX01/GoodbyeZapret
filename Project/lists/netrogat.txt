@@ -221,3 +221,6 @@ riotcdn.net
 leagueoflegends.com
 playvalorant.com
 cmd-online.ru
+qwen.ai
+alicdn.com
+alibaba.com
