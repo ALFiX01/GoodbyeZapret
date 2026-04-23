@@ -12,12 +12,7 @@
     <a href="https://github.com/ALFiX01/GoodbyeZapret/releases"><img src="https://img.shields.io/github/downloads/ALFiX01/GoodbyeZapret/GoodbyeZapret.zip?style=plastic" alt="GitHub EXE Downloads"></a>
   </p>
   <p align="center">
-    <a href="https://pay.cloudtips.ru/p/b98d1870">
-      <img src="https://img.shields.io/badge/Support-Developer-ff5f7a?style=for-the-badge&logo=buymeacoffee&logoColor=white" alt="Поддержать разработчика">
-    </a>
-    <a href="https://t.me/+QUADX-YqFUJhM2Fi">
-      <img src="https://img.shields.io/badge/Telegram-Channel-27a7e7?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram канал">
-    </a>
+    💖 <a href="https://pay.cloudtips.ru/p/b98d1870"><b>Поддержать разработчика</b></a>
   </p>
 </div>
 
