@@ -13,6 +13,7 @@
   </p>
   <p align="center">
     💖 <a href="https://pay.cloudtips.ru/p/b98d1870"><b>Поддержать разработчика</b></a>
+    💭 <a href="https://t.me/+QUADX-YqFUJhM2Fi"><b>Telegram канал</b></a>
   </p>
 </div>
 
