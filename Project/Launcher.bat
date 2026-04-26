@@ -1126,12 +1126,15 @@ if not exist "%ParentDirPath%\configs\Preset" (
     pause >nul
 )
 
-setlocal EnableDelayedExpansion
 set "hasActiveOrStarted=0"
 set /a counter=0
 
+if defined ConfigListMappedCount (
+    for /L %%I in (1,1,!ConfigListMappedCount!) do set "file%%I="
+)
+set "ConfigListMappedCount=0"
+
 REM === Получаем список конфигов с приоритетом .txt ====================
-call :BuildConfigList
 if not defined ConfigListFile (
     echo.
     echo  ОШИБКА - не удалось собрать список конфигов.
@@ -1192,8 +1195,7 @@ for /f "usebackq tokens=1* delims=|" %%A in ("%ConfigListFile%") do (
 
     set "file!counter!=!ConfigRel!"
 )
-
-if exist "%ConfigListFile%" del /q "%ConfigListFile%" >nul 2>&1
+set "ConfigListMappedCount=!counter!"
 
 REM ---------------------------------------------------------------------------------
 
@@ -1260,21 +1262,21 @@ if /i "%choice%"=="RR" goto RR
 REM --- Pagination input handling ---
 if /i "%choice%"=="N" (
     set /a Page+=1
-    goto ConfigSelectorMenu
+    goto ConfigSelectorMenu_without_ui_info
 )
 if /i "%choice%"=="т" (
     set /a Page+=1
-    goto ConfigSelectorMenu
+    goto ConfigSelectorMenu_without_ui_info
 )
 if /i "%choice%"=="B" (
     if %Page% equ 1 goto MainMenu_without_ui_info
     if %Page% gtr 1 set /a Page-=1
-    goto ConfigSelectorMenu
+    goto ConfigSelectorMenu_without_ui_info
 )
 if /i "%choice%"=="и" (
     if %Page% equ 1 goto MainMenu_without_ui_info
     if %Page% gtr 1 set /a Page-=1
-    goto ConfigSelectorMenu
+    goto ConfigSelectorMenu_without_ui_info
 )
 REM ---------------------------------
 
@@ -1835,13 +1837,13 @@ for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1)
 title GoodbyeZapret - Состояние
 echo.
 echo    %COL%[36m┌───────────────────────────── Состояние GoodbyeZapret ─────────────────────────────┐
-echo    ^│ %COL%[37mСлужбы:                                                                           %COL%[36m^│
+echo    ^│ %COL%[37mКомпоненты:                                                                       %COL%[36m^│
 echo    ^│ %COL%[90m───────────────────────────────────────────────────────────────────────────────── %COL%[36m^│
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 (
-    echo    ^│ %COL%[92m√ %COL%[37mGoodbyeZapret: %COL%[92mУстановлен и работает                                            %COL%[36m^│
+    echo    ^│ %COL%[92m√ %COL%[37mСлужба GoodbyeZapret: %COL%[92mУстановлена                                               %COL%[36m^│
 ) else (
-    echo    ^│ %COL%[91mX %COL%[37mGoodbyeZapret: Не установлен                                                    %COL%[36m^│
+    echo    ^│ %COL%[91mX %COL%[37mСлужба GoodbyeZapret: Не установлена                                            %COL%[36m^│
 )
 tasklist | find /i "Winws" >nul
 if %errorlevel% equ 0 (
@@ -2221,8 +2223,8 @@ REM === Пересчет размеров консоли для меню ===
 REM Базовый путь должен совпадать с логикой вывода в меню
 set "BasePath=%ParentDirPath%"
 
-REM === Подсчет количества конфигов ===
-call :CountConfigs
+REM === Проверка и обновление кэша списка конфигов ===
+call :EnsureConfigListCache
 set /a BatCount=ConfigListCount
 
 REM === Пагинация ===
@@ -2692,9 +2694,64 @@ if exist "%ParentDirPath%\tools\Convert_Config_To_Preset.ps1" (
 )
 goto :eof
 
+:EnsureConfigListCache
+set "ConfigListReady=0"
+if not defined ConfigStateFile set "ConfigStateFile=%temp%\gz_cfg_state_%RANDOM%_%RANDOM%.tmp"
+call :BuildConfigState
+
+set "ConfigListCacheHit=0"
+if defined ConfigListFile if exist "%ConfigListFile%" if defined ConfigStateCurrentFile if exist "%ConfigStateCurrentFile%" if exist "%ConfigStateFile%" (
+    fc /b "%ConfigStateCurrentFile%" "%ConfigStateFile%" >nul 2>&1
+    if not errorlevel 1 set "ConfigListCacheHit=1"
+)
+
+if "%ConfigListCacheHit%"=="1" (
+    set "ConfigListReady=1"
+) else (
+    call :BuildConfigList
+    if defined ConfigListFile if exist "%ConfigListFile%" set "ConfigListReady=1"
+)
+
+if defined ConfigStateCurrentFile if exist "%ConfigStateCurrentFile%" (
+    if "%ConfigListReady%"=="1" (
+        move /y "%ConfigStateCurrentFile%" "%ConfigStateFile%" >nul 2>&1
+    ) else (
+        del /q "%ConfigStateCurrentFile%" >nul 2>&1
+    )
+)
+set "ConfigStateCurrentFile="
+goto :eof
+
+:BuildConfigState
+set "ConfigStateCurrentCount=0"
+set "ConfigStateCurrentFile=%temp%\cfg_state_current_%RANDOM%_%RANDOM%.tmp"
+set "ConfigStateWorkFile=%temp%\cfg_state_work_%RANDOM%_%RANDOM%.tmp"
+if exist "%ConfigStateCurrentFile%" del /q "%ConfigStateCurrentFile%" >nul 2>&1
+if exist "%ConfigStateWorkFile%" del /q "%ConfigStateWorkFile%" >nul 2>&1
+type nul > "%ConfigStateWorkFile%"
+if exist "%ParentDirPath%\configs\Preset" (
+    for /R "%ParentDirPath%\configs\Preset" %%G in (*.txt *.bat *.cmd) do (
+        if exist "%%~fG" (
+            set /a ConfigStateCurrentCount+=1
+            >>"%ConfigStateWorkFile%" echo %%~fG^|%%~zG^|%%~tG
+        )
+    )
+)
+if exist "%ParentDirPath%\configs\Custom" (
+    for /R "%ParentDirPath%\configs\Custom" %%G in (*.txt *.bat *.cmd) do (
+        if exist "%%~fG" (
+            set /a ConfigStateCurrentCount+=1
+            >>"%ConfigStateWorkFile%" echo %%~fG^|%%~zG^|%%~tG
+        )
+    )
+)
+sort "%ConfigStateWorkFile%" /o "%ConfigStateCurrentFile%" >nul
+if exist "%ConfigStateWorkFile%" del /q "%ConfigStateWorkFile%" >nul 2>&1
+goto :eof
+
 :BuildConfigList
-if defined ConfigListFile if exist "%ConfigListFile%" del /q "%ConfigListFile%" >nul 2>&1
-set "ConfigListFile=%temp%\cfg_list_%RANDOM%_%RANDOM%.tmp"
+if not defined ConfigListFile set "ConfigListFile=%temp%\cfg_list_%RANDOM%_%RANDOM%.tmp"
+if exist "%ConfigListFile%" del /q "%ConfigListFile%" >nul 2>&1
 chcp 850 >nul 2>&1
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "$configRoot = Join-Path '%ParentDirPath%' 'configs';" ^
@@ -2714,18 +2771,7 @@ if exist "%ConfigListFile%" for /f %%A in ('find /v /c "" ^< "%ConfigListFile%"'
 goto :eof
 
 :CountConfigs
-set "ConfigListCount=0"
-set "ConfigCountFile=%temp%\cfg_count_%RANDOM%_%RANDOM%.tmp"
-if exist "%ConfigCountFile%" del /q "%ConfigCountFile%" >nul 2>&1
-chcp 850 >nul 2>&1
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$configRoot = Join-Path '%ParentDirPath%' 'configs';" ^
-    "$items = Get-ChildItem (Join-Path $configRoot 'Preset'),(Join-Path $configRoot 'Custom') -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.txt','.bat','.cmd' } | Sort-Object @{Expression={[regex]::Replace($_.BaseName, '\d+', { param($m) $m.Value.PadLeft(20,'0') })}}, @{Expression={ switch ($_.Extension.ToLower()) { '.txt' {0} '.bat' {1} '.cmd' {2} default {9} } }}, FullName;" ^
-    "$seen=@{}; $count=0; foreach($item in $items){ $key = $item.BaseName.ToLowerInvariant(); if(-not $seen.ContainsKey($key)){ $seen[$key] = $true; $count++ } }; $count" ^
-    > "%ConfigCountFile%"
-chcp 65001 >nul 2>&1
-if exist "%ConfigCountFile%" set /p "ConfigListCount="<"%ConfigCountFile%"
-if exist "%ConfigCountFile%" del /q "%ConfigCountFile%" >nul 2>&1
+call :EnsureConfigListCache
 goto :eof
 
 :StartTextPreset
