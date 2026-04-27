@@ -1417,7 +1417,7 @@ call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
 
 set installing_service=0
 
-if /I not "!CfgExt!"==".txt" if not "!batfile!"=="smart-config.bat" (
+if not "!batfile!"=="smart-config.bat" (
     if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
         echo.
         REM Цветной текст
@@ -3380,14 +3380,18 @@ if /i "!AutoZeroChoice!"=="Н" set "AutoZeroOthers=0"
 set /a AutoIndex=0
 set "AutoAlmostList="
 set /a AutoAlmostCount=0
+set "AutoFoundList="
+set "AutoFirstFound="
+set /a AutoFoundCount=0
+call :ConfiguratorAutoUpdateTitle
 
 :ConfiguratorAutoLoop
-if !AutoIndex! gtr !AutoMax! goto ConfiguratorAutoNotFound
+if !AutoIndex! gtr !AutoMax! goto ConfiguratorAutoComplete
 call :ConfiguratorAutoSetTestVars
 call :ConfiguratorAutoApply
 call :ConfiguratorAutoCheck
 
-if "!AutoCheckResult!"=="0" goto ConfiguratorAutoSave
+if "!AutoCheckResult!"=="0" call :ConfiguratorAutoRegisterFound
 if "!AutoCheckResult!"=="1" (
     set /a AutoAlmostCount+=1
     set "AutoAlmostList=!AutoAlmostList!!AutoIndex! "
@@ -3395,12 +3399,19 @@ if "!AutoCheckResult!"=="1" (
 set /a AutoIndex+=1
 goto ConfiguratorAutoLoop
 
+:ConfiguratorAutoComplete
+if !AutoFoundCount! gtr 0 goto ConfiguratorAutoSave
+goto ConfiguratorAutoNotFound
+
 :ConfiguratorAutoSave
 call :ConfiguratorAutoRestoreAll
-for %%V in (!AutoVar!) do set "%%V=!AutoIndex!"
+for %%V in (!AutoVar!) do set "%%V=!AutoFirstFound!"
+set /a AutoIndex=AutoFirstFound
 call :ConfiguratorAutoApply
+call :ConfiguratorAutoUpdateTitle
 echo.
-echo  %COL%[92m[OK]%COL%[37m Найдена рабочая стратегия %COL%[92m!AutoIndex!%COL%[37m для %COL%[92m!AutoName!%COL%[37m.
+echo  %COL%[92m[OK]%COL%[37m Найдены рабочие стратегии для %COL%[92m!AutoName!%COL%[37m: %COL%[92m!AutoFoundList!%COL%[37m.
+echo  %COL%[93m[INFO]%COL%[37m Применена первая найденная стратегия: %COL%[92m!AutoFirstFound!%COL%[37m.
 pause >nul
 goto MENU
 
@@ -3428,6 +3439,7 @@ goto MENU
 
 :ConfiguratorAutoApply
 cls
+call :ConfiguratorAutoUpdateTitle
 echo.
 echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!)
 echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
@@ -3444,31 +3456,54 @@ if defined ConfiguratorFixRel (
     )
 )
 echo  [*] Проверяем процесс обхода...
-timeout /t 3 >nul 2>&1
 if !ENGN! equ 1 (
-    tasklist | find /i "Winws.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws.exe^) НЕ ЗАПУЩЕН. %COL%[37m
-            echo.
-            timeout /t 3 >nul 2>&1
-        ) else (
-            echo  [*] Процесс обхода работает, ошибки не обнаружены
-            timeout /t 1 >nul 2>&1
-        )
+    set "AutoProcessName=Winws.exe"
 ) else (
-    tasklist | find /i "Winws2.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws2.exe^) НЕ ЗАПУЩЕН. %COL%[37m
-            echo.
-            timeout /t 3 >nul 2>&1
-        ) else (
-            echo  [*] Процесс обхода работает, ошибки не обнаружены
-            timeout /t 1 >nul 2>&1
-        )
+    set "AutoProcessName=Winws2.exe"
+)
+call :WaitForProcessByName "!AutoProcessName!" 3
+if errorlevel 1 (
+    echo.
+    echo %COL%[91m ОШИБКА: Процесс обхода ^(!AutoProcessName!^) НЕ ЗАПУЩЕН. %COL%[37m
+    echo.
+) else (
+    echo  [*] Процесс обхода работает, ошибки не обнаружены
 )
 exit /b
+
+:ConfiguratorAutoRegisterFound
+if not defined AutoFirstFound set "AutoFirstFound=!AutoIndex!"
+if defined AutoFoundList (
+    set "AutoFoundList=!AutoFoundList!, !AutoIndex!"
+) else (
+    set "AutoFoundList=!AutoIndex!"
+)
+set /a AutoFoundCount+=1
+call :ConfiguratorAutoUpdateTitle
+echo.
+echo  %COL%[92m[OK]%COL%[37m Найдена рабочая стратегия %COL%[92m!AutoIndex!%COL%[37m для %COL%[92m!AutoName!%COL%[37m.
+exit /b
+
+:ConfiguratorAutoUpdateTitle
+if defined AutoFoundList (
+    title GoodbyeZapret - Автоподбор стратегий - рабочие: !AutoFoundList!
+) else (
+    title GoodbyeZapret - Автоподбор стратегий - рабочие: -
+)
+exit /b
+
+:WaitForProcessByName
+set "WaitProcessName=%~1"
+set "WaitProcessLimit=%~2"
+if not defined WaitProcessLimit set "WaitProcessLimit=3"
+set /a WaitProcessAttempts=0
+:WaitForProcessByNameLoop
+tasklist /FI "IMAGENAME eq !WaitProcessName!" 2>nul | find /I "!WaitProcessName!" >nul
+if not errorlevel 1 exit /b 0
+if !WaitProcessAttempts! GEQ !WaitProcessLimit! exit /b 1
+timeout /t 1 /nobreak >nul 2>&1
+set /a WaitProcessAttempts+=1
+goto WaitForProcessByNameLoop
 
 :ConfiguratorAutoResolveChoice
 set "AutoVar="
@@ -3620,7 +3655,7 @@ set /a AutoTotal+=1
 set "AutoCode="
 set "AutoCodeFile=%TEMP%\gz_autocode.tmp"
 if exist "!AutoCodeFile!" del /q "!AutoCodeFile!" >nul 2>&1
-%CURL% -L -k --connect-timeout 1 -m 6 -s -o NUL -w "%%{http_code}" "!AutoUrl!" > "!AutoCodeFile!"
+%CURL% -L -k --connect-timeout 1 -m 3 -s -o NUL -w "%%{http_code}" "!AutoUrl!" > "!AutoCodeFile!"
 if exist "!AutoCodeFile!" (
     set /p "AutoCode="<"!AutoCodeFile!"
     del /q "!AutoCodeFile!" >nul 2>&1
@@ -3675,29 +3710,19 @@ if defined ConfiguratorFixRel (
     )
 )
 echo  [*] Проверяем процесс обхода...
-timeout /t 3 >nul 2>&1
 if !ENGN! equ 1 (
-    tasklist | find /i "Winws.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws.exe^) НЕ ЗАПУЩЕН. %COL%[37m
-            echo.
-            timeout /t 3 >nul 2>&1
-        ) else (
-            echo  [*] Процесс обхода работает, ошибки не обнаружены
-            timeout /t 1 >nul 2>&1
-        )
+    set "BypassProcessName=Winws.exe"
 ) else (
-    tasklist | find /i "Winws2.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws2.exe^) НЕ ЗАПУЩЕН. %COL%[37m
-            echo.
-            timeout /t 3 >nul 2>&1
-        ) else (
-            echo  [*] Процесс обхода работает, ошибки не обнаружены
-            timeout /t 1 >nul 2>&1
-        )
+    set "BypassProcessName=Winws2.exe"
+)
+call :WaitForProcessByName "!BypassProcessName!" 3
+if errorlevel 1 (
+    echo.
+    echo %COL%[91m ОШИБКА: Процесс обхода ^(!BypassProcessName!^) НЕ ЗАПУЩЕН. %COL%[37m
+    echo.
+) else (
+    echo  [*] Процесс обхода работает, ошибки не обнаружены
+    timeout /t 2 >nul 2>&1
 )
 goto MENU
 
@@ -3718,29 +3743,19 @@ if defined ConfiguratorFixRel (
     )
 )
 echo  [*] Проверяем процесс обхода...
-timeout /t 3 >nul 2>&1
 if !ENGN! equ 1 (
-    tasklist | find /i "Winws.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws.exe^) НЕ ЗАПУЩЕН. %COL%[37m
-            echo.
-            timeout /t 3 >nul 2>&1
-        ) else (
-            echo  [*] Процесс обхода работает, ошибки не обнаружены
-            timeout /t 1 >nul 2>&1
-        )
+    set "BypassProcessName=Winws.exe"
 ) else (
-    tasklist | find /i "Winws2.exe" >nul
-        if errorlevel 1 (
-            echo.
-            echo %COL%[91m ОШИБКА: Процесс обхода ^(Winws2.exe^) НЕ ЗАПУЩЕН. %COL%[37m
-            echo.
-            timeout /t 3 >nul 2>&1
-        ) else (
-            echo  [*] Процесс обхода работает, ошибки не обнаружены
-            timeout /t 1 >nul 2>&1
-        )
+    set "BypassProcessName=Winws2.exe"
+)
+call :WaitForProcessByName "!BypassProcessName!" 3
+if errorlevel 1 (
+    echo.
+    echo %COL%[91m ОШИБКА: Процесс обхода ^(!BypassProcessName!^) НЕ ЗАПУЩЕН. %COL%[37m
+    echo.
+) else (
+    echo  [*] Процесс обхода работает, ошибки не обнаружены
+    timeout /t 2 >nul 2>&1
 )
 if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
     cls
