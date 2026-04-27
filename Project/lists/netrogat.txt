@@ -78,6 +78,7 @@ lencr.org
 tanki.su
 playbattlegrounds.com.cn
 playbattlegrounds.com
+pubg.com
 # World of Tanks Voice Chat
 voice.worldoftanks.net
 vivox.com

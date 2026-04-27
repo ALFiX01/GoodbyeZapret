@@ -455,6 +455,16 @@ def is_filter_profile(rule: str) -> bool:
     )
 
 
+def is_empty_port_argument(value: str) -> bool:
+    if not value:
+        return False
+
+    return re.match(
+        r'(?i)^--(?:wf-(?:tcp|udp)(?:-(?:in|out))?|filter-(?:tcp|udp))=(?:""|\'\'|\s*)$',
+        value.strip()
+    ) is not None
+
+
 def generate_preset_file(args, data):
     services_config = data.get("services", {})
     prefix_rules = data.get("prefix_rules", [])
@@ -588,11 +598,13 @@ def generate_preset_file(args, data):
 
     for rule in prefix_rules:
         cleaned_rule = fix_zapret_rule(rule)
-        preset_lines.extend(
-            normalize_preset_arg(token, args.cdn_level, tcp_ports_value, udp_ports_value)
-            for token in split_cmd_arguments(cleaned_rule)
-            if token
-        )
+        for token in split_cmd_arguments(cleaned_rule):
+            if not token:
+                continue
+
+            normalized_token = normalize_preset_arg(token, args.cdn_level, tcp_ports_value, udp_ports_value)
+            if not is_empty_port_argument(normalized_token):
+                preset_lines.append(normalized_token)
 
     filter_indices = [
         i for i, r in enumerate(all_rules)
@@ -606,11 +618,13 @@ def generate_preset_file(args, data):
         if is_filter_profile(cleaned_rule) and i != last_filter_index and "--new" not in tokens:
             tokens.append("--new")
 
-        preset_lines.extend(
-            normalize_preset_arg(token, args.cdn_level, tcp_ports_value, udp_ports_value)
-            for token in tokens
-            if token
-        )
+        for token in tokens:
+            if not token:
+                continue
+
+            normalized_token = normalize_preset_arg(token, args.cdn_level, tcp_ports_value, udp_ports_value)
+            if not is_empty_port_argument(normalized_token):
+                preset_lines.append(normalized_token)
 
     output_dir = resolve_output_dir()
     out_path = output_dir / OUTPUT_PRESET

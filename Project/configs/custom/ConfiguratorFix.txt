@@ -5,6 +5,7 @@
 --lua-init=@"{{BIN}}lua\zapret-lib.lua"
 --lua-init=@"{{BIN}}lua\zapret-antidpi.lua"
 --lua-init=@"{{BIN}}lua\custom_funcs.lua"
+--lua-init=@"{{BIN}}lua\zapret-multishake.lua"
 --ipcache-hostname
 --ipcache-lifetime=0
 --wf-tcp-out=80,443,1080,2053,2083,2087,2096,6568,8443,1024-65535
@@ -34,7 +35,7 @@
 --hostlist="{{LISTS}}list-youtube.txt"
 --out-range=-d10
 --payload=tls_client_hello
---lua-desync=multisplit:pos=midsld-1:seqovl=1
+--lua-desync=multisplit:pos=midsld+1:seqovl=1
 --new
 --filter-tcp=80,443,1080,2053,2083,2087,2096,8443
 --ipset="{{LISTS}}ipset-discord.txt"

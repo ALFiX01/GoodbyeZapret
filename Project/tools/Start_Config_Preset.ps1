@@ -108,6 +108,16 @@ function Resolve-PresetArgument {
     return $resolvedValue
 }
 
+function Test-EmptyPortArgument {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Value
+    )
+
+    $trimmed = $Value.Trim()
+    return $trimmed -match '^(?i)--(?:wf-(?:tcp|udp)(?:-(?:in|out))?|filter-(?:tcp|udp))=(?:""|''''|\s*)$'
+}
+
 if (-not $ProjectDir) {
     $ProjectDir = Split-Path -Parent $PSScriptRoot
 }
@@ -138,6 +148,9 @@ foreach ($line in Get-Content -LiteralPath $PresetPath -Encoding UTF8) {
 
     $value = $trimmed
     $value = Resolve-PresetArgument -Value $value -ProjectDir $ProjectDir
+    if (Test-EmptyPortArgument -Value $value) {
+        continue
+    }
     $args.Add($value)
 }
 
