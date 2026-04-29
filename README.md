@@ -50,7 +50,7 @@
 <br>
 
 <div align="center">
-  <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/MainMenuPreview.png?raw=true" alt="Главное меню Launcher" width="750">
+  <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/MainMenuPreview.png?raw=true" alt="Главное меню Launcher" width="700">
   <p><em>Главное меню лаунчера</em></p>
 </div>
 
