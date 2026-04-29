@@ -47,6 +47,13 @@
 
 *Инструмент изменяет сетевые пакеты так, чтобы DPI-системы не могли корректно определить ресурс.*
 
+<br>
+
+<div align="center">
+  <img src="https://github.com/ALFiX01/GoodbyeZapret/blob/main/Files/Image/MainMenu.png?raw=true" alt="Главное меню Launcher" width="750">
+  <p><em>Главное меню лаунчера</em></p>
+</div>
+
 ---
 ## ⚠️ Важное предупреждение об антивирусах
 
