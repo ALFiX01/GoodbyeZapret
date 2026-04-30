@@ -8,11 +8,9 @@ from pathlib import Path
 # --- Конфигурация ---
 VERSION = "1.5.4"
 
-CONFIG_FILE = "strategies.json"
 OUTPUT_PRESET = "ConfiguratorFix.txt"
 OUTPUT_REL_PATH = "../../configs/Custom"
 
-CONFIG_FILE_Z1 = "strategiesZ1.json"
 CONFIG_FILE_Z2 = "strategiesZ2.json"
 PORTS_BAT = "ports.bat"
 
@@ -93,13 +91,6 @@ if not "%1"=="am_admin" (
   exit /b
 )
 Echo Preparing...
-
-REM Check if winws.exe is running and terminate it if found
-tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
-if "%ERRORLEVEL%"=="0" (
-  REM Forcefully kill winws.exe process
-  taskkill /F /IM winws.exe >nul 2>&1
-)
 
 REM Check if winws2.exe is running and terminate it if found
 tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
@@ -215,12 +206,8 @@ def normalize_config_structure(data):
     return normalized
 
 
-def load_config(engine="1"):
-    primary_file = CONFIG_FILE_Z2 if engine == "2" else CONFIG_FILE_Z1
-    path = find_existing_file(primary_file)
-    if path is None:
-        path = find_existing_file(CONFIG_FILE)
-
+def load_config():
+    path = find_existing_file(CONFIG_FILE_Z2)
     if path is None:
         return {"services": {}, "prefix_rules": []}
 
@@ -281,7 +268,7 @@ def save_user_config(args, tcp_ports_value="", udp_ports_value=""):
 
     # Обновляем данные (Короткие ключи)
     updates = {
-        "ENGN": args.engine,
+        "ENGN": "2",
         "YT": args.youtube,
         "YTGV": args.youtubegooglevideo,
         "YTQ": args.youtubequic,
@@ -488,13 +475,10 @@ def generate_preset_file(args, data):
         else:
             main_rules.extend(selected_rules)
 
-    # ==========================================
-    # Один EXE на весь батник по движку
-    # ==========================================
-    target_exe = "winws2.exe" if args.engine == "2" else "winws.exe"
+    target_exe = "winws2.exe"
 
     # ==========================================
-    # STUN -> в общий список (один процесс winws*)
+    # STUN -> в общий список (один процесс winws2)
     # Ставим STUN-правила в начало, чтобы они были отдельными профилями раньше остальных.
     # ==========================================
     all_rules = stun_rules + main_rules
@@ -639,7 +623,7 @@ def generate_preset_file(args, data):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--engine", default="1", choices=["1", "2"])
+    parser.add_argument("--engine", default="2", choices=["2"])
     parser.add_argument("--get-limits", action="store_true")
 
     parser.add_argument("--youtube", default="0")
@@ -662,8 +646,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Загружаем конфиг в зависимости от движка
-    data = load_config(args.engine)
+    data = load_config()
 
     if args.get_limits:
         export_limits(data)

@@ -865,7 +865,7 @@
           "--ipset=\"%LISTS%ipset-googlevideo.txt\"",
           "--out-range=-n6",
           "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google",
-          "--lua-desync=fake:blob=fake_default_tls:repeats=11:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,sni=sun6-21.userapi.com",
+          "--lua-desync=fake:blob=fake_default_tls:repeats=11:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,sni=sun6-21.userapi.com:payload=tls_client_hello",
           "--lua-desync=multidisorder:pos=1,midsld:tcp_ack=-66000:tcp_ts_up"
         ]
       ],
@@ -880,7 +880,7 @@
           "--lua-desync=send:repeats=1",
           "--lua-desync=syndata:blob=tls_google",
           "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google",
-          "--lua-desync=fake:blob=fake_default_tls:repeats=11:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,sni=sun6-21.userapi.com",
+          "--lua-desync=fake:blob=fake_default_tls:repeats=11:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,sni=sun6-21.userapi.com:payload=tls_client_hello",
           "--lua-desync=multidisorder:pos=1,midsld:tcp_ack=-66000:tcp_ts_up"
         ]
       ],
@@ -2458,180 +2458,163 @@
           "--lua-desync=multisplit:pos=sld-1:seqovl=1",
           "--lua-desync=tls_aggressive:fakes=11:ttl_start=1:ttl_step=2:seqovl=211:badseq:split_sni"
         ]
+      ],
+      "29": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000"
+        ]
+      ],
+      "30": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=2"
+        ]
+      ],
+      "31": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000",
+          "--lua-desync=fakedsplit:pattern=0x00:repeats=6:tcp_ts=-600000"
+        ]
+      ],
+      "32": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=fake:blob=tls_google:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000",
+          "--lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000"
+        ]
+      ],
+      "33": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=fake:blob=tls_google:repeats=6:tcp_seq=1000",
+          "--lua-desync=multisplit:pos=2"
+        ]
+      ],
+      "34": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=hostfakesplit:host=ozon.ru:repeats=4:tcp_ts=-600000"
+        ]
+      ],
+      "35": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=443",
+          "--hostlist-domains=updates.discord.com",
+          "--out-range=-d9",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=stun_pat:repeats=2",
+          "--lua-desync=tls_multisplit_sni:seqovl=652:seqovl_pattern=stun_pat:ip_autottl=-3,3-20:ip6_autottl=-3,3-20"
+        ]
       ]
     },
     "STUN": {
       "1": [
         [
-          "--blob=fake_default_udp:0x00000000000000000000000000000000"
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
-          "--filter-l7=discord,wireguard,stun",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=fake_default_udp"
+          "--filter-l7=discord,stun",
+          "--out-range=-n2",
+          "--lua-desync=fake:blob=quic_google"
         ]
       ],
       "2": [
         [
-          "--blob=fake_default_udp:0x00000000000000000000000000000000"
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
-          "--filter-l7=stun,discord",
-          "--payload=stun,discord_ip_discovery",
-          "--out-range=-n8",
-          "--lua-desync=fake:blob=fake_default_udp:repeats=6"
+          "--filter-l7=discord,stun",
+          "--out-range=-d3",
+          "--lua-desync=fake:blob=quic_google:repeats=6"
         ]
       ],
       "3": [
         [
-          "--filter-l7=stun,discord",
-          "--out-range=-n4",
-          "--payload=stun,discord_ip_discovery",
-          "--lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=5"
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-l7=discord,stun",
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=quic_google:repeats=10"
         ]
       ],
       "4": [
         [
-          "--filter-l7=stun,discord",
-          "--out-range=-n4",
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=0x00"
+          "--out-range=-d3",
+          "--lua-desync=fake:blob=quic_google:repeats=6"
         ]
       ],
       "5": [
         [
-          "--filter-l7=stun,discord",
-          "--out-range=-d10",
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
-          "--lua-desync=fake:blob=0x00:repeats=6"
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=quic_google:repeats=10"
         ]
       ],
       "6": [
         [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
           "--filter-l7=discord,stun",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=0x00:repeats=6"
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n4",
+          "--lua-desync=fake:blob=quic_google"
         ]
       ],
       "7": [
         [
           "--filter-l7=discord,stun",
-          "--out-range=-d10",
           "--payload=stun,discord_ip_discovery",
+          "--out-range=-d10",
           "--lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
         ]
       ],
       "8": [
-        [
-          "--blob=fake_default_udp:0x00000000000000000000000000000000"
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--out-range=-d3",
-          "--lua-desync=fake:blob=fake_default_udp:repeats=8"
-        ]
-      ],
-      "9": [
-        [
-          "--blob=fake_default_udp:0x00000000000000000000000000000000"
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=fake_default_udp:repeats=6"
-        ]
-      ],
-      "10": [
-        [
-          "--filter-l7=discord,stun",
-          "--payload=stun,discord_ip_discovery",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=0x00:repeats=4:ip_autottl=0,3-20:ip6_autottl=0,3-20"
-        ]
-      ],
-      "11": [
-        [
-          "--blob=fake_default_udp:0x00000000000000000000000000000000"
-        ],
-        [
-          "--filter-l7=discord,wireguard,stun",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=fake_default_udp"
-        ]
-      ],
-      "12": [
-        [
-          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--out-range=-n2",
-          "--lua-desync=fake:blob=quic_google"
-        ]
-      ],
-      "13": [
-        [
-          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--out-range=-d3",
-          "--lua-desync=fake:blob=quic_google:repeats=6"
-        ]
-      ],
-      "14": [
-        [
-          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--out-range=-n5",
-          "--lua-desync=fake:blob=quic_google:repeats=10"
-        ]
-      ],
-      "15": [
-        [
-          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--payload=stun,discord_ip_discovery",
-          "--out-range=-d3",
-          "--lua-desync=fake:blob=quic_google:repeats=6"
-        ]
-      ],
-      "16": [
-        [
-          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--payload=stun,discord_ip_discovery",
-          "--out-range=-n5",
-          "--lua-desync=fake:blob=quic_google:repeats=10"
-        ]
-      ],
-      "17": [
-        [
-          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
-        ],
-        [
-          "--filter-l7=discord,stun",
-          "--payload=stun,discord_ip_discovery",
-          "--out-range=-n4",
-          "--lua-desync=fake:blob=quic_google"
-        ]
-      ],
-      "18": [
-        [
-          "--filter-l7=discord,stun",
-          "--payload=stun,discord_ip_discovery",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
-        ]
-      ],
-      "19": [
         [
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
@@ -2639,7 +2622,7 @@
           "--lua-desync=fake:blob=0x00"
         ]
       ],
-      "20": [
+      "9": [
         [
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
@@ -2647,7 +2630,7 @@
           "--lua-desync=fake:blob=0x00:repeats=4"
         ]
       ],
-      "21": [
+      "10": [
         [
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
@@ -2655,7 +2638,7 @@
           "--lua-desync=fake:blob=0x00:repeats=6"
         ]
       ],
-      "22": [
+      "11": [
         [
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
@@ -2666,7 +2649,7 @@
           "--lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:payload=all:repeats=10"
         ]
       ],
-      "23": [
+      "12": [
         [
           "--blob=fake_default_udp:0x00000000000000000000000000000000"
         ],
@@ -2677,7 +2660,7 @@
           "--lua-desync=fake:blob=fake_default_udp:repeats=8"
         ]
       ],
-      "24": [
+      "13": [
         [
           "--blob=fake_default_udp:0x00000000000000000000000000000000"
         ],
@@ -2688,7 +2671,7 @@
           "--lua-desync=fake:blob=fake_default_udp"
         ]
       ],
-      "25": [
+      "14": [
         [
           "--blob=quic6:@\"%FAKE%quic_6.bin\""
         ],
@@ -2700,7 +2683,7 @@
           "--lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
         ]
       ],
-      "26": [
+      "15": [
         [
           "--blob=quic6:@\"%FAKE%quic_6.bin\""
         ],
@@ -2712,7 +2695,7 @@
           "--lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
         ]
       ],
-      "27": [
+      "16": [
         [
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
@@ -2723,7 +2706,7 @@
           "--lua-desync=fake:blob=quic_google:repeats=12:ip_autottl=2,3-20:ip6_autottl=2,3-20:payload=unknown"
         ]
       ],
-      "28": [
+      "17": [
         [
           "--blob=quic_test:@\"%FAKE%quic_test_00.bin\""
         ],
@@ -2734,7 +2717,7 @@
           "--lua-desync=fake:blob=quic_test:repeats=2"
         ]
       ],
-      "29": [
+      "18": [
         [
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
@@ -2744,10 +2727,226 @@
           "--out-range=-n8",
           "--lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:payload=all:repeats=10"
         ]
+      ],
+      "19": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic_google:repeats=2"
+        ]
+      ],
+      "20": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic_google:repeats=12:ip_autottl=2,3-20:ip6_autottl=2,3-20:payload=unknown"
+        ]
+      ],
+      "21": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:repeats=10:payload=all"
+        ]
+      ],
+      "22": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=tls_max"
+        ]
+      ],
+      "23": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
+        ]
+      ],
+      "24": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic_google:repeats=6"
+        ]
+      ],
+      "25": [
+        [
+          "--blob=quic7:@\"%FAKE%quic_7.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic7:repeats=3",
+          "--lua-desync=send:ipfrag:ipfrag_pos_udp=8",
+          "--lua-desync=drop"
+        ]
+      ],
+      "26": [
+        [
+          "--blob=quic8:@\"%FAKE%fake_quic_8.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic8:repeats=3",
+          "--lua-desync=send:ipfrag:ipfrag_pos_udp=8",
+          "--lua-desync=drop"
+        ]
+      ],
+      "27": [
+        [
+          "--blob=quic3:@\"%FAKE%quic_3.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic3:repeats=2",
+          "--lua-desync=udplen:increment=2"
+        ]
+      ],
+      "28": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:repeats=6:blob=quic_google"
+        ]
+      ],
+      "29": [
+        [
+          "--blob=quic1:@\"%FAKE%fake_quic_1.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic1:repeats=4"
+        ]
+      ],
+      "30": [
+        [
+          "--blob=quicvk:@\"%FAKE%quic_initial_vk_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quicvk:repeats=4"
+        ]
+      ],
+      "31": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic_google:repeats=8:ip_autottl=-2,3-20:ip6_autottl=-2,3-20",
+          "--lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
+        ]
+      ],
+      "32": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=quic_google:repeats=10:payload=all",
+          "--lua-desync=udplen:increment=10:pattern=0xDEADBEEF"
+        ]
+      ],
+      "33": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-d3",
+          "--lua-desync=fake:blob=quic_google:repeats=6",
+          "--lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
+        ]
+      ],
+      "34": [
+        [
+          "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=quic_google:repeats=10:ip_autottl=0,3-20:ip6_autottl=0,3-20"
+        ]
+      ],
+      "35": [
+        [
+          "--blob=quic6:@\"%FAKE%quic_6.bin\""
+        ],
+        [
+          "--filter-udp=19294-19344,50000-65535",
+          "--filter-l7=discord,stun",
+          "--payload=stun,discord_ip_discovery",
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=quic6:repeats=4",
+          "--lua-desync=udplen:increment=8:pattern=0x0F0F0E0F"
+        ]
       ]
     },
     "Blacklist": {
       "1": [
+        [
+          "--blob=tls5:@\"%FAKE%fake_tls_5.bin\""
+        ],
         [
           "--filter-udp=443",
           "--filter-l7=quic",

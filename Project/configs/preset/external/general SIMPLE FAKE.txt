@@ -85,18 +85,21 @@
 --out-range=-n8
 --payload=quic_initial
 --lua-desync=fake:blob=quic_google:repeats=6
+
 --new
 
 --filter-l7=stun,discord
 --payload=stun,discord_ip_discovery
 --out-range=-n8
---lua-desync=fake:blob=fake_default_udp:repeats=6
+--lua-desync=fake:blob=quic_google:repeats=2
+
 --new
 
 --filter-tcp=80,443,1080,2053,2083,2087,2096,8443
 --out-range=-d10
 --hostlist-domains=discord.media
 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000
+
 --new
 
 --filter-tcp=80,443
@@ -104,12 +107,14 @@
 --out-range=-d8
 --lua-desync=fake:blob=tls_google:tls_mod=rnd,dupsid,sni=www.google.com:tcp_ts=-600000
 --lua-desync=hostfakesplit:host=www.google.com:tcp_ts=-600000
+
 --new
 
 --filter-tcp=80,443
 --hostlist=lists/youtube.txt
 --out-range=-d8
 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000
+
 --new
 
 --filter-tcp=80,443,1080,2053,2083,2087,2096,8443
@@ -117,6 +122,7 @@
 --hostlist=lists/other.txt
 --out-range=-d10
 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000
+
 --new
 
 --filter-tcp=80,443
@@ -125,6 +131,7 @@
 --ipset-exclude=lists/ipset-dns.txt
 --out-range=-d8
 --lua-desync=fake:blob=tls_google:repeats=6:tcp_ts=-600000
+
 --new
 
 --filter-tcp=80,443

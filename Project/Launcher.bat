@@ -1341,6 +1341,7 @@ pause >nul 2>&1
 
 REM Clean up existing service before installing new one
 call :remove_service_before_installing
+if errorlevel 1 goto :end
 call :install_GZ_service
 
 :install_GZ_service
@@ -1396,21 +1397,34 @@ if "!batfile!"=="smart-config.bat" (
     ) > "!BASE_PATH_LUA!"
 
     sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\SmartConfig.exe\" --bin \"%ParentDirPath%\bin\" --lua \"%ParentDirPath%\bin\lua\" --learned-init \"%ParentDirPath%\bin\lua\learned-strategies.lua\"" >nul 2>&1
-    sc config "GoodbyeZapret" start= auto >nul 2>&1 
+    set "ServiceCreateError=!errorlevel!"
+    sc config "GoodbyeZapret" start= auto >nul 2>&1
+    if errorlevel 1 set "ServiceCreateError=1"
 ) else (
     if /I "!CfgExt!"==".txt" (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\tools\Run_Config_Preset.bat\" --service \"%ParentDirPath%\configs\!batRel!\"\"" >nul 2>&1
+        set "ServiceCreateError=!errorlevel!"
         sc config "GoodbyeZapret" start= auto >nul 2>&1
+        if errorlevel 1 set "ServiceCreateError=1"
     ) else (
         sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batRel!\"\"" >nul 2>&1
-        sc config "GoodbyeZapret" start= auto >nul 2>&1 
+        set "ServiceCreateError=!errorlevel!"
+        sc config "GoodbyeZapret" start= auto >nul 2>&1
+        if errorlevel 1 set "ServiceCreateError=1"
     )
 )
 
+if "!ServiceCreateError!"=="1" (
+    call :ui_err "Не удалось создать службу GoodbyeZapret. Возможно, старая служба ещё удаляется."
+    call :ui_warn "Попробуйте повторить установку через несколько секунд, если Windows держит службу в marked for deletion."
+    set /a ErrorCount+=1
+    goto :end
+)
 
 call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
-sc start "GoodbyeZapret" >nul
+sc start "GoodbyeZapret" >nul 2>&1
+set "ServiceStartError=!errorlevel!"
 cls
 echo.
 call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
@@ -1427,10 +1441,15 @@ if not "!batfile!"=="smart-config.bat" (
 )
 
 if /I not "!batfile!"=="smart-config.bat" if /I not "!batfile!"=="ConfiguratorFix.bat" (
-    call :WaitForBypassProcess 5
+    set "BypassWaitSeconds=8"
+    if /I "!CfgExt!"==".txt" set "BypassWaitSeconds=15"
+    call :WaitForBypassProcess !BypassWaitSeconds!
     if errorlevel 1 (
         echo.
-        echo ОШИБКА: Процес обхода ^(Winws.exe или Winws2.exe^) не запущен.
+        echo ОШИБКА: Процесс обхода ^(Winws.exe или Winws2.exe^) не запущен.
+        if not "!ServiceStartError!"=="0" (
+            echo Служба не стартовала штатно, код sc start: !ServiceStartError!.
+        )
         if /I "!CfgExt!"==".txt" (
             echo Для текстовых пресетов запуск идёт через промежуточный PowerShell-раннер и может потребовать чуть больше времени.
         )
@@ -1454,6 +1473,7 @@ goto :end
         net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
         if !errorlevel! equ 0 (
+            call :WaitForServiceDeleted "GoodbyeZapret" 15
             call :ui_ok "Служба GoodbyeZapret успешно удалена"
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
             if "!errorlevel!"=="0" (
@@ -1503,13 +1523,20 @@ goto :end
     call :ui_info "подготовка к установке !batRel! в GoodbyeZapret..."
     echo.
     sc query "GoodbyeZapret" >nul 2>&1
-    if %errorlevel% equ 0 (
+    if !errorlevel! equ 0 (
         net stop "GoodbyeZapret" >nul 2>&1
         sc delete "GoodbyeZapret" >nul 2>&1
-        if %errorlevel% equ 0 (
+        if !errorlevel! equ 0 (
+            call :WaitForServiceDeleted "GoodbyeZapret" 15
+            if errorlevel 1 (
+                call :ui_err "Старая служба GoodbyeZapret ещё не удалена Windows."
+                call :ui_warn "Повторите установку через несколько секунд."
+                set /a ErrorCount+=1
+                exit /b 1
+            )
             call :ui_ok "Служба GoodbyeZapret успешно удалена"
             tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
-            if "%ERRORLEVEL%"=="0" (
+            if "!errorlevel!"=="0" (
                 taskkill /F /IM winws.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
@@ -1519,7 +1546,7 @@ goto :end
                 ipconfig /flushdns > nul
             )
             tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
-            if "%ERRORLEVEL%"=="0" (
+            if "!errorlevel!"=="0" (
                 taskkill /F /IM winws2.exe >nul 2>&1
                 net stop "WinDivert" >nul 2>&1
                 sc delete "WinDivert" >nul 2>&1
@@ -1535,7 +1562,7 @@ goto :end
     )
     call :WriteConfig GoodbyeZapret_Config "NotFound"
     timeout /t 1 >nul 2>&1
-goto :install_GZ_service
+exit /b 0
 
 :end
 if !ErrorCount! equ 0 (
@@ -2335,6 +2362,19 @@ for /L %%S in (1,1,%WaitBypassSeconds%) do (
 )
 exit /b 1
 
+:WaitForServiceDeleted
+set "WaitServiceName=%~1"
+set "WaitServiceSeconds=%~2"
+if not defined WaitServiceName exit /b 1
+if not defined WaitServiceSeconds set "WaitServiceSeconds=10"
+if %WaitServiceSeconds% lss 1 set "WaitServiceSeconds=1"
+for /L %%S in (1,1,%WaitServiceSeconds%) do (
+    sc query "%WaitServiceName%" >nul 2>&1
+    if errorlevel 1 exit /b 0
+    if %%S lss %WaitServiceSeconds% timeout /t 1 >nul 2>&1
+)
+exit /b 1
+
 :OpenInstructions
 if exist "%ParentDirPath%\instructions.html" (
     start "" "%ParentDirPath%\instructions.html"
@@ -2977,11 +3017,10 @@ if defined CDN_BypassLevel (
 
 goto :MainMenu_without_ui_info
 
-
 :ConfiguratorMenu
 title Zapret Configurator
 
-REM Check GoodbyeZapret service status
+REM Проверка статуса службы GoodbyeZapret
 sc query "GoodbyeZapret" >nul 2>&1
 if %errorlevel% equ 0 (
     set "GoodbyeZapretStart=Yes"
@@ -2989,12 +3028,9 @@ if %errorlevel% equ 0 (
     set "GoodbyeZapretStart=No"
 )
 
-set "ENGN=2"
-set "Configurator=1" & call :ReadConfig ENGN 2
-
 :UpdateLimits
-:: Получаем количество стратегий в зависимости от движка
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --get-limits > "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
+:: Получаем количество стратегий для единственного движка Zapret2/winws2
+"%ParentDirPath%\tools\config_builder\builder.exe" --get-limits > "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
 
 if exist "%ParentDirPath%\tools\config_builder\config_builder_limits.bat" (
     call "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
@@ -3063,11 +3099,11 @@ echo    %COL%[36m║   %COL%[96m[ 14 ]%COL%[37m  Личные списки      
 
 echo    %COL%[36m╠════════════════════════════════════════════════════════════════════════════════════
 echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень CDN              %COL%[92m!CDN_LVL!       %COL%[90m(off/base/full)
-echo    %COL%[36m║   %COL%[96m[ E ]%COL%[37m   Движок                  %COL%[92mZapret!ENGN!    %COL%[90m(Zapret1/Zapret2)
 echo    %COL%[36m╚════════════════════════════════════════════════════════════════════════════════════╝
 echo.
 echo    %COL%[92m[ S ] Запустить обход
 echo    %COL%[94m[ A ] Автоподбор стратегии
+echo    %COL%[94m[ W ] Рабочие стратегии
 echo    %COL%[92m[ С ] Быстро проверить обход
 echo    %COL%[91m[ K ] Остановить обход
 call :ResolveConfiguratorFixConfig
@@ -3080,7 +3116,7 @@ if defined ConfiguratorFixRel (
 )
 
 echo.
-echo    %COL%[90m[ L ] Открыть личные списки  
+echo    %COL%[90m[ P ] Открыть личные списки
 echo    %COL%[90m[ I ] Инструкция   
 echo    %COL%[90m[ B ] Назад
 echo.
@@ -3091,240 +3127,157 @@ if /i "%opt%"=="S" goto START
 if /i "%opt%"=="ы" goto START
 if /i "%opt%"=="A" goto ConfiguratorAutoPicker
 if /i "%opt%"=="ф" goto ConfiguratorAutoPicker
+if /i "%opt%"=="W" goto ConfiguratorAutoShowResults
+if /i "%opt%"=="ц" goto ConfiguratorAutoShowResults
 if /i "%opt%"=="K" goto KILL
 if /i "%opt%"=="л" goto KILL
 
 if /i "%opt%"=="cfg" explorer "%USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt"
 if /i "%opt%"=="I" goto OpenConfiguratorInstructions
 if /i "%opt%"=="ш" goto OpenConfiguratorInstructions
-if /i "%opt%"=="L" goto OpenPersonalList
-if /i "%opt%"=="д" goto OpenPersonalList
+if /i "%opt%"=="P" goto OpenPersonalList
+if /i "%opt%"=="з" goto OpenPersonalList
 if /i "%opt%"=="B" goto MainMenu_without_ui_info
 if /i "%opt%"=="И" goto MainMenu_without_ui_info
 if /i "%opt%"=="C" goto START_with_checking
 if /i "%opt%"=="с" goto START_with_checking
 
 call :ResolveConfiguratorFixConfig
-if defined ConfiguratorFixRel (
-    if /i "%opt%"=="U" ( 
-    cls
-    echo.
-    echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-    "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
-        call :ResolveConfiguratorFixConfig
-        if defined ConfiguratorFixRel (
-            set "batFile=!ConfiguratorFixFile!"
-            set "batRel=!ConfiguratorFixRel!"
-        )
-        set "PanelBack=Configurator"
-        call :remove_service_before_installing
-        call :install_GZ_service
-        call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
-    )
-if /i "%opt%"=="г" (
-        cls
-        echo.
-        echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-        "%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
-        call :ResolveConfiguratorFixConfig
-        if defined ConfiguratorFixRel (
-            set "batFile=!ConfiguratorFixFile!"
-            set "batRel=!ConfiguratorFixRel!"
-        )
-        set "PanelBack=Configurator"
-        call :remove_service_before_installing
-        call :install_GZ_service
-        call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
-    )
-)
+if not defined ConfiguratorFixRel goto ConfiguratorAfterAutostartHotkeys
+if /i "%opt%"=="U" goto ConfiguratorInstallAutostart
+if /i "%opt%"=="г" goto ConfiguratorInstallAutostart
+if /i "%opt%"=="D" goto ConfiguratorRemoveAutostart
+if /i "%opt%"=="в" goto ConfiguratorRemoveAutostart
 
-if exist "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat" (
-    if /i "%opt%"=="D" ( 
-        set "PanelBack=Configurator"
-        call :remove_service
-    )
-if /i "%opt%"=="в" (
-        set "PanelBack=Configurator"
-        call :remove_service
-    )
-)
+:ConfiguratorAfterAutostartHotkeys
 
 :: Проверки ввода с использованием полученных лимитов
-if "%opt%"=="1" (
-    set /p val="%DEL%   Введите стратегию для YouTube (0-!MAX_YouTube!): "
-    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
-    if !val! gtr !MAX_YouTube! (
-        echo  Неверное значение. Максимум - !MAX_YouTube!
-        pause
-    ) else (
-        set "YT=!val!"
-    )
-    goto MENU
-)
+if "%opt%"=="1" goto ConfiguratorSetYouTube
+if "%opt%"=="2" goto ConfiguratorSetYouTubeGoogleVideo
+if "%opt%"=="3" goto ConfiguratorSetYouTubeQuic
+if "%opt%"=="4" goto ConfiguratorSetTwitch
+if "%opt%"=="5" goto ConfiguratorSetDiscordUpdate
+if "%opt%"=="6" goto ConfiguratorSetDiscord
+if "%opt%"=="7" goto ConfiguratorSetDiscordQuic
+if "%opt%"=="8" goto ConfiguratorSetDiscordMedia
+if "%opt%"=="9" goto ConfiguratorSetSTUN
+if "%opt%"=="10" goto ConfiguratorSetCDN
+if "%opt%"=="11" goto ConfiguratorSetAmazonTCP
+if "%opt%"=="12" goto ConfiguratorSetAmazonUDP
+if "%opt%"=="13" goto ConfiguratorSetBlacklist
+if "%opt%"=="14" goto ConfiguratorSetCustom
 
-if "%opt%"=="2" (
-    set /p val="%DEL%   Введите стратегию для YouTube GoogleVideo (0-!MAX_YouTubeGoogleVideo!): "
-    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
-    if !val! gtr !MAX_YouTubeGoogleVideo! (
-        echo  Неверное значение. Максимум - !MAX_YouTubeGoogleVideo!
-        pause
-    ) else (
-        set "YTGV=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="3" (
-    set /p val="%DEL%   Введите стратегию для YouTube Quic (0-!MAX_YouTubeQuic!): "
-    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
-    if !val! gtr !MAX_YouTubeQuic! (
-        echo  Неверное значение. Максимум - !MAX_YouTubeQuic!
-        pause
-    ) else (
-        set "YTQ=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="4" (
-    set /p val="%DEL%   Введите стратегию для Twitch (0-!MAX_Twitch!): "
-    :: Простая проверка: если введено больше макс, сбрасываем (опционально)
-    if !val! gtr !MAX_Twitch! (
-        echo  Неверное значение. Максимум - !MAX_Twitch!
-        pause
-    ) else (
-        set "TW=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="5" (
-    set /p val="%DEL%   Введите стратегию для Discord Update (0-!MAX_DiscordUpdate!): "
-    if !val! gtr !MAX_DiscordUpdate! (
-        echo  Неверное значение. Максимум - !MAX_DiscordUpdate!
-        pause
-    ) else (
-        set "DSUPD=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="6" (
-    set /p val="%DEL%   Введите стратегию для Discord (0-!MAX_Discord!): "
-    if !val! gtr !MAX_Discord! (
-        echo  Неверное значение. Максимум - !MAX_Discord!
-        pause
-    ) else (
-        set "DS=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="7" (
-    set /p val="%DEL%   Введите стратегию для Discord Quic (0-!MAX_DiscordQuic!): "
-    if !val! gtr !MAX_DiscordQuic! (
-        echo  Неверное значение. Максимум - !MAX_DiscordQuic!
-        pause
-    ) else (
-        set "DSQ=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="8" (
-    set /p val="%DEL%   Введите стратегию для Discord.media (0-!MAX_DiscordMedia!): "
-    if !val! gtr !MAX_DiscordMedia! (
-        echo  Неверное значение. Максимум - !MAX_DiscordMedia!
-        pause
-    ) else (
-        set "DSMEDIA=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="9" (
-    set /p val="%DEL%   Введите стратегию для STUN (0-!MAX_STUN!): "
-    if !val! gtr !MAX_STUN! (
-        echo  Неверное значение. Максимум - !MAX_STUN!
-        pause
-    ) else (
-        set "STUN=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="10" (
-    set /p val="%DEL%   Введите стратегию для CDN (0-!MAX_CDN!): "
-    if !val! gtr !MAX_CDN! (
-        echo  Неверное значение. Максимум - !MAX_CDN!
-        pause
-    ) else (
-        set "CDN=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="11" (
-    set /p val="%DEL%   Введите стратегию для CDN Amazon TCP (0-!MAX_AmazonTCP!): "
-    if !val! gtr !MAX_AmazonTCP! (
-        echo  Неверное значение. Максимум - !MAX_AmazonTCP!
-        pause
-    ) else (
-        set "AMZTCP=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="12" (
-    set /p val="%DEL%   Введите стратегию для CDN Amazon UDP (0-!MAX_AmazonUDP!): "
-    if !val! gtr !MAX_AmazonUDP! (
-        echo  Неверное значение. Максимум - !MAX_AmazonUDP!
-        pause
-    ) else (
-        set "AMZUDP=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="13" (
-    set /p val="%DEL%   Введите стратегию для Blacklist (0-!MAX_blacklist!): "
-    if !val! gtr !MAX_blacklist! (
-        echo  Неверное значение. Максимум - !MAX_blacklist!
-        pause
-    ) else (
-        set "BL=!val!"
-    )
-    goto MENU
-)
-
-if "%opt%"=="14" (
-    set /p val="%DEL%   Введите стратегию для личных списков (0-!MAX_Custom!): "
-    if !val! gtr !MAX_Custom! (
-        echo  Неверное значение. Максимум - !MAX_Custom!
-        pause
-    ) else (
-        set "CUSTOM=!val!"
-    )
-    goto MENU
-)
-
-if /i "%opt%"=="L" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full): " & goto MENU)
-if /i "%opt%"=="д" (set /p CDN_LVL="%DEL%   Задайте CDN (off/base/full): " & goto MENU)
-
-if /i "%opt%"=="E" (
-    if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
-    :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "DSMEDIA=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
-    goto UpdateLimits
-)
-if /i "%opt%"=="у" (
-    if "!ENGN!"=="1" (set "ENGN=2") else (set "ENGN=1")
-    :: Сбрасываем значения, так как в другом движке другие лимиты
-    set "YT=1" & set "YTGV=1" & set "YTQ=1" & set "TW=0" & set "DS=1" & set "DSUPD=1" & set "DSMEDIA=1" & set "BL=1" & set "STUN=1" & set "CDN=1" & set "AMZTCP=1" & set "AMZUDP=1" & set "CUSTOM=0"
-    goto UpdateLimits
-)
+if /i "%opt%"=="L" goto ConfiguratorSetCDNLevel
+if /i "%opt%"=="д" goto ConfiguratorSetCDNLevel
 
 goto MENU
+
+:ConfiguratorInstallAutostart
+cls
+echo.
+echo  [*] Сборка стратегий в конфиг на Zapret2 / winws2.exe...
+"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+call :ResolveConfiguratorFixConfig
+if defined ConfiguratorFixRel (
+    set "batFile=!ConfiguratorFixFile!"
+    set "batRel=!ConfiguratorFixRel!"
+)
+set "PanelBack=Configurator"
+call :remove_service_before_installing
+if errorlevel 1 goto MENU
+call :install_GZ_service
+call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
+goto MENU
+
+:ConfiguratorRemoveAutostart
+set "PanelBack=Configurator"
+call :remove_service
+goto MENU
+
+:ConfiguratorSetYouTube
+call :ConfiguratorSetStrategy YT "YouTube" "!MAX_YouTube!"
+goto MENU
+
+:ConfiguratorSetYouTubeGoogleVideo
+call :ConfiguratorSetStrategy YTGV "YouTube GoogleVideo" "!MAX_YouTubeGoogleVideo!"
+goto MENU
+
+:ConfiguratorSetYouTubeQuic
+call :ConfiguratorSetStrategy YTQ "YouTube QUIC" "!MAX_YouTubeQuic!"
+goto MENU
+
+:ConfiguratorSetTwitch
+call :ConfiguratorSetStrategy TW "Twitch" "!MAX_Twitch!"
+goto MENU
+
+:ConfiguratorSetDiscordUpdate
+call :ConfiguratorSetStrategy DSUPD "Discord Update" "!MAX_DiscordUpdate!"
+goto MENU
+
+:ConfiguratorSetDiscord
+call :ConfiguratorSetStrategy DS "Discord" "!MAX_Discord!"
+goto MENU
+
+:ConfiguratorSetDiscordQuic
+call :ConfiguratorSetStrategy DSQ "Discord QUIC" "!MAX_DiscordQuic!"
+goto MENU
+
+:ConfiguratorSetDiscordMedia
+call :ConfiguratorSetStrategy DSMEDIA "Discord.media" "!MAX_DiscordMedia!"
+goto MENU
+
+:ConfiguratorSetSTUN
+call :ConfiguratorSetStrategy STUN "STUN" "!MAX_STUN!"
+goto MENU
+
+:ConfiguratorSetCDN
+call :ConfiguratorSetStrategy CDN "CDN" "!MAX_CDN!"
+goto MENU
+
+:ConfiguratorSetAmazonTCP
+call :ConfiguratorSetStrategy AMZTCP "CDN Amazon TCP" "!MAX_AmazonTCP!"
+goto MENU
+
+:ConfiguratorSetAmazonUDP
+call :ConfiguratorSetStrategy AMZUDP "CDN Amazon UDP" "!MAX_AmazonUDP!"
+goto MENU
+
+:ConfiguratorSetBlacklist
+call :ConfiguratorSetStrategy BL "Blacklist" "!MAX_blacklist!"
+goto MENU
+
+:ConfiguratorSetCustom
+call :ConfiguratorSetStrategy CUSTOM "личных списков" "!MAX_Custom!"
+goto MENU
+
+:ConfiguratorSetCDNLevel
+set /p "CDN_LVL=%DEL%   Задайте CDN [off/base/full]: "
+goto MENU
+
+:ConfiguratorSetStrategy
+set "ConfiguratorTarget=%~1"
+set "ConfiguratorLabel=%~2"
+set "ConfiguratorMax=%~3"
+if not defined ConfiguratorMax set "ConfiguratorMax=0"
+echo(!ConfiguratorMax!| findstr /r "^[0-9][0-9]*$" >nul
+if errorlevel 1 set "ConfiguratorMax=0"
+set "val="
+set /p "val=%DEL%   Введите стратегию для %ConfiguratorLabel% [0-!ConfiguratorMax!]: "
+
+echo(!val!| findstr /r "^[0-9][0-9]*$" >nul
+if errorlevel 1 (
+    echo  Неверное значение. Введите число от 0 до !ConfiguratorMax!.
+    pause
+    exit /b
+)
+
+if !val! gtr !ConfiguratorMax! (
+    echo  Неверное значение. Максимум - !ConfiguratorMax!.
+    pause
+) else (
+    set "%ConfiguratorTarget%=!val!"
+)
+exit /b
 
 :ConfiguratorAutoPicker
 cls
@@ -3409,8 +3362,10 @@ for %%V in (!AutoVar!) do set "%%V=!AutoFirstFound!"
 set /a AutoIndex=AutoFirstFound
 call :ConfiguratorAutoApply
 call :ConfiguratorAutoUpdateTitle
+call :ConfiguratorAutoSaveFoundResults
 echo.
 echo  %COL%[92m[OK]%COL%[37m Найдены рабочие стратегии для %COL%[92m!AutoName!%COL%[37m: %COL%[92m!AutoFoundList!%COL%[37m.
+echo  %COL%[93m[INFO]%COL%[37m Список сохранен для быстрого просмотра.
 echo  %COL%[93m[INFO]%COL%[37m Применена первая найденная стратегия: %COL%[92m!AutoFirstFound!%COL%[37m.
 pause >nul
 goto MENU
@@ -3442,8 +3397,8 @@ cls
 call :ConfiguratorAutoUpdateTitle
 echo.
 echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!)
-echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+echo  [*] Сборка стратегий в конфиг на Zapret2 / winws2.exe...
+"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 call :ConfiguratorAutoStopRunning
 call :ResolveConfiguratorFixConfig
@@ -3456,11 +3411,7 @@ if defined ConfiguratorFixRel (
     )
 )
 echo  [*] Проверяем процесс обхода...
-if !ENGN! equ 1 (
-    set "AutoProcessName=Winws.exe"
-) else (
-    set "AutoProcessName=Winws2.exe"
-)
+set "AutoProcessName=Winws2.exe"
 call :WaitForProcessByName "!AutoProcessName!" 3
 if errorlevel 1 (
     echo.
@@ -3521,7 +3472,6 @@ if "%~1"=="9" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & 
 exit /b
 
 :ConfiguratorAutoStopRunning
-taskkill /F /IM winws.exe /T >nul 2>&1
 taskkill /F /IM winws2.exe /T >nul 2>&1
 exit /b
 
@@ -3541,7 +3491,6 @@ set "AutoBackupFile=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\autopick_backup.
 if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" >nul 2>&1
 > "%AutoBackupFile%" echo # GoodbyeZapret AutoPick backup
 >>"%AutoBackupFile%" echo Date=%DATE% Time=%TIME%
->>"%AutoBackupFile%" echo ENGN="!ENGN!"
 >>"%AutoBackupFile%" echo YT="!YT!"
 >>"%AutoBackupFile%" echo YTGV="!YTGV!"
 >>"%AutoBackupFile%" echo YTQ="!YTQ!"
@@ -3557,6 +3506,64 @@ if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\App
 >>"%AutoBackupFile%" echo BL="!BL!"
 >>"%AutoBackupFile%" echo CUSTOM="!CUSTOM!"
 exit /b
+
+:ConfiguratorAutoResultsPath
+set "AutoResultsDir=%USERPROFILE%\AppData\Roaming\GoodbyeZapret"
+set "AutoResultsFile=!AutoResultsDir!\autopick_results.txt"
+exit /b
+
+:ConfiguratorAutoSaveFoundResults
+call :ConfiguratorAutoResultsPath
+if not exist "!AutoResultsDir!" md "!AutoResultsDir!" >nul 2>&1
+set "AutoResultsTemp=%TEMP%\gz_autopick_results.tmp"
+if exist "!AutoResultsTemp!" del /q "!AutoResultsTemp!" >nul 2>&1
+
+if exist "!AutoResultsFile!" (
+    for /f "usebackq delims=" %%L in ("!AutoResultsFile!") do (
+        set "AutoResultsLine=%%L"
+        set "AutoResultsKey="
+        for /f "tokens=1 delims=|" %%K in ("!AutoResultsLine!") do set "AutoResultsKey=%%K"
+        if /i not "!AutoResultsKey!"=="!AutoVar!" >>"!AutoResultsTemp!" echo(!AutoResultsLine!
+    )
+)
+
+>>"!AutoResultsTemp!" echo(!AutoVar!^|!AutoName!^|%DATE% %TIME%^|!AutoFoundList!^|!AutoFirstFound!
+move /y "!AutoResultsTemp!" "!AutoResultsFile!" >nul 2>&1
+exit /b
+
+:ConfiguratorAutoShowResults
+cls
+title GoodbyeZapret - Рабочие стратегии
+call :ConfiguratorAutoResultsPath
+echo.
+echo  %COL%[36mСохраненные рабочие стратегии:%COL%[37m
+echo.
+
+if not exist "!AutoResultsFile!" (
+    echo  %COL%[90mПока ничего не сохранено. Запустите автоподбор стратегии.
+    echo.
+    echo  %COL%[90mНажмите любую клавишу чтобы вернуться назад.
+    pause >nul
+    goto MENU
+)
+
+set "AutoResultsAny=0"
+for /f "usebackq tokens=1-5 delims=|" %%A in ("!AutoResultsFile!") do (
+    set "AutoResultsAny=1"
+    echo  %COL%[96m%%B%COL%[37m
+    echo    Работали: %COL%[92m%%D%COL%[37m
+    echo    Проверено: %COL%[90m%%C%COL%[37m
+    echo.
+    echo  %COL%[90mНажмите любую клавишу чтобы вернуться назад.
+)
+
+if "!AutoResultsAny!"=="0" (
+    echo  %COL%[90mПока ничего не сохранено. Запустите автоподбор стратегии.
+    echo.
+    echo  %COL%[90mНажмите любую клавишу чтобы вернуться назад.
+)
+pause >nul
+goto MENU
 
 :ConfiguratorAutoCheck
 set "AutoCheckResult=2"
@@ -3697,8 +3704,8 @@ exit /b
 cls
 echo.
 
-echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+echo  [*] Сборка стратегий в конфиг на Zapret2 / winws2.exe...
+"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 call :ResolveConfiguratorFixConfig
 if defined ConfiguratorFixRel (
@@ -3710,11 +3717,7 @@ if defined ConfiguratorFixRel (
     )
 )
 echo  [*] Проверяем процесс обхода...
-if !ENGN! equ 1 (
-    set "BypassProcessName=Winws.exe"
-) else (
-    set "BypassProcessName=Winws2.exe"
-)
+set "BypassProcessName=Winws2.exe"
 call :WaitForProcessByName "!BypassProcessName!" 3
 if errorlevel 1 (
     echo.
@@ -3730,8 +3733,8 @@ goto MENU
 cls
 echo.
 
-echo  [*] Сборка стратегий в конфиг на Zapret!ENGN!...
-"%ParentDirPath%\tools\config_builder\builder.exe" --engine !ENGN! --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+echo  [*] Сборка стратегий в конфиг на Zapret2 / winws2.exe...
+"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 
 call :ResolveConfiguratorFixConfig
 if defined ConfiguratorFixRel (
@@ -3743,11 +3746,7 @@ if defined ConfiguratorFixRel (
     )
 )
 echo  [*] Проверяем процесс обхода...
-if !ENGN! equ 1 (
-    set "BypassProcessName=Winws.exe"
-) else (
-    set "BypassProcessName=Winws2.exe"
-)
+set "BypassProcessName=Winws2.exe"
 call :WaitForProcessByName "!BypassProcessName!" 3
 if errorlevel 1 (
     echo.
@@ -3767,8 +3766,7 @@ if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
 goto MENU
 
 :KILL
-echo  [*] Завершаю работу winws...
-taskkill /F /IM winws.exe /T >nul 2>&1
+echo  [*] Завершаю работу winws2...
 taskkill /F /IM winws2.exe /T >nul 2>&1
 goto MENU
 

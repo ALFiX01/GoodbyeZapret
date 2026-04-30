@@ -2,7 +2,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PresetFile,
 
-    [string]$ProjectDir
+    [string]$ProjectDir,
+
+    [switch]$ServiceMode
 )
 
 Set-StrictMode -Version Latest
@@ -163,10 +165,50 @@ if (-not (Test-Path -LiteralPath $exePath)) {
     throw "Engine not found: $exePath"
 }
 
-Start-Process -FilePath $exePath -ArgumentList $args -WorkingDirectory $binDir -WindowStyle Minimized | Out-Null
+$logPath = Join-Path $ProjectDir "tools\Run_Config_Preset.log"
+
+function Write-ServiceLog {
+    param([string]$Message)
+
+    if (-not $ServiceMode) {
+        return
+    }
+
+    $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Add-Content -LiteralPath $logPath -Encoding UTF8 -Value "[$stamp] $Message"
+}
+
+Write-ServiceLog "Starting preset: $PresetPath"
+Write-ServiceLog "Engine: $exePath"
+
+$startParams = @{
+    FilePath = $exePath
+    ArgumentList = $args
+    WorkingDirectory = $binDir
+    PassThru = $true
+}
+
+if (-not $ServiceMode -and [Environment]::UserInteractive) {
+    $startParams.WindowStyle = "Minimized"
+}
+
+$process = Start-Process @startParams
+
+if ($ServiceMode) {
+    Start-Sleep -Milliseconds 700
+    if ($process.HasExited) {
+        Write-ServiceLog "Engine exited during startup with code $($process.ExitCode)."
+        exit $process.ExitCode
+    }
+
+    Write-ServiceLog "Engine started with PID $($process.Id). Waiting for process exit."
+    $process.WaitForExit()
+    Write-ServiceLog "Engine exited with code $($process.ExitCode)."
+    exit $process.ExitCode
+}
 
 $trayPath = Join-Path $ProjectDir "tools\tray\GoodbyeZapretTray.exe"
-if (Test-Path -LiteralPath $trayPath) {
+if (-not $ServiceMode -and (Test-Path -LiteralPath $trayPath)) {
     if (-not (Get-Process -Name "GoodbyeZapretTray" -ErrorAction SilentlyContinue)) {
         Start-Process -FilePath $trayPath | Out-Null
     }

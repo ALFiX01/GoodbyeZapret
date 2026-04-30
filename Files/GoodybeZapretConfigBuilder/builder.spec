@@ -6,8 +6,6 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('strategies.json', '.'),
-        ('../../Project/tools/config_builder/strategiesZ1.json', '.'),
         ('../../Project/tools/config_builder/strategiesZ2.json', '.'),
     ],
     hiddenimports=[],

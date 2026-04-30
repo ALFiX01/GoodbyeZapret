@@ -185,7 +185,6 @@
 --ipset=lists/ipset-ovh.txt
 --ipset=lists/ipset-whatsapp.txt
 --ipset=lists/ipset-warp.txt
---ipset=lists/ipset-zapretkvn.txt
 --ipset=lists/ipset-timeweb.txt
 --out-range=-n8
 --lua-desync=send:repeats=2
@@ -209,7 +208,6 @@
 --ipset=lists/ipset-ovh.txt
 --ipset=lists/ipset-whatsapp.txt
 --ipset=lists/ipset-warp.txt
---ipset=lists/ipset-zapretkvn.txt
 --ipset=lists/ipset-timeweb.txt
 --out-range=-n8
 --payload=all

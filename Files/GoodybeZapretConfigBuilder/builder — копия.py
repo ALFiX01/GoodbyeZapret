@@ -7,11 +7,9 @@ from pathlib import Path
 # --- КОНФИГУРАЦИЯ ---
 VERSION = "1.5"
 
-CONFIG_FILE = "strategies.json"
 OUTPUT_BAT = "ConfiguratorFix.bat"
 OUTPUT_REL_PATH = "../../configs/Custom"
 
-CONFIG_FILE_Z1 = "strategiesZ1.json"
 CONFIG_FILE_Z2 = "strategiesZ2.json"
 
 # Сопоставление аргументов CLI -> ключи JSON
@@ -98,13 +96,6 @@ if %errorlevel% equ 0 (
   sc delete zapret >nul 2>&1
 )
 
-REM Check if winws.exe is running and terminate it if found
-tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
-if "%ERRORLEVEL%"=="0" (
-  REM Forcefully kill winws.exe process
-  taskkill /F /IM winws.exe >nul 2>&1
-)
-
 REM Check if winws2.exe is running and terminate it if found
 tasklist /FI "IMAGENAME eq winws2.exe" 2>NUL | find /I /N "winws2.exe" >NUL
 if "%ERRORLEVEL%"=="0" (
@@ -126,8 +117,8 @@ def get_base_path():
         return Path(__file__).parent
 
 
-def load_config(engine="1"):
-    file_name = CONFIG_FILE_Z2 if engine == "2" else CONFIG_FILE_Z1
+def load_config():
+    file_name = CONFIG_FILE_Z2
     path = get_base_path() / file_name
 
     # Для отладки в батнике выведем, какой файл используется
@@ -186,7 +177,7 @@ def save_user_config(args):
 
     # Обновляем данные (Короткие ключи)
     updates = {
-        "ENGN": args.engine,
+        "ENGN": "2",
         "YT": args.youtube,
         "YTGV": args.youtubegooglevideo,
         "YTQ": args.youtubequic,
@@ -313,10 +304,10 @@ def generate_bat_file(args, data):
     # ==========================================
     # Один EXE на весь батник по движку
     # ==========================================
-    target_exe = "winws2.exe" if args.engine == "2" else "winws.exe"
+    target_exe = "winws2.exe"
 
     # ==========================================
-    # STUN -> в общий список (один процесс winws*)
+    # STUN -> в общий список (один процесс winws2)
     # Ставим STUN-правила в начало, чтобы они были отдельными профилями раньше остальных.
     # ==========================================
     all_rules = stun_rules + main_rules
@@ -396,7 +387,7 @@ def generate_bat_file(args, data):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--engine", default="1", choices=["1", "2"])
+    parser.add_argument("--engine", default="2", choices=["2"])
     parser.add_argument("--get-limits", action="store_true")
 
     parser.add_argument("--youtube", default="0")
@@ -418,8 +409,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Загружаем конфиг в зависимости от движка
-    data = load_config(args.engine)
+    data = load_config()
 
     if args.get_limits:
         export_limits(data)

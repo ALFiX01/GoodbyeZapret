@@ -225,3 +225,4 @@ cmd-online.ru
 qwen.ai
 alicdn.com
 alibaba.com
+marketplace.visualstudio.com

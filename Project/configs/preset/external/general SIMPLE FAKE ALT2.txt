@@ -154,3 +154,11 @@
 --lua-desync=fake:blob=tls_max:repeats=6:tcp_ts=-600000
 --payload=http_req
 --lua-desync=fake:blob=fake_default_http:repeats=6:tcp_ts=-600000
+
+--new
+
+--filter-udp=443,19294-19344,50000-50100
+--out-range=-n8
+--ipset=lists/ipset-discord.txt
+--payload=all
+--lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:repeats=10:payload=all
