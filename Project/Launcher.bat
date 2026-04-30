@@ -3272,7 +3272,7 @@ if errorlevel 1 (
 )
 
 if !val! gtr !ConfiguratorMax! (
-    echo  Неверное значение. Максимум - !ConfiguratorMax!.
+    echo   Неверное значение. Максимум - !ConfiguratorMax!.
     pause
 ) else (
     set "%ConfiguratorTarget%=!val!"
@@ -3437,9 +3437,9 @@ exit /b
 
 :ConfiguratorAutoUpdateTitle
 if defined AutoFoundList (
-    title GoodbyeZapret - Автоподбор стратегий - рабочие: !AutoFoundList!
+    title GoodbyeZapret - Автоподбор - рабочие: !AutoFoundList!
 ) else (
-    title GoodbyeZapret - Автоподбор стратегий - рабочие: -
+    title GoodbyeZapret - Автоподбор - рабочие: -
 )
 exit /b
 
