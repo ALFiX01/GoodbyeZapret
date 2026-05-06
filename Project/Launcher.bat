@@ -1377,11 +1377,13 @@ if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDir
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
 
+    chcp 850 >nul 2>&1
     powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\Register_Tray_Autostart.ps1" -ProjectDir "%ParentDirPath%" >nul 2>&1
     if errorlevel 1 (
         call :ui_warn "Не удалось настроить автозапуск Tray через планировщик."
         call :ui_warn "Проверьте запуск Launcher от имени администратора."
     )
+    chcp 65001 >nul 2>&1
 )
 
 call :ui_info "Устанавливаю !batFile! в службу GoodbyeZapret..."
