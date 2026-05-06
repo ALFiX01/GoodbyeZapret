@@ -11,7 +11,6 @@
 --dpi-desync-cutoff=n6
 --new
 --wf-raw-part=@"{{BIN}}windivert.filter\windivert_part.discord_media.txt"
---filter-l7=discord
 --dpi-desync=fake
 --dpi-desync-fake-quic="{{FAKE}}quic_initial_www_google_com.bin"
 --dpi-desync-repeats=6
@@ -59,6 +58,12 @@
 --dpi-desync=fake
 --dpi-desync-repeats=6
 --dpi-desync-fake-quic="{{FAKE}}quic_initial_www_google_com.bin"
+--new
+--filter-udp=19294-19344,50000-50100
+--filter-l7=discord
+--dpi-desync=fake
+--dpi-desync-fake-discord=0xc800000001010c000029b716a920bf3e5e36886d72c76ba25d9b044acae816a7f2ced910cfab38bee3406fd89009ec108fc98a
+--dpi-desync-cutoff=n6
 --new
 --filter-tcp=80
 --dpi-desync=fake,fakedsplit

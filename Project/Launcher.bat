@@ -43,7 +43,7 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 :: Version information   Stable / Beta / Alpha
 set "Current_GoodbyeZapret_version=4.0.0"
-set "Current_GoodbyeZapret_version_code=12A0"
+set "Current_GoodbyeZapret_version_code=4A0"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -572,15 +572,19 @@ if not "%CheckStatus%"=="FileCheckError" (
 :skip_for_wifi
 
 REM Проверяем, существует ли GoodbyeZapretTray.exe перед запуском
-if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
     REM Завершаем процесс GoodbyeZapretTray.exe, если он уже запущен
     tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
     if !errorlevel! equ 1 (
         REM GoodbyeZapretTray.exe не запущен, ничего делать не нужно
     ) else (
         taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+        taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
         if exist "%ParentDirPath%\tools\tray\goodbyezapret_tray.log" (
             del /F /Q "%ParentDirPath%\tools\tray\goodbyezapret_tray.log" >nul
+        )
+        if exist "%ParentDirPath%\tools\tray-runtime\goodbyezapret_tray.log" (
+            del /F /Q "%ParentDirPath%\tools\tray-runtime\goodbyezapret_tray.log" >nul
         )
         timeout /t 1 >nul
     )
@@ -1242,38 +1246,39 @@ echo.
 echo                              %COL%[90mВведите %COL%[96m^[ номер ^]%COL%[90m или %COL%[96m^[ букву ^]%COL%[90m
 echo.
 set /p "choice=%DEL%                                           %COL%[90m:> "
+set "choice=!choice: =!"
 
 REM Handle user input with case-insensitive matching
-if /i "%choice%"=="D" goto remove_service
-if /i "%choice%"=="в" goto remove_service
+if /i "!choice!"=="D" goto remove_service
+if /i "!choice!"=="в" goto remove_service
 
-if /i "%choice%"=="R" goto QuickRestart
-if /i "%choice%"=="к" goto QuickRestart
+if /i "!choice!"=="R" goto QuickRestart
+if /i "!choice!"=="к" goto QuickRestart
 
-if /i "%choice%"=="S" goto CurrentStatus
-if /i "%choice%"=="ы" goto CurrentStatus
+if /i "!choice!"=="S" goto CurrentStatus
+if /i "!choice!"=="ы" goto CurrentStatus
 
-if /i "%choice%"=="A" goto ConfigAutoFinder
-if /i "%choice%"=="ф" goto ConfigAutoFinder
+if /i "!choice!"=="A" goto ConfigAutoFinder
+if /i "!choice!"=="ф" goto ConfigAutoFinder
 
 
-if /i "%choice%"=="RR" goto RR
+if /i "!choice!"=="RR" goto RR
 
 REM --- Pagination input handling ---
-if /i "%choice%"=="N" (
+if /i "!choice!"=="N" (
     set /a Page+=1
     goto ConfigSelectorMenu_without_ui_info
 )
-if /i "%choice%"=="т" (
+if /i "!choice!"=="т" (
     set /a Page+=1
     goto ConfigSelectorMenu_without_ui_info
 )
-if /i "%choice%"=="B" (
+if /i "!choice!"=="B" (
     if %Page% equ 1 goto MainMenu_without_ui_info
     if %Page% gtr 1 set /a Page-=1
     goto ConfigSelectorMenu_without_ui_info
 )
-if /i "%choice%"=="и" (
+if /i "!choice!"=="и" (
     if %Page% equ 1 goto MainMenu_without_ui_info
     if %Page% gtr 1 set /a Page-=1
     goto ConfigSelectorMenu_without_ui_info
@@ -1282,16 +1287,25 @@ REM ---------------------------------
 
 REM Handle update option only if update is available
 if "%UpdateNeed%"=="Yes" (
-    if /i "%choice%"=="UD" goto Update_Need_screen
+    if /i "!choice!"=="UD" goto Update_Need_screen
 )
 
 REM Return to main menu if no input provided
-if "%choice%"=="" goto MainMenu
+if "!choice!"=="" goto MainMenu
 
 REM Handle configuration file selection and validation
-if "%choice:~-1%"=="s" (
+set "ChoiceSuffix=!choice:~-1!"
+set "ChoiceNumber=!choice:~0,-1!"
+if /i "!ChoiceSuffix!"=="ы" set "ChoiceSuffix=s"
+
+if /i "!ChoiceSuffix!"=="s" (
     REM Manual start mode - open config file in explorer
-    set "batRel=!file%choice:~0,-1%!"
+    echo(!ChoiceNumber!| findstr /r "^[0-9][0-9]*$" >nul
+    if errorlevel 1 (
+        echo Неверный выбор. Пожалуйста, попробуйте снова.
+        goto MainMenu
+    )
+    for %%N in (!ChoiceNumber!) do call set "batRel=%%file%%N%%"
     if defined batRel for %%A in ("!batRel!") do set "batFile=%%~nxA"
 
     if defined batRel (
@@ -1308,7 +1322,12 @@ if "%choice:~-1%"=="s" (
     )
 ) else (
     REM Service installation mode
-    set "batRel=!file%choice%!"
+    echo(!choice!| findstr /r "^[0-9][0-9]*$" >nul
+    if errorlevel 1 (
+        echo Неверный выбор. Пожалуйста, попробуйте снова.
+        goto MainMenu
+    )
+    for %%N in (!choice!) do call set "batRel=%%file%%N%%"
     if defined batRel for %%A in ("!batRel!") do set "batFile=%%~nxA"
 )
 
@@ -1350,34 +1369,19 @@ call :ui_init
 call :ui_hr
 echo   %C_TITLE%Установка службы GoodbyeZapret !batRel! %C_RESET%
 call :ui_hr
-if "!batfile!"=="MultiFix_ts.bat" (
-    REM Проверка, включались ли уже TCP timestamps
-    netsh interface tcp show global | findstr /i "timestamps" | findstr /i "enabled" > nul
-    if !errorlevel!==0 (
-        echo TCP timestamps уже были включены ранее, пропуск...
-    ) else (
-        echo   Выполняется автоматическое включение TCP timestamps...
-        netsh interface tcp set global timestamps=enabled > nul 2>&1
-        if !errorlevel!==0 (
-            echo TCP timestamps успешно включены
-        ) else (
-            echo Ошибка включения TCP timestamps
-        )
-    )
-    echo   Перехожу к установке конфига в службу
-    timeout /t 2 >nul
-    cls
-    call :ui_init
-    call :ui_hr
-    echo   %C_TITLE%Установка службы GoodbyeZapret %C_RESET%
-    call :ui_hr
-)
-
 echo.
 
-if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
-    schtasks /Create /TN "GoodbyeZapretTray" /SC ONLOGON /RL HIGHEST /IT /F /TR "\"%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe\"" >nul 2>&1
-    schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
+    taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+    taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
+    schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
+    schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
+
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\Register_Tray_Autostart.ps1" -ProjectDir "%ParentDirPath%" >nul 2>&1
+    if errorlevel 1 (
+        call :ui_warn "Не удалось настроить автозапуск Tray через планировщик."
+        call :ui_warn "Проверьте запуск Launcher от имени администратора."
+    )
 )
 
 call :ui_info "Устанавливаю !batFile! в службу GoodbyeZapret..."
@@ -1425,22 +1429,26 @@ call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul 2>&1
 set "ServiceStartError=!errorlevel!"
+if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
+    schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+    timeout /t 1 >nul 2>&1
+    tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
+    if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
+)
 cls
 echo.
 call :ui_ok "!batFile! установлен в службу GoodbyeZapret"
 
 set installing_service=0
 
-if not "!batfile!"=="smart-config.bat" (
-    if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
+if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
         echo.
         REM Цветной текст
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
         "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
-    )
 )
 
-if /I not "!batfile!"=="smart-config.bat" if /I not "!batfile!"=="ConfiguratorFix.bat" (
+if /I not "!batfile!"=="ConfiguratorFix.txt" (
     set "BypassWaitSeconds=8"
     if /I "!CfgExt!"==".txt" set "BypassWaitSeconds=15"
     call :WaitForBypassProcess !BypassWaitSeconds!
@@ -1508,6 +1516,7 @@ goto :end
     )
 
     taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+    taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
     schtasks /delete /tn "GoodbyeZapretTray" /f >nul 2>&1
     call :WriteConfig GoodbyeZapret_Config "NotFound"
@@ -2023,6 +2032,7 @@ goto CurrentStatus
 
     echo   %COL%[90m[*] Остановка процесса GoodbyeZapretTray.exe%COL%[37m
     taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+    taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 
     tasklist /FI "IMAGENAME eq winws.exe" 2>NUL | find /I /N "winws.exe" >NUL
@@ -2047,8 +2057,9 @@ goto CurrentStatus
     sc start "GoodbyeZapret" >nul 2>&1
     timeout /t 1 >nul 2>&1
     echo   %COL%[90m[*] Запуск процесса GoodbyeZapretTray.exe    ...%COL%[37m
-    if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+    if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
         schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+        if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
     )
     if defined QuickRestartFromMainMenu (
         set "QuickRestartFromMainMenu="
@@ -3018,7 +3029,7 @@ if defined CDN_BypassLevel (
 goto :MainMenu_without_ui_info
 
 :ConfiguratorMenu
-title Zapret Configurator
+title Конфигуратор стратегий
 
 REM Проверка статуса службы GoodbyeZapret
 sc query "GoodbyeZapret" >nul 2>&1
@@ -3266,14 +3277,18 @@ set /p "val=%DEL%   Введите стратегию для %ConfiguratorLabel%
 
 echo(!val!| findstr /r "^[0-9][0-9]*$" >nul
 if errorlevel 1 (
-    echo  Неверное значение. Введите число от 0 до !ConfiguratorMax!.
-    pause
+    echo    Неверное значение. Введите число от 0 до !ConfiguratorMax!.
+    echo.
+    echo    %COL%[90mНажмите любую клавишу чтобы вернуться назад.
+    pause >nul 
     exit /b
 )
 
 if !val! gtr !ConfiguratorMax! (
-    echo   Неверное значение. Максимум - !ConfiguratorMax!.
-    pause
+    echo    Неверное значение. Максимум - !ConfiguratorMax!.
+    echo.
+    echo    %COL%[90mНажмите любую клавишу чтобы вернуться назад.
+    pause >nul 
 ) else (
     set "%ConfiguratorTarget%=!val!"
 )
@@ -3309,6 +3324,7 @@ set "AutoName="
 set "AutoTrackedVars=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA STUN CDN AMZTCP AMZUDP BL CUSTOM"
 
 if /i "%AutoChoice%"=="B" goto MENU
+if /i "%AutoChoice%"=="и" goto MENU
 call :ConfiguratorAutoResolveChoice "%AutoChoice%"
 
 if not defined AutoVar (

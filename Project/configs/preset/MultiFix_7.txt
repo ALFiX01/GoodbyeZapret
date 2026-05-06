@@ -25,8 +25,8 @@
 --filter-udp=19294-19344,50000-50100
 --filter-l7=discord
 --dpi-desync=fake
---dpi-desync-fake-discord="{{FAKE}}fake_quic_2.bin"
---dpi-desync-repeats=6
+--dpi-desync-fake-discord=0xc800000001010c000029b716a920bf3e5e36886d72c76ba25d9b044acae816a7f2ced910cfab38bee3406fd89009ec108fc98a
+--dpi-desync-cutoff=n6
 --new
 --filter-tcp=80,443
 --ipset="{{LISTS}}netrogat_ip.txt"

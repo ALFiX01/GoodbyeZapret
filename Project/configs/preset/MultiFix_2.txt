@@ -63,11 +63,11 @@
 --dpi-desync-fakedsplit-pattern=0x00
 --dpi-desync-fake-tls="{{FAKE}}tls_clienthello_www_google_com.bin"
 --new
---filter-l7=discord,stun
---dpi-desync-any-protocol=1
+--filter-udp=19294-19344,50000-50100
+--filter-l7=discord
 --dpi-desync=fake
---dpi-desync-repeats=5
---dpi-desync-cutoff=n3
+--dpi-desync-fake-discord=0xc800000001010c000029b716a920bf3e5e36886d72c76ba25d9b044acae816a7f2ced910cfab38bee3406fd89009ec108fc98a
+--dpi-desync-cutoff=n6
 --new
 --filter-udp=443
 --hostlist="{{LISTS}}list-quick_ttl.txt"

@@ -53,6 +53,12 @@
 --dpi-desync-split-seqovl-pattern="{{FAKE}}tls_clienthello_max_ru.bin"
 --dpi-desync-fake-tls="{{FAKE}}tls_clienthello_max_ru.bin"
 --new
+--filter-udp=19294-19344,50000-65535
+--filter-l7=discord
+--dpi-desync=fake
+--dpi-desync-fake-discord=0xc800000001010c000029b716a920bf3e5e36886d72c76ba25d9b044acae816a7f2ced910cfab38bee3406fd89009ec108fc98a
+--dpi-desync-cutoff=n6
+--new
 --filter-udp=443
 --dpi-desync=fake
 --dpi-desync-repeats=11

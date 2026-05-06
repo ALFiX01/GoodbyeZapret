@@ -208,8 +208,10 @@ if ($ServiceMode) {
 }
 
 $trayPath = Join-Path $ProjectDir "tools\tray\GoodbyeZapretTray.exe"
-if (-not $ServiceMode -and (Test-Path -LiteralPath $trayPath)) {
-    if (-not (Get-Process -Name "GoodbyeZapretTray" -ErrorAction SilentlyContinue)) {
+$trayRuntimePath = Join-Path $ProjectDir "tools\tray-runtime\GoodbyeZapretTray.exe"
+if (-not $ServiceMode -and (Test-Path -LiteralPath $trayPath) -and (Test-Path -LiteralPath $trayRuntimePath)) {
+    $trayRunning = Get-Process -Name "GoodbyeZapretTray", "GoodbyeZapretTray.real" -ErrorAction SilentlyContinue
+    if (-not $trayRunning) {
         Start-Process -FilePath $trayPath | Out-Null
     }
 }

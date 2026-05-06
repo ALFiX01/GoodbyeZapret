@@ -96,6 +96,7 @@ net stop "monkey" >nul 2>&1
 sc delete "monkey" >nul 2>&1
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
+taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
 if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 )
@@ -198,6 +199,12 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         call :log INFO "Copied tray"
     )
 
+    if exist "!ExtractRoot!\tools\tray-runtime" (
+        mkdir "%ParentDirPath%\tools\tray-runtime" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\tray-runtime" "%ParentDirPath%\tools\tray-runtime" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied tray-runtime"
+    )
+
     if exist "!ExtractRoot!\tools\curl" (
         mkdir "%ParentDirPath%\tools\curl" >nul 2>&1
         robocopy "!ExtractRoot!\tools\curl" "%ParentDirPath%\tools\curl" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
@@ -282,8 +289,9 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
             sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
         )
         sc config "GoodbyeZapret" start= auto >nul 2>&1
-        if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
+        if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
             schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
+            if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
         )
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -37,8 +38,9 @@ const (
 	slowReadTimeout = 6 * time.Second
 
 	// Общий потолок на запрос (context timeout)
-	fastTotalTimeout = 6 * time.Second
-	slowTotalTimeout = 12 * time.Second
+	probeTotalTimeout = 3 * time.Second
+	fastTotalTimeout  = 6 * time.Second
+	slowTotalTimeout  = 12 * time.Second
 
 	// Конфигурация
 	userAgent      = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
@@ -73,16 +75,27 @@ func (c *timeoutConn) Read(p []byte) (int, error) {
 }
 
 // --- Транспорт (параметризованный read-timeout) ---
-func buildHTTPTransport(readTimeout time.Duration) *http.Transport {
+func buildHTTPTransport(readTimeout time.Duration, ipMode string) *http.Transport {
 	d := &net.Dialer{
 		Timeout:   fastDialTimeout,
-		KeepAlive: -1,
+		KeepAlive: 30 * time.Second,
+	}
+
+	dialNetwork := func(network string) string {
+		switch strings.ToLower(ipMode) {
+		case "4", "ipv4":
+			return "tcp4"
+		case "6", "ipv6":
+			return "tcp6"
+		default:
+			return network
+		}
 	}
 
 	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			conn, err := d.DialContext(ctx, network, addr)
+			conn, err := d.DialContext(ctx, dialNetwork(network), addr)
 			if err != nil {
 				return nil, err
 			}
@@ -94,9 +107,11 @@ func buildHTTPTransport(readTimeout time.Duration) *http.Transport {
 		TLSHandshakeTimeout:   fastTLSHandshake,
 		ResponseHeaderTimeout: fastResponseHeader,
 		ForceAttemptHTTP2:     true,
-		DisableKeepAlives:     true,
+		DisableKeepAlives:     false,
 		DisableCompression:    true,
 		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   16,
+		IdleConnTimeout:       30 * time.Second,
 	}
 }
 
@@ -105,16 +120,18 @@ type Checker struct {
 	clientSlow *http.Client
 
 	githubPath string
+	strict     bool
 }
 
-func NewChecker(githubPath string) *Checker {
-	trFast := buildHTTPTransport(fastReadTimeout)
-	trSlow := buildHTTPTransport(slowReadTimeout)
+func NewChecker(githubPath string, strict bool, ipMode string) *Checker {
+	trFast := buildHTTPTransport(fastReadTimeout, ipMode)
+	trSlow := buildHTTPTransport(slowReadTimeout, ipMode)
 
 	return &Checker{
 		clientFast: &http.Client{Transport: trFast, Timeout: 0},
 		clientSlow: &http.Client{Transport: trSlow, Timeout: 0},
 		githubPath: githubPath,
+		strict:     strict,
 	}
 }
 
@@ -122,13 +139,25 @@ func (c *Checker) Check(domainOrURL string) (bool, string) {
 	rawURL := c.buildURL(domainOrURL)
 	rawURL = bypassURL(rawURL)
 
-	// 1) Быстрая попытка
+	if !c.strict {
+		r := c.checkHead(rawURL, c.clientFast, probeTotalTimeout)
+		if r.err == nil {
+			return true, ""
+		}
+		if !shouldFallbackToStrict(r) {
+			return false, classifyPyLike(r)
+		}
+	}
+
+	return c.checkStrict(rawURL)
+}
+
+func (c *Checker) checkStrict(rawURL string) (bool, string) {
 	r := c.checkOncePyLike(rawURL, c.clientFast, fastTotalTimeout)
 	if r.err == nil {
 		return true, ""
 	}
 
-	// 2) Retry (только если есть смысл)
 	if shouldRetry(r.err) {
 		r = c.checkOncePyLike(rawURL, c.clientSlow, slowTotalTimeout)
 		if r.err == nil {
@@ -226,12 +255,50 @@ func displayDomain(domainOrURL string) string {
 	return host
 }
 
-
 type checkRes struct {
 	downloaded int
 	statusCode int
 	gotFirst   bool
 	err        error
+}
+
+func (c *Checker) checkHead(urlStr string, client *http.Client, totalTimeout time.Duration) checkRes {
+	ctx, cancel := context.WithTimeout(context.Background(), totalTimeout)
+	defer cancel()
+
+	var gotFirst int32
+	trace := &httptrace.ClientTrace{
+		GotFirstResponseByte: func() { atomic.StoreInt32(&gotFirst, 1) },
+	}
+	ctx = httptrace.WithClientTrace(ctx, trace)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, urlStr, nil)
+	if err != nil {
+		return checkRes{err: err}
+	}
+	for k, v := range realHeaders {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return checkRes{gotFirst: atomic.LoadInt32(&gotFirst) == 1, err: err}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return checkRes{
+			statusCode: resp.StatusCode,
+			gotFirst:   true,
+			err:        fmt.Errorf("http %d", resp.StatusCode),
+		}
+	}
+
+	return checkRes{
+		statusCode: resp.StatusCode,
+		gotFirst:   atomic.LoadInt32(&gotFirst) == 1,
+		err:        nil,
+	}
 }
 
 func (c *Checker) checkOncePyLike(urlStr string, client *http.Client, totalTimeout time.Duration) checkRes {
@@ -364,15 +431,26 @@ func shouldRetry(err error) bool {
 	return false
 }
 
+func shouldFallbackToStrict(r checkRes) bool {
+	switch r.statusCode {
+	case http.StatusForbidden, http.StatusMethodNotAllowed, http.StatusNotImplemented:
+		return true
+	}
+	return false
+}
+
 func main() {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	strict := flag.Bool("strict", false, "строгая проверка GET с чтением тела ответа")
+	ipMode := flag.String("ip", "4", "режим IP: 4, 6 или auto")
+	domainsFile := flag.String("domains", "", "путь к файлу доменов (по умолчанию domains.txt рядом с exe)")
+	flag.Parse()
 
 	var batFile string
-	if len(os.Args) > 1 {
-		batFile = os.Args[1]
+	if flag.NArg() > 0 {
+		batFile = flag.Arg(0)
 	}
 
-	domains, err := loadDomains()
+	domains, err := loadDomains(*domainsFile)
 	if err != nil {
 		color.Red("Ошибка: %v\n", err)
 		os.Exit(1)
@@ -390,14 +468,14 @@ func main() {
 		concurrency = len(domains)
 	}
 
-	fmt.Printf(" Запуск проверки: потоков=%d, доменов=%d, CPU=%d\n",
-		concurrency, len(domains), runtime.NumCPU())
+	fmt.Println(" Проверка  доменов")
 
-	checker := NewChecker(githubCheckURI)
+	checker := NewChecker(githubCheckURI, *strict, *ipMode)
 
 	var okCnt int32
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, concurrency)
+	var printMu sync.Mutex
 
 	fmt.Println(" " + strings.Repeat("-", 50))
 
@@ -410,7 +488,9 @@ func main() {
 			defer func() { <-sem }()
 
 			ok, reason := checker.Check(domainOrURL)
+			printMu.Lock()
 			printResult(domainOrURL, ok, reason)
+			printMu.Unlock()
 
 			if ok {
 				atomic.AddInt32(&okCnt, 1)
@@ -451,13 +531,15 @@ func printResult(domainOrURL string, ok bool, reason string) {
 	}
 }
 
-
-func loadDomains() ([]string, error) {
-	exePath, err := os.Executable()
-	if err != nil {
-		return nil, fmt.Errorf("exe path error: %w", err)
+func loadDomains(customPath string) ([]string, error) {
+	filePath := customPath
+	if filePath == "" {
+		exePath, err := os.Executable()
+		if err != nil {
+			return nil, fmt.Errorf("exe path error: %w", err)
+		}
+		filePath = filepath.Join(filepath.Dir(exePath), "domains.txt")
 	}
-	filePath := filepath.Join(filepath.Dir(exePath), "domains.txt")
 
 	f, err := os.Open(filePath)
 	if err != nil {

@@ -2548,6 +2548,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--out-range=-n2",
           "--lua-desync=fake:blob=quic_google"
@@ -2558,6 +2559,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--out-range=-d3",
           "--lua-desync=fake:blob=quic_google:repeats=6"
@@ -2568,6 +2570,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--out-range=-n5",
           "--lua-desync=fake:blob=quic_google:repeats=10"
@@ -2578,6 +2581,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-d3",
@@ -2589,6 +2593,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n5",
@@ -2600,6 +2605,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n4",
@@ -2608,14 +2614,16 @@
       ],
       "7": [
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
-          "--out-range=-d10",
+          "--out-range=-d9",
           "--lua-desync=fake:blob=0x00000000000000000000000000000000:repeats=2"
         ]
       ],
       "8": [
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2624,6 +2632,7 @@
       ],
       "9": [
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2632,6 +2641,7 @@
       ],
       "10": [
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2643,6 +2653,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2654,6 +2665,7 @@
           "--blob=fake_default_udp:0x00000000000000000000000000000000"
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-d4",
@@ -2665,6 +2677,7 @@
           "--blob=fake_default_udp:0x00000000000000000000000000000000"
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2676,6 +2689,7 @@
           "--blob=quic6:@\"%FAKE%quic_6.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n3",
@@ -2688,6 +2702,7 @@
           "--blob=quic6:@\"%FAKE%quic_6.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n3",
@@ -2700,6 +2715,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2711,6 +2727,7 @@
           "--blob=quic_test:@\"%FAKE%quic_test_00.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n2",
@@ -2722,6 +2739,7 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
+          "--filter-udp=19294-19344,50000-65535",
           "--filter-l7=discord,stun",
           "--payload=stun,discord_ip_discovery",
           "--out-range=-n8",
