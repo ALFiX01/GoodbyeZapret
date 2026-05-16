@@ -199,7 +199,6 @@ for %%S in (WinDivert WinDivert14 monkey) do (
 )
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
 if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 )
@@ -298,10 +297,9 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         call :log INFO "Copied tray"
     )
 
-    if exist "!ExtractRoot!\tools\tray-runtime" (
-        mkdir "%ParentDirPath%\tools\tray-runtime" >nul 2>&1
-        robocopy "!ExtractRoot!\tools\tray-runtime" "%ParentDirPath%\tools\tray-runtime" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
-        call :log INFO "Copied tray-runtime"
+    if exist "%ParentDirPath%\tools\tray-runtime" (
+        rd /s /q "%ParentDirPath%\tools\tray-runtime" >nul 2>&1
+        call :log INFO "Removed obsolete tray-runtime"
     )
 
     echo         ^[*^] Копирование пресетов конфигурации
@@ -429,7 +427,7 @@ if exist "%ParentDirPath%\configs\!cfg!.bat" set "batPath="
 if defined batPath if exist "%ParentDirPath%\configs\!batPath!\!cfg!.bat" (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!cfg!.bat\"\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1
-      if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
+      if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
         schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
         if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
       )

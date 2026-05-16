@@ -77,7 +77,6 @@ for /d %%D in (*) do (
 popd
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
 
 echo.
 powershell -Command "Write-Host 'Operation completed successfully!' -ForegroundColor Green"

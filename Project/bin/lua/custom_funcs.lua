@@ -1,4 +1,4 @@
--- AGGRESSIVE HTTP BYPASS for stubborn DPI (like porno365)
+-- AGGRESSIVE HTTP BYPASS for stubborn DPI
 -- Combines multiple techniques: fake flood + disorder + host splitting
 -- standard args : direction, payload, fooling, ip_id, rawsend, reconstruct
 -- arg : fakes=N - number of fake packets to send (default 5)

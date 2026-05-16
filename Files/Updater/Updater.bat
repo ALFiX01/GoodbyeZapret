@@ -55,7 +55,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.8.1"
+set "UpdaterVersion=2.8.3"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -96,7 +96,6 @@ net stop "monkey" >nul 2>&1
 sc delete "monkey" >nul 2>&1
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
 if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 )
@@ -199,10 +198,9 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
         call :log INFO "Copied tray"
     )
 
-    if exist "!ExtractRoot!\tools\tray-runtime" (
-        mkdir "%ParentDirPath%\tools\tray-runtime" >nul 2>&1
-        robocopy "!ExtractRoot!\tools\tray-runtime" "%ParentDirPath%\tools\tray-runtime" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
-        call :log INFO "Copied tray-runtime"
+    if exist "%ParentDirPath%\tools\tray-runtime" (
+        rd /s /q "%ParentDirPath%\tools\tray-runtime" >nul 2>&1
+        call :log INFO "Removed obsolete tray-runtime"
     )
 
     if exist "!ExtractRoot!\tools\curl" (
@@ -284,12 +282,13 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     call :log INFO "Starting service with configuration %GoodbyeZapret_Config% (!ResolvedConfigExt!)"
     if defined ResolvedConfigRel (
         if /I "!ResolvedConfigExt!"==".txt" (
-            sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\tools\Run_Config_Preset.bat\" --service \"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
+            powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\service\BuildGoodbyeZapretService.ps1" -ProjectDir "%ParentDirPath%" >nul 2>&1
+            sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\service\GoodbyeZapretService.exe\" --preset \"%ParentDirPath%\configs\!ResolvedConfigRel!\" --project-dir \"%ParentDirPath%\"" >nul 2>&1
         ) else (
             sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
         )
         sc config "GoodbyeZapret" start= auto >nul 2>&1
-        if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
+        if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
             schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
             if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
         )

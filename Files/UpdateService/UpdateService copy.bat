@@ -190,7 +190,6 @@ for %%S in (WinDivert WinDivert14 monkey) do (
 )
 
 taskkill /F /IM GoodbyeZapretTray.exe >nul 2>&1
-taskkill /F /IM GoodbyeZapretTray.real.exe >nul 2>&1
 if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     schtasks /end /tn "GoodbyeZapretTray" >nul 2>&1
 )
@@ -337,7 +336,7 @@ if exist "%ParentDirPath%\configs\!cfg!.bat" set "batPath="
 if defined batPath if exist "%ParentDirPath%\configs\!batPath!\!cfg!.bat" (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batPath!\!cfg!.bat\"\"" >nul 2>&1
     sc config "GoodbyeZapret" start= auto >nul 2>&1
-      if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" if exist "%ParentDirPath%\tools\tray-runtime\GoodbyeZapretTray.exe" (
+      if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
         schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
         if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
       )
