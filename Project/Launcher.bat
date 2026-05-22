@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 cd /d "%~dp0" >nul 2>&1
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
