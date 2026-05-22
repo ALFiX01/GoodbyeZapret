@@ -55,7 +55,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.8.3"
+set "UpdaterVersion=2.8.4"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -114,7 +114,7 @@ call :log INFO "Preferred config: !GoodbyeZapret_Config!"
 
 echo         ^[*^] Скачивание файлов
 set "ZipPath=%ParentDirPath%\GoodbyeZapret.zip"
-set "DLURL=https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
+set "DLURL=https://goodbyezapret.crabdance.com/GoodbyeZapret.zip"
 if exist "%ZipPath%" del /q "%ZipPath%" >nul 2>&1
 
 call :log INFO "Downloading archive from %DLURL% to %ZipPath%"
@@ -126,7 +126,7 @@ if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set CURL=curl
 )
 
-%CURL% -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip" >nul 2>&1
+%CURL% -f -L -# -o "%ParentDirPath%\GoodbyeZapret.zip" "https://goodbyezapret.crabdance.com/GoodbyeZapret.zip" >nul 2>&1
 
 for %%I in ("%ZipPath%") do set "FileSize=%%~zI"
 if not exist "%ZipPath%" set "FileSize=0"

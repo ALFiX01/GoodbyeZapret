@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 
 $errorCount = 0
 $warningCount = 0
+$fixedCount = 0
 
 function Add-CheckError {
     param([string]$Message)
@@ -20,6 +21,13 @@ function Add-CheckWarn {
 
     $script:warningCount++
     Write-Host ("  [WARN] " + $Message) -ForegroundColor Yellow
+}
+
+function Add-CheckFixed {
+    param([string]$Message)
+
+    $script:fixedCount++
+    Write-Host ("  [FIXED] " + $Message) -ForegroundColor Green
 }
 
 function Add-CheckInfo {
@@ -163,6 +171,286 @@ function Test-ConfigFile {
     }
 }
 
+function Repair-TextConfigFileNames {
+    param([string]$ProjectRoot)
+
+    $configRoot = Join-Path $ProjectRoot 'configs'
+    $configDirs = @(
+        'preset'
+        'custom'
+        'preset\external'
+    )
+
+    $configFiles = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+    $seenPaths = @{}
+    foreach ($relativeDir in $configDirs) {
+        $dirPath = Join-Path $configRoot $relativeDir
+        if (Test-Path -LiteralPath $dirPath -PathType Container) {
+            Get-ChildItem -LiteralPath $dirPath -File -Recurse -ErrorAction SilentlyContinue |
+                Where-Object {
+                    if ($_.Extension.ToLowerInvariant() -ne '.txt') {
+                        $false
+                    }
+                    else {
+                        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
+                    $safeBaseName = (($baseName -replace '[^A-Za-z0-9_ -]', '') -replace '\s+', '_') -replace '_+', '_'
+                        if ([string]::IsNullOrWhiteSpace($safeBaseName)) {
+                            $safeBaseName = 'config'
+                        }
+
+                        (($safeBaseName + $_.Extension) -ne $_.Name)
+                    }
+                } |
+                ForEach-Object {
+                    $pathKey = $_.FullName.ToLowerInvariant()
+                    if (-not $seenPaths.ContainsKey($pathKey)) {
+                        $seenPaths[$pathKey] = $true
+                        $configFiles.Add($_)
+                    }
+                }
+        }
+    }
+
+    foreach ($file in ($configFiles | Sort-Object FullName)) {
+        if (-not (Test-Path -LiteralPath $file.FullName -PathType Leaf)) {
+            continue
+        }
+
+        $currentFile = Get-Item -LiteralPath $file.FullName -ErrorAction SilentlyContinue
+        if ($null -eq $currentFile) {
+            continue
+        }
+
+        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($currentFile.Name)
+        $safeBaseName = (($baseName -replace '[^A-Za-z0-9_ -]', '') -replace '\s+', '_') -replace '_+', '_'
+        if ([string]::IsNullOrWhiteSpace($safeBaseName)) {
+            $safeBaseName = 'config'
+        }
+
+        $safeName = $safeBaseName + $currentFile.Extension
+        if ($safeName -eq $currentFile.Name) {
+            continue
+        }
+
+        $targetPath = Join-Path $currentFile.DirectoryName $safeName
+        $relativeSource = $currentFile.FullName.Substring($configRoot.Length).TrimStart('\')
+        $relativeTarget = $targetPath.Substring($configRoot.Length).TrimStart('\')
+        $existingTarget = Get-Item -LiteralPath $targetPath -ErrorAction SilentlyContinue
+
+        if ($null -ne $existingTarget -and $existingTarget.FullName -ne $currentFile.FullName) {
+            if ($existingTarget.LastWriteTime -le $currentFile.LastWriteTime) {
+                Remove-Item -LiteralPath $existingTarget.FullName -Force
+                Add-CheckFixed ("Deleted older duplicate txt config: " + $relativeTarget)
+                Rename-Item -LiteralPath $currentFile.FullName -NewName $safeName -ErrorAction Stop
+                Add-CheckFixed ("Sanitized txt config file name: " + $relativeSource + " -> " + $relativeTarget)
+            }
+            else {
+                Remove-Item -LiteralPath $currentFile.FullName -Force
+                Add-CheckFixed ("Deleted older duplicate txt config: " + $relativeSource)
+            }
+
+            continue
+        }
+
+        Rename-Item -LiteralPath $currentFile.FullName -NewName $safeName -ErrorAction Stop
+        Add-CheckFixed ("Sanitized txt config file name: " + $relativeSource + " -> " + $relativeTarget)
+    }
+}
+
+function Clear-SpacedConfigSelections {
+    param([string]$ConfigPath)
+
+    if (-not (Test-Path -LiteralPath $ConfigPath)) {
+        return
+    }
+
+    $bytes = [System.IO.File]::ReadAllBytes($ConfigPath)
+    if ($bytes.Length -ge 2 -and (
+            ($bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) -or
+            ($bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF))) {
+        return
+    }
+
+    if ($bytes -contains 0x00) {
+        return
+    }
+
+    try {
+        $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+        $content = $utf8.GetString($bytes)
+    }
+    catch {
+        return
+    }
+
+    $keysToClear = @{
+        'goodbyezapret_laststartconfig' = $true
+        'goodbyezapret_lastworkconfig' = $true
+        'goodbyezapret_config' = $true
+    }
+
+    $changed = $false
+    $lines = $content -split "\r?\n", -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        $trimmedLine = $line.Trim()
+        if ($trimmedLine.Length -eq 0 -or $trimmedLine.StartsWith('#') -or $trimmedLine.StartsWith(';')) {
+            continue
+        }
+
+        $separatorIndex = $line.IndexOf('=')
+        if ($separatorIndex -lt 1) {
+            continue
+        }
+
+        $rawKey = $line.Substring(0, $separatorIndex)
+        $key = $rawKey.Trim()
+        if (-not $keysToClear.ContainsKey($key.ToLowerInvariant())) {
+            continue
+        }
+
+        $value = $line.Substring($separatorIndex + 1)
+        $unquotedValue = $value
+        if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
+            $unquotedValue = $value.Substring(1, $value.Length - 2)
+        }
+
+        if ($unquotedValue -match '\s') {
+            $lines[$i] = $rawKey + '=""'
+            $changed = $true
+            Add-CheckFixed ("Cleared config value with spaces: " + $key)
+        }
+    }
+
+    if ($changed) {
+        $newContent = $lines -join [Environment]::NewLine
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($ConfigPath, $newContent, $utf8NoBom)
+    }
+}
+
+function Clear-MissingConfigSelections {
+    param(
+        [string]$ConfigPath,
+        [string]$ProjectRoot
+    )
+
+    if (-not (Test-Path -LiteralPath $ConfigPath)) {
+        return
+    }
+
+    $configRoot = Join-Path $ProjectRoot 'configs'
+    if (-not (Test-Path -LiteralPath $configRoot -PathType Container)) {
+        return
+    }
+
+    $configDirs = @(
+        'preset'
+        'custom'
+        'preset\external'
+    )
+
+    $knownConfigs = @{}
+    foreach ($relativeDir in $configDirs) {
+        $dirPath = Join-Path $configRoot $relativeDir
+        if (-not (Test-Path -LiteralPath $dirPath -PathType Container)) {
+            continue
+        }
+
+        Get-ChildItem -LiteralPath $dirPath -File -Recurse -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension.ToLowerInvariant() -in @('.txt', '.bat', '.cmd') } |
+            ForEach-Object {
+                $nameKey = $_.Name.ToLowerInvariant()
+                $relativeKey = $_.FullName.Substring($configRoot.Length).TrimStart('\').Replace('\', '/').ToLowerInvariant()
+                $knownConfigs[$nameKey] = $true
+                $knownConfigs[$relativeKey] = $true
+            }
+    }
+
+    $bytes = [System.IO.File]::ReadAllBytes($ConfigPath)
+    if ($bytes.Length -ge 2 -and (
+            ($bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) -or
+            ($bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF))) {
+        return
+    }
+
+    if ($bytes -contains 0x00) {
+        return
+    }
+
+    try {
+        $utf8 = New-Object System.Text.UTF8Encoding($false, $true)
+        $content = $utf8.GetString($bytes)
+    }
+    catch {
+        return
+    }
+
+    $keysToCheck = @{
+        'goodbyezapret_laststartconfig' = $true
+        'goodbyezapret_lastworkconfig' = $true
+        'goodbyezapret_config' = $true
+    }
+
+    $changed = $false
+    $lines = $content -split "\r?\n", -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        $trimmedLine = $line.Trim()
+        if ($trimmedLine.Length -eq 0 -or $trimmedLine.StartsWith('#') -or $trimmedLine.StartsWith(';')) {
+            continue
+        }
+
+        $separatorIndex = $line.IndexOf('=')
+        if ($separatorIndex -lt 1) {
+            continue
+        }
+
+        $rawKey = $line.Substring(0, $separatorIndex)
+        $key = $rawKey.Trim()
+        $keyLower = $key.ToLowerInvariant()
+        if (-not $keysToCheck.ContainsKey($keyLower)) {
+            continue
+        }
+
+        $value = $line.Substring($separatorIndex + 1)
+        if ($value.Length -lt 2 -or -not $value.StartsWith('"') -or -not $value.EndsWith('"')) {
+            continue
+        }
+
+        $unquotedValue = $value.Substring(1, $value.Length - 2)
+        if ([string]::IsNullOrWhiteSpace($unquotedValue)) {
+            continue
+        }
+
+        $normalizedValue = $unquotedValue.Replace('\', '/').TrimStart('/').ToLowerInvariant()
+        $configCandidates = @($normalizedValue)
+        if ($keyLower -eq 'goodbyezapret_config' -and [string]::IsNullOrEmpty([System.IO.Path]::GetExtension($normalizedValue))) {
+            $configCandidates += ($normalizedValue + '.txt')
+        }
+
+        $configExists = $false
+        foreach ($configCandidate in $configCandidates) {
+            if ($knownConfigs.ContainsKey($configCandidate)) {
+                $configExists = $true
+                break
+            }
+        }
+
+        if (-not $configExists) {
+            $lines[$i] = $rawKey + '=""'
+            $changed = $true
+            Add-CheckFixed ("Cleared missing config reference: " + $key + '="' + $unquotedValue + '"')
+        }
+    }
+
+    if ($changed) {
+        $newContent = $lines -join [Environment]::NewLine
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($ConfigPath, $newContent, $utf8NoBom)
+    }
+}
+
 function Test-ConfigFileNames {
     param([string]$ProjectRoot)
 
@@ -195,7 +483,11 @@ function Test-ConfigFileNames {
         $checkedCount++
 
         $relativePath = $file.FullName.Substring($configRoot.Length).TrimStart('\')
-        if ($file.Name -match '\s') {
+        if ($file.Extension.ToLowerInvariant() -eq '.txt' -and $file.Name -match '\s') {
+            Add-CheckError ("Txt config file name still contains spaces after repair: " + $relativePath)
+            continue
+        }
+        elseif ($file.Name -match '\s') {
             Add-CheckError ("Config file name contains spaces: " + $relativePath)
             continue
         }
@@ -344,14 +636,20 @@ if ($errorCount -eq $requiredFileErrorCountBefore) {
     Add-CheckOk 'Required executable and driver files are present'
 }
 
+Repair-TextConfigFileNames $projectRoot
 Test-ConfigFileNames $projectRoot
 
 $configPath = Join-Path $env:APPDATA 'GoodbyeZapret\config.txt'
+Clear-SpacedConfigSelections $configPath
+Clear-MissingConfigSelections $configPath $projectRoot
 Test-ConfigFile $configPath
 
 if ($errorCount -gt 0) {
     Write-Host ''
     Write-Host (" Diagnostics found errors: " + $errorCount) -ForegroundColor Red
+    if ($fixedCount -gt 0) {
+        Write-Host (" Diagnostics fixes applied: " + $fixedCount) -ForegroundColor Green
+    }
     if ($warningCount -gt 0) {
         Write-Host (" Diagnostics warnings: " + $warningCount) -ForegroundColor Yellow
     }
@@ -362,8 +660,18 @@ if ($errorCount -gt 0) {
 Write-Host ''
 if ($warningCount -gt 0) {
     Write-Host (" Diagnostics completed with warnings: " + $warningCount) -ForegroundColor Yellow
+    if ($fixedCount -gt 0) {
+        Write-Host (" Diagnostics fixes applied: " + $fixedCount) -ForegroundColor Green
+    }
+}
+elseif ($fixedCount -gt 0) {
+    Write-Host (" Diagnostics completed successfully. Fixes applied: " + $fixedCount) -ForegroundColor Green
 }
 else {
     Write-Host ' Diagnostics completed successfully.' -ForegroundColor Green
+}
+
+if ($fixedCount -gt 0) {
+    Start-Sleep -Seconds 3
 }
 exit 0

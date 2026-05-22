@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 cd /d "%~dp0" >nul 2>&1
 :: Copyright (C) 2025 ALFiX, Inc.
 :: Any tampering with the program code is forbidden (Запрещены любые вмешательства)
@@ -32,8 +32,8 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=4.1.0"
-set "Current_GoodbyeZapret_version_code=4A1"
+set "Current_GoodbyeZapret_version=4.1.1"
+set "Current_GoodbyeZapret_version_code=4A1F1"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -159,7 +159,7 @@ if defined UPDATED (
 
 
 set "WiFi=Off"
-set "CheckURL=https://raw.githubusercontent.com"
+set "CheckURL=https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 set "CheckURL_BACKUP=https://mail.ru"
 set "DNS_TEST=google.com"
 
@@ -185,18 +185,18 @@ if exist "%ParentDirPath%\tools\curl\curl.exe" (
     )
 )
 
-call :ui_info "DNS работает. Проверка GitHub-сервера обновлений (%CheckURL%)..."
+call :ui_info "DNS работает. Проверка сервера обновлений (%CheckURL%)..."
 %CURL% -4 -s -I --fail --connect-timeout 1 --max-time 2 -o nul "%CheckURL%"
 IF %ERRORLEVEL% EQU 0 (
     call :ui_ok "Соединение установлено. Перехожу далее"
     set "UpdaterServerConnect=Yes"
     set "WiFi=On"
 ) ELSE (
-    call :ui_warn "GitHub-сервер обновлений недоступен. Проверка общего подключения (%CheckURL_BACKUP%)..."
+    call :ui_warn "Сервер обновлений недоступен. Проверка общего подключения (%CheckURL_BACKUP%)..."
     %CURL% -4 -s -I --fail --connect-timeout 1 --max-time 3 -o nul "%CheckURL_BACKUP%"
     IF %ERRORLEVEL% EQU 0 (
         call :ui_ok "Интернет доступен"
-        call :ui_warn "Но GitHub-сервер обновлений недоступен (%CheckURL%)"
+        call :ui_warn "Но сервер обновлений недоступен (%CheckURL%)"
         set "WiFi=On"
     ) ELSE (
         echo.
@@ -347,13 +347,13 @@ if /i "!WiFi!"=="On" (
 
         if not exist "%ParentDirPath%\tools\curl\curl.exe" (
             echo  Error: сurl.exe not found
-            echo  try downloading it from the project repository on github.
+            echo  try downloading it from the update server.
             timeout /t 4 >nul
         )
 
         REM Download Updater.exe if not present
         if not exist "%ParentDirPath%\tools\Updater.exe" (
-            %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe" >nul 2>&1
+            %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://goodbyezapret.crabdance.com/Updater.exe" >nul 2>&1
             if not exist "%ParentDirPath%\tools\Updater.exe" (
                 echo  Error: Failed to download Updater.exe
                 echo  Please check your internet connection and try again.
@@ -390,7 +390,7 @@ if not defined CURL (
     set "CURL=curl"
 )
 
-%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 1 -o nul "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 1 -o nul "https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
     set "CheckStatus=FileCheckError"
@@ -398,7 +398,7 @@ IF !ERRORLEVEL! NEQ 0 (
 )
 
 REM Скачать файл обновления версии
-%CURL% -s -o "%TEMP%\GZ_Updater.bat" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+%CURL% -s -o "%TEMP%\GZ_Updater.bat" "https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 if errorlevel 1 (
     echo Error 04: Server error. Failed to connect to GoodbyeZapret update check server
     set "CheckStatus=NoChecked"
@@ -426,7 +426,7 @@ if not exist "%ParentDirPath%\tools\Updater.exe" (
         set CURL=curl
         )
     )
-    %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+    %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://goodbyezapret.crabdance.com/Updater.exe"
     if not exist "%ParentDirPath%\tools\Updater.exe" (
         echo Error: Failed to download Updater.exe
         set "CheckStatus=NoChecked"
@@ -2050,7 +2050,7 @@ if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set "CURL=curl"
     )
 )
-%CURL% -g -L -s -o "%UpdaterPath%" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+%CURL% -g -L -s -o "%UpdaterPath%" "https://goodbyezapret.crabdance.com/Updater.exe"
 
 if exist "%UpdaterPath%" (
     echo [INFO ] %TIME% - Updater.exe downloaded successfully
@@ -2121,13 +2121,13 @@ if not exist "%ParentDirPath%" (
 )
 echo        [*] Скачивание файлов GoodbyeZapret...
 
-%CURL% -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip"
+%CURL% -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://goodbyezapret.crabdance.com/GoodbyeZapret.zip"
 if errorlevel 1 (
     echo       %COL%[91m [ERR] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
 )
 
 echo        ^[*^] Скачивание Updater.exe...
-%CURL% -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/Updater/Updater.exe"
+%CURL% -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://goodbyezapret.crabdance.com/Updater.exe"
  if errorlevel 1 (
     echo       %COL%[91m [ERR] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
     echo       %COL%[93m [*] Установка продолжится, но обновление может не работать.%COL%[90m
@@ -2172,7 +2172,7 @@ if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set "CURL=curl"
     )
 )
-%CURL% -g -L -o "%ParentDirPath%\bin\PatchNote.txt" "https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/refs/heads/main/Files/PatchNote.txt"
+%CURL% -g -L -o "%ParentDirPath%\bin\PatchNote.txt" "https://goodbyezapret.crabdance.com/PatchNote.txt"
 for /f %%A in ('type "%ParentDirPath%\bin\PatchNote.txt" ^| find /c /v ""') do set "PatchNoteLines=%%A"
 set /a PatchNoteLines=PatchNoteLines+21
 mode con: cols=80 lines=%PatchNoteLines% >nul 2>&1
@@ -2446,7 +2446,7 @@ echo  %COL%[96m^[ 2 ^]%COL%[37m Запустить
 echo.
 echo  %COL%[96m^[ 3 ^]%COL%[37m Открыть папку данных
 echo.
-echo  %COL%[96m^[ 4 ^]%COL%[37m Открыть релиз TG на GitHub
+echo  %COL%[96m^[ 4 ^]%COL%[37m Открыть страницу версии TG
 echo.
 echo  %COL%[96m^[ 5 ^]%COL%[37m Добавить прокси в Telegram
 echo.
@@ -2490,9 +2490,9 @@ if exist "%TgWsProxyTagFile%" del /q "%TgWsProxyTagFile%" >nul 2>&1
 set "TGWS_DEST=%TgWsProxyExe%"
 set "TGWS_TAG_FILE=%TgWsProxyTagFile%"
 
-call :ui_info "Получаю актуальный релиз TG WS Proxy..."
+call :ui_info "Скачиваю TG WS Proxy..."
 chcp 850 >nul 2>&1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; $release = Invoke-RestMethod -Headers @{ 'User-Agent'='GoodbyeZapret' } -Uri 'https://api.github.com/repos/Flowseal/tg-ws-proxy/releases/latest'; $asset = $release.assets | Where-Object { $_.name -eq 'TgWsProxy_windows.exe' } | Select-Object -First 1; if ($null -eq $asset) { exit 1 }; [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($env:TGWS_DEST)) | Out-Null; Invoke-WebRequest -Headers @{ 'User-Agent'='GoodbyeZapret' } -Uri $asset.browser_download_url -OutFile $env:TGWS_DEST; [System.IO.File]::WriteAllText($env:TGWS_TAG_FILE, $release.tag_name)" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($env:TGWS_DEST)) | Out-Null; Invoke-WebRequest -Uri 'https://goodbyezapret.crabdance.com/tg-ws-proxy/TgWsProxy_windows.exe' -OutFile $env:TGWS_DEST -UseBasicParsing; try { $tag = (Invoke-WebRequest -Uri 'https://goodbyezapret.crabdance.com/tg-ws-proxy/version.txt' -UseBasicParsing).Content.Trim() } catch { $tag = 'Unknown' }; [System.IO.File]::WriteAllText($env:TGWS_TAG_FILE, $tag)" >nul 2>&1
 chcp 65001 >nul 2>&1
 
 if errorlevel 1 (
@@ -2550,7 +2550,7 @@ goto TgWsProxyMenu
 
 
 :TgWsProxyOpenRelease
-start "" "https://github.com/Flowseal/tg-ws-proxy/releases/latest"
+start "" "https://goodbyezapret.crabdance.com/tg-ws-proxy/version.txt"
 goto TgWsProxyMenu
 
 
@@ -3625,7 +3625,7 @@ if exist "!AutoDomainFile!" (
         )
     )
 ) else (
-    for %%D in (rr6---sn-jvhnu5g-n8vy.googlevideo.com i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg discord.com cloudflare.com aws.amazon.com raw.githubusercontent.com) do (
+    for %%D in (rr6---sn-jvhnu5g-n8vy.googlevideo.com i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg discord.com cloudflare.com aws.amazon.com goodbyezapret.crabdance.com/GoodbyeZapret_Version) do (
         call :ConfiguratorAutoCheckOne "%%D"
     )
 )
@@ -3669,7 +3669,7 @@ exit /b
 
 :ConfiguratorAutoCheckOne
 set "AutoUrlRaw=%~1"
-if /i "!AutoUrlRaw!"=="raw.githubusercontent.com" set "AutoUrlRaw=raw.githubusercontent.com!AutoGitPath!"
+if /i "!AutoUrlRaw!"=="raw.githubusercontent.com" set "AutoUrlRaw=goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 set "AutoUrl=!AutoUrlRaw!"
 if /i not "!AutoUrl:~0,7!"=="http://" if /i not "!AutoUrl:~0,8!"=="https://" set "AutoUrl=https://!AutoUrl!"
 set /a AutoTotal+=1

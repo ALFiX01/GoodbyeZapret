@@ -11,14 +11,14 @@ for %%i in ("%currentDir%") do set "parentDir=%%~dpi"
 
 
 REM --- Список доменов---
-set "domains=rr4---sn-jvhnu5g-n8ve7.googlevideo.com i.ytimg.com discord.com updates.discord.com cloudflare.com raw.githubusercontent.com www.youtube.com"
+set "domains=rr4---sn-jvhnu5g-n8ve7.googlevideo.com i.ytimg.com discord.com updates.discord.com cloudflare.com goodbyezapret.crabdance.com/GoodbyeZapret_Version www.youtube.com"
 
 REM --- Расширенный Список доменов---
-REM set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com rr7---sn-jvhnu5g-n8vy.googlevideo.com rr16---sn-n8v7znlk.googlevideo.com i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg discord.com cloudflare.com raw.githubusercontent.com"
+REM set "domains=rr4---sn-jvhnu5g-n8vr.googlevideo.com rr7---sn-jvhnu5g-n8vy.googlevideo.com rr16---sn-n8v7znlk.googlevideo.com i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg discord.com cloudflare.com goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 
 
-REM Для GitHub файла используем отдельную переменную
-set "github_path=/ALFiX01/GoodbyeZapret/refs/heads/main/GoodbyeZapret_Version"
+REM Старые списки могли использовать raw.githubusercontent.com как проверку файла версии
+set "update_check_url=goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 
 set "CountOK=0"
 set "total=0"
@@ -33,9 +33,9 @@ if exist "%ParentDir%curl\curl.exe" (
 REM Проверка доменов
 for %%u in (%domains%) do (
     set "url=%%u"
-    REM Для raw.githubusercontent.com добавляем путь к файлу
+    REM Совместимость со старыми списками
     if /I "%%u"=="raw.githubusercontent.com" (
-        set "url=%%u!github_path!"
+        set "url=!update_check_url!"
     )
     set /a total+=1
     %CURL% --ipv4 --silent --show-error --head --connect-timeout 1 --max-time 2 --max-redirs 1 --fail -o nul "!url!"

@@ -123,7 +123,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubus
 
 ### Метод 3. Архив (ручная установка)
 
-1. Скачайте архив [`GoodbyeZapret.zip`](https://github.com/ALFiX01/GoodbyeZapret/raw/refs/heads/main/Files/GoodbyeZapret.zip).
+1. Скачайте архив [`GoodbyeZapret.zip`](https://goodbyezapret.crabdance.com/GoodbyeZapret.zip).
 2. Распакуйте архив в удобное место, например, `C:\GoodbyeZapret`  
    > ⚠️ Путь к папке GoodbyeZapret не должен содержать пробелов, специальных или кириллических символов.
 3. Проверьте, что путь к исполняемому файлу похож на:  

@@ -38,21 +38,6 @@ function Write-Styled {
     Write-Host $output -ForegroundColor $Color
 }
 
-# Get latest release function
-function Get-LatestRelease {
-    try {
-        $api = "https://api.github.com/repos/ALFiX01/GoodbyeZapret/releases/latest"
-        $latestRelease = Invoke-RestMethod -Uri $api
-        return @{
-            Version = $latestRelease.tag_name
-            Assets = $latestRelease.assets
-        }
-    } catch {
-        Write-Styled $_.Exception.Message -Color $Theme.Error -Prefix "Error"
-        throw "Could not fetch latest release info."
-    }
-}
-
 # Main install function
 function Install-GoodbyeZapret {
     Write-Styled "Starting GoodbyeZapret setup" -Color $Theme.Primary -Prefix "Install"
@@ -61,17 +46,7 @@ function Install-GoodbyeZapret {
     $ZipFileName = "GoodbyeZapret.zip"
     $LauncherPath = "$TargetPath\Launcher.bat"
 
-    # Get release info
-    Write-Styled "Getting latest release info..." -Color $Theme.Primary -Prefix "Update"
-    $releaseInfo = Get-LatestRelease
-    $asset = $releaseInfo.Assets | Where-Object { $_.name -eq $ZipFileName }
-    if (!$asset) {
-        Write-Styled "$ZipFileName not found in releases!" -Color $Theme.Error -Prefix "Error"
-        Write-Styled "Available files:" -Color $Theme.Warning -Prefix "List"
-        $releaseInfo.Assets | ForEach-Object { Write-Styled $_.name -Color $Theme.Info }
-        throw "Target archive not found."
-    }
-    $zipUrl = $asset.browser_download_url
+    $zipUrl = "https://goodbyezapret.crabdance.com/GoodbyeZapret.zip"
     Write-Styled "Download link: $zipUrl" -Color $Theme.Info -Prefix "Download"
 
     # Cleanup previous folder

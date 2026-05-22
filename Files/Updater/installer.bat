@@ -54,7 +54,7 @@ chcp 65001 >nul 2>&1
 mode con: cols=80 lines=25 >nul 2>&1
 
 set "UpdaterVersion=1.2"
-set "ZIP_URL=https://raw.githubusercontent.com/ALFiX01/GoodbyeZapret/main/Files/GoodbyeZapret.zip"
+set "ZIP_URL=https://goodbyezapret.crabdance.com/GoodbyeZapret.zip"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")

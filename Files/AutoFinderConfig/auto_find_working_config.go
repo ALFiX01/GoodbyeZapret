@@ -33,8 +33,8 @@ import (
 
 const (
 	// Константы путей и версий
-	githubPath   = "/ALFiX01/GoodbyeZapret/main/GoodbyeZapret_Version"
-	registryPath = `Software\ALFiX inc.\GoodbyeZapret`
+	updateCheckURL = "https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
+	registryPath   = `Software\ALFiX inc.\GoodbyeZapret`
 
 	// "реальный" UA как в Python-версии
 	userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
@@ -272,9 +272,9 @@ func (f *Finder) buildURL(domain string) string {
 		return "https://" + domain + "/generate_204"
 	}
 
-	// как было: спец-путь для github raw
+	// Backward-compatible alias for old domain lists.
 	if strings.EqualFold(domain, "raw.githubusercontent.com") {
-		return "https://" + domain + githubPath
+		return updateCheckURL
 	}
 
 	return "https://" + domain

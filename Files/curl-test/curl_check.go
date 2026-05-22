@@ -45,7 +45,7 @@ const (
 	// Конфигурация
 	userAgent      = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 	registryPath   = `Software\ALFiX inc.\GoodbyeZapret`
-	githubCheckURI = "/ALFiX01/GoodbyeZapret/main/GoodbyeZapret_Version"
+	updateCheckURL = "https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
 
 	// Порог “успеха” как в Python-алгоритме
 	baseThreshold = 64 * 1024
@@ -119,18 +119,18 @@ type Checker struct {
 	clientFast *http.Client
 	clientSlow *http.Client
 
-	githubPath string
-	strict     bool
+	updateURL string
+	strict    bool
 }
 
-func NewChecker(githubPath string, strict bool, ipMode string) *Checker {
+func NewChecker(updateURL string, strict bool, ipMode string) *Checker {
 	trFast := buildHTTPTransport(fastReadTimeout, ipMode)
 	trSlow := buildHTTPTransport(slowReadTimeout, ipMode)
 
 	return &Checker{
 		clientFast: &http.Client{Transport: trFast, Timeout: 0},
 		clientSlow: &http.Client{Transport: trSlow, Timeout: 0},
-		githubPath: githubPath,
+		updateURL:  updateURL,
 		strict:     strict,
 	}
 }
@@ -179,9 +179,9 @@ func (c *Checker) buildURL(domainOrURL string) string {
 		return "https://" + domainOrURL + "/generate_204"
 	}
 
-	// GitHub raw special-case
+	// Backward-compatible alias for old domain lists.
 	if strings.EqualFold(domainOrURL, "raw.githubusercontent.com") {
-		return "https://" + domainOrURL + c.githubPath
+		return c.updateURL
 	}
 
 	return "https://" + domainOrURL
@@ -470,7 +470,7 @@ func main() {
 
 	fmt.Println(" Проверка  доменов")
 
-	checker := NewChecker(githubCheckURI, *strict, *ipMode)
+	checker := NewChecker(updateCheckURL, *strict, *ipMode)
 
 	var okCnt int32
 	var wg sync.WaitGroup
