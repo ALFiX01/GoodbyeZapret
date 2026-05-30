@@ -61,6 +61,88 @@ function Test-RequiredFile {
     }
 }
 
+function Repair-DuplicateConfigKeys {
+    param(
+        [string]$ConfigPath,
+        [string]$Content
+    )
+
+    $lines = $Content -split "\r?\n"
+    $lastIndexByKey = @{}
+    $originalKeyByLower = @{}
+    $duplicateKeys = New-Object System.Collections.Generic.List[string]
+
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        $trimmedLine = $line.Trim()
+
+        if ($trimmedLine.Length -eq 0 -or $trimmedLine.StartsWith('#') -or $trimmedLine.StartsWith(';')) {
+            continue
+        }
+
+        $separatorIndex = $line.IndexOf('=')
+        if ($separatorIndex -lt 1) {
+            continue
+        }
+
+        $rawKey = $line.Substring(0, $separatorIndex)
+        $key = $rawKey.Trim()
+
+        if ([string]::IsNullOrWhiteSpace($key) -or $rawKey -ne $key -or $key -match '\s') {
+            continue
+        }
+
+        $keyLower = $key.ToLowerInvariant()
+        if ($lastIndexByKey.ContainsKey($keyLower) -and -not $duplicateKeys.Contains($originalKeyByLower[$keyLower])) {
+            [void]$duplicateKeys.Add($originalKeyByLower[$keyLower])
+        }
+
+        $lastIndexByKey[$keyLower] = $i
+        $originalKeyByLower[$keyLower] = $key
+    }
+
+    if ($duplicateKeys.Count -eq 0) {
+        return $Content
+    }
+
+    $repairedLines = New-Object System.Collections.Generic.List[string]
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        $trimmedLine = $line.Trim()
+
+        if ($trimmedLine.Length -eq 0 -or $trimmedLine.StartsWith('#') -or $trimmedLine.StartsWith(';')) {
+            [void]$repairedLines.Add($line)
+            continue
+        }
+
+        $separatorIndex = $line.IndexOf('=')
+        if ($separatorIndex -lt 1) {
+            [void]$repairedLines.Add($line)
+            continue
+        }
+
+        $rawKey = $line.Substring(0, $separatorIndex)
+        $key = $rawKey.Trim()
+
+        if ([string]::IsNullOrWhiteSpace($key) -or $rawKey -ne $key -or $key -match '\s') {
+            [void]$repairedLines.Add($line)
+            continue
+        }
+
+        $keyLower = $key.ToLowerInvariant()
+        if ($lastIndexByKey[$keyLower] -eq $i) {
+            [void]$repairedLines.Add($line)
+        }
+    }
+
+    $repairedContent = [string]::Join([Environment]::NewLine, $repairedLines)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($ConfigPath, $repairedContent, $utf8NoBom)
+
+    Add-CheckFixed ("config.txt duplicate keys removed, kept last value for: " + ([string]::Join(', ', $duplicateKeys)))
+    return $repairedContent
+}
+
 function Test-ConfigFile {
     param([string]$ConfigPath)
 
@@ -108,6 +190,8 @@ function Test-ConfigFile {
         Add-CheckError 'config.txt is not valid UTF-8. Save it as UTF-8 without BOM.'
         return
     }
+
+    $content = Repair-DuplicateConfigKeys -ConfigPath $ConfigPath -Content $content
 
     $keys = @{}
     $validLineCount = 0
@@ -632,6 +716,7 @@ Test-RequiredFile $projectRoot 'bin\Monkey64.sys' 1024
 Test-RequiredFile $projectRoot 'tools\config_builder\builder.exe' 1024
 Test-RequiredFile $projectRoot 'tools\PresetRunner.ps1' 1
 Test-RequiredFile $projectRoot 'tools\Updater.exe' 1024
+Test-RequiredFile $projectRoot 'tools\service\GoodbyeZapretService.exe' 1024
 if ($errorCount -eq $requiredFileErrorCountBefore) {
     Add-CheckOk 'Required executable and driver files are present'
 }

@@ -32,8 +32,8 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=4.1.1"
-set "Current_GoodbyeZapret_version_code=4A1F1"
+set "Current_GoodbyeZapret_version=4.1.2"
+set "Current_GoodbyeZapret_version_code=4A1F2"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -1973,7 +1973,7 @@ goto CurrentStatus
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
     )
     echo.
-    echo    %COL%[36mВыполняется быстрый перезапуск обхода...%COL%[37m
+    echo   %COL%[36mВыполняется быстрый перезапуск обхода...%COL%[37m
     
     sc query "GoodbyeZapret" >nul 2>&1
     if %errorlevel% neq 0 (
