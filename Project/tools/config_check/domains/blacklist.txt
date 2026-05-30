@@ -1,0 +1,2 @@
+# Blacklist module domains
+goodbyezapret.crabdance.com/GoodbyeZapret_Version

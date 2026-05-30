@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GZ Configurator Manual</title>
+    <!-- Шрифты: Добавил 'Exo 2' для подзаголовка -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --card-bg: rgba(24, 24, 27, 0.7);
+            --card-hover: rgba(32, 32, 37, 0.9);
+            --accent-color: #00ff9d;
+            --accent-secondary: #00d2ff;
+            --text-main: #ededed;
+            --text-muted: #94949a;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.7;
+            padding: 40px 20px;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* --- BACKGROUND ANIMATION --- */
+        .cyber-grid {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -3;
+            pointer-events: none;
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -2;
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+
+        .orb-1 {
+            width: 400px; height: 400px;
+            background: var(--accent-color);
+            top: -100px; left: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: var(--accent-secondary);
+            bottom: -150px; right: -150px;
+            animation-delay: -5s;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, 50px) scale(1.1); }
+            100% { transform: translate(-30px, 20px) scale(0.9); }
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* --- Header --- */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 3rem;
+            color: #fff;
+            margin-bottom: 15px;
+            letter-spacing: -2px;
+            text-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
+        }
+
+        h1 span { color: var(--accent-color); }
+
+        .subtitle {
+            /* Новый шрифт Exo 2 */
+            font-family: 'Exo 2', sans-serif; 
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            text-transform: uppercase; /* Делаем все буквы заглавными для стиля */
+            letter-spacing: 2px;       /* Разряженный текст */
+            font-weight: 600;
+            
+            background: rgba(0,0,0,0.3);
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 4px;        /* Чуть более квадратные углы */
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-secondary); /* Акцент слева */
+        }
+
+        /* --- Sections --- */
+        section {
+            background-color: var(--card-bg);
+            backdrop-filter: blur(10px); 
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        section:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+
+        h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            color: #fff;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: '//';
+            color: var(--accent-color);
+            margin-right: 12px;
+            font-weight: 300;
+            opacity: 0.7;
+        }
+
+        p { margin-bottom: 15px; }
+
+        /* --- UI Elements --- */
+        kbd {
+            background: linear-gradient(180deg, #2a2a2e 0%, #161618 100%);
+            border: 1px solid #444;
+            border-bottom: 2px solid #000;
+            border-radius: 6px;
+            color: var(--accent-color);
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            font-weight: 700;
+            line-height: 1;
+            padding: 5px 10px;
+            margin: 0 3px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .steps-container {
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .step {
+            display: flex;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 14px; top: 35px; bottom: -30px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--border-color), transparent);
+            z-index: 0;
+        }
+        
+        .step:last-child::before { display: none; }
+
+        .step-number {
+            background-color: #111;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center; justify-content: center;
+            font-weight: bold;
+            font-family: 'JetBrains Mono';
+            flex-shrink: 0;
+            margin-right: 20px;
+            z-index: 1;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .param-card {
+            background-color: rgba(255,255,255,0.02);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .param-card:hover {
+            background-color: rgba(255,255,255,0.05);
+            border-color: var(--accent-color);
+            transform: translateY(-4px);
+            box-shadow: 0 5px 20px rgba(0, 255, 157, 0.1);
+        }
+
+        .param-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .param-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .terminal-box {
+            background: #050505;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #ccc;
+            margin: 15px 0;
+            position: relative;
+            overflow-x: auto;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        
+        .terminal-box::before {
+            content: '>';
+            color: var(--accent-color);
+            margin-right: 10px;
+        }
+
+        .path-highlight { color: var(--accent-color); }
+
+        .controls-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        .controls-table td {
+            padding: 15px; vertical-align: middle;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid transparent;
+            border-bottom: 1px solid transparent;
+        }
+        .controls-table tr td:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; border-left: 1px solid transparent; width: 80px; text-align: center;}
+        .controls-table tr td:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; border-right: 1px solid transparent; }
+        .controls-table tr:hover td { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+
+        .tips-box {
+            background: linear-gradient(135deg, rgba(0, 255, 157, 0.05) 0%, rgba(0,0,0,0) 100%);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 40px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .tips-box h3 { color: var(--accent-color); margin-bottom: 15px; }
+        .important { color: #ff5252; font-weight: bold; }
+        ul { margin-left: 20px; }
+        li { margin-bottom: 8px; color: var(--text-muted); }
+        li b { color: var(--text-main); }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .params-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="cyber-grid"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+    <header>
+        <h1>GZ <span>Configurator</span></h1>
+        <!-- Обновленная строка -->
+        <p class="subtitle">Инструкция // Как этим вообще пользоваться?</p>
+    </header>
+
+    <section>
+        <h2>О конфигураторе</h2>
+        <p>Это меню предназначено для тонкой настройки обхода DPI для конкретных сервисов. Так как провайдеры используют разные методы блокировки, универсального решения нет. Этот конфигуратор позволяет перебирать «пресеты» (стратегии), чтобы найти рабочий вариант именно для вас.</p>
+        <p style="font-size: 0.9em; opacity: 0.6; margin-top: 10px; border-left: 2px solid var(--accent-secondary); padding-left: 10px;">
+            <i>(Что это такое и нахуй оно вообще надо? Это чтобы ютуб работал).</i>
+        </p>
+    </section>
+
+    <section>
+        <h2>1. Как изменить настройки?</h2>
+        <p>Принцип работы — консольный. Следуйте шагам:</p>
+        <div class="steps-container">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Введите цифру <kbd>1</kbd>–<kbd>14</kbd> или букву <kbd>L</kbd>, <kbd>E</kbd>, соответствующую нужному параметру, и нажмите <kbd>Enter</kbd>.</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Программа попросит ввести новое значение стратегии. Введите число из диапазона, указанного в скобках (например, для YouTube это 0-25).</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Нажмите <kbd>Enter</kbd>. Зеленая цифра в меню консоли обновится.</div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>2. Параметры настройки</h2>
+        <div class="params-grid">
+            <div class="param-card">
+                <div class="param-title"><kbd>1</kbd> YouTube</div>
+                <div class="param-desc">Если сайт не грузится — меняйте это значение в первую очередь.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>2</kbd> YouTube GoogleVideo</div>
+                <div class="param-desc">Домены видео-серверов. Влияет на подгрузку самого видео.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>3</kbd> YouTube Quic</div>
+                <div class="param-desc">Протокол QUIC. Часто блокируется. Если есть проблемы, попробуйте <kbd>0</kbd> (отключено).</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>4</kbd> Twitch</div>
+                <div class="param-desc">Если не работают стримы на твиче - то крутите его.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>5</kbd> Discord Update</div>
+                <div class="param-desc">Для преодоления экрана "Checking for updates...". Для Discord подбирайте эту в первую очередь!</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>6</kbd> Discord</div>
+                <div class="param-desc">Подбирайте после того, как пропал экран обновлений ("Checking for updates..."), если интерфейс не грузится.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>7</kbd> Discord Quic</div>
+                <div class="param-desc">Протокол QUIC. Иногда участвует для подгрузки интерфейса. Если без него всё норм то ставьте <kbd>0</kbd> </div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>8</kbd> Discord.media</div>
+                <div class="param-desc">Отдельный модуль для доменов Discord media (картинки и видео-вложения). Также может влиять на подключение к голосовым каналам на серверах Discord. Если медиа или войсы в Discord работают нестабильно, подбирайте стратегию здесь.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>9</kbd> STUN</div>
+                <div class="param-desc">Важно для звонков (Telegram, WhatsApp, Discord Voice). Если не подключается к голосовому каналу дискорд ("RTC Connecting" или "Подключение...") — крутите здесь.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>10</kbd> CDN</div>
+                <div class="param-desc">Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также влияет на подключение к голосовым каналам в Discord.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>11</kbd> CDN Amazon TCP</div>
+                <div class="param-desc">Также частично может влиять на Twitch и загрузку изображений в Discord и подключение к голосовым каналам.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>12</kbd> CDN Amazon UDP</div>
+                <div class="param-desc">То же самое что и CDN Amazon TCP но работает через UDP.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>13</kbd> Blacklist</div>
+                <div class="param-desc">Instagram, Twitter и др. Из-за новых блокировок РКН практически бесполезно. Рекомендуется <kbd>0</kbd>.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>14</kbd> Личные списки</div>
+                <div class="param-desc">Пресет для персональных списков. Обходит ip из ipset-custom.txt и домены из list-custom.txt. Если не добавляли туда ничего, то используйте <kbd>0</kbd>.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>L</kbd> Уровень CDN</div>
+                <div class="param-desc">Количество доменов CDN. Обычно <b>base</b> достаточно. Если вылетают игры — ставьте <b>off</b>.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title">Движок</div>
+                <div class="param-desc">Конфигуратор использует только <b>Zapret2</b> / <b>winws2.exe</b>. Старый <b>winws.exe</b> больше не поддерживается.</div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>3. Алгоритм действий</h2>
+        <p>Если YouTube или другой сервис не работает, действуйте по алгоритму:</p>
+        <div class="steps-container">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div>Посмотрите текущее значение (например, в пункте <kbd>1</kbd> YouTube стоит цифра 2).</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div>Введите <kbd>1</kbd> и нажмите <kbd>Enter</kbd>. Введите <b>другое число</b> (напр. 5) и снова <kbd>Enter</kbd>.</div>
+            </div>
+            <div class="step">
+                <div class="step-number">!</div>
+                <div class="important" style="padding-top: 3px;">ВАЖНО: Чтобы изменения вступили в силу, нужно перезапустить обход!</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div>Введите <kbd>S</kbd> (Запустить обход) и нажмите <kbd>Enter</kbd>. Окно моргнет. Проверяйте браузер.</div>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div>Если не помогло — нажмите <kbd>K</kbd> (Остановить) и повторите с другим числом.</div>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>4. Управление программой</h2>
+        <table class="controls-table">
+            <tr>
+                <td><kbd>S</kbd></td>
+                <td>
+                    <strong>Запустить обход</strong><br>
+                    <span style="color:var(--text-muted)">Применяет выбранные стратегии, перезапускает процесс.</span>
+                </td>
+            </tr>
+            <tr>
+                <td><kbd>K</kbd></td>
+                <td>
+                    <strong>Завершить процесс обхода</strong><br>
+                    <span style="color:var(--text-muted)">Полностью выключает обход. Интернет работает в обычном режиме.</span>
+                </td>
+            </tr>
+            <tr>
+                <td><kbd>U</kbd></td>
+                <td>
+                    <strong>Установить этот конфиг в автозапуск</strong><br>
+                    <span style="color:var(--text-muted)">Создает службу Windows. Обход включается сам при старте ПК.</span>
+                </td>
+            </tr>
+            <tr>
+                <td><kbd>D</kbd></td>
+                <td>
+                    <strong>Удалить конфиг из автозапуска</strong><br>
+                    <span style="color:var(--text-muted)">Удаляет службу. Обход перестанет включаться автоматически.</span>
+                </td>
+            </tr>
+            <tr>
+                <td><kbd>I</kbd></td>
+                <td>
+                    <strong>Открыть инструкцию по всему этому</strong><br>
+                    <span style="color:var(--text-muted)">Открывает эту инструкцию. Без него вы бы тут не разобрались.</span>
+                </td>
+            </tr>
+            <tr>
+                <td><kbd>B</kbd></td>
+                <td>
+                    <strong>Вернуться в главное меню</strong><br>
+                    <span style="color:var(--text-muted)">Вернуться в главное меню скрипта.</span>
+                </td>
+            </tr>
+        </table>
+    </section>
+
+    <section>
+        <h2>5. Как поделиться конфигом?</h2>
+        <p>Если вы нашли рабочую комбинацию настроек, вы можете передать её другу двумя способами:</p>
+        
+        <div class="params-grid" style="grid-template-columns: 1fr; margin-top: 25px;">
+            
+            <!-- Метод 1 -->
+            <div class="param-card" style="border-left: 4px solid var(--accent-color);">
+                <div class="param-title">Способ 1: Передача файла (Быстро)</div>
+                <div class="param-desc">
+                    <p>Самый простой вариант — отправить другу готовый файл настроек. Ему нужно просто заменить свой файл на ваш.</p>
+                    <div class="terminal-box">
+                        <span class="path-highlight">GoodbyeZapret</span>\Project\configs\custom\ConfiguratorFix.bat
+                    </div>
+                </div>
+            </div>
+
+             <!-- Метод 2 -->
+            <div class="param-card" style="border-left: 4px solid var(--accent-color);">
+                <div class="param-title">Способ 2: Передача содержимого файла настроек конфигуратора</div>
+                <div class="param-desc">
+                    <p>Самый простой вариант — написать <b>cfg</b>. Откроется файл с конфигурацией, содержимое которого можно скопировать и отправить другу.</p>
+                 <p>Ему нужно у себя написать <b>cfg</b> и полностью заменить содержимое тем, что вы ему прислали.</p>
+                    <div class="terminal-box">
+                        <span class="path-highlight">GoodbyeZapret</span>\Project\configs\custom\ConfiguratorFix.bat
+                    </div>
+                </div>
+            </div>
+
+            <!-- Метод 3 -->
+            <div class="param-card">
+                <div class="param-title">Способ 3: Вручную (По цифрам)</div>
+                <div class="param-desc">
+                    <p>Если передать файл нет возможности, просто сообщите другу значения стратегий (зеленые цифры), которые установлены у вас.</p>
+                    <p style="margin-top:10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                        <i>Пример: «Поставь на YouTube - 9, а на Discord - 2».</i>
+                    </p>
+                    <p style="margin-top:10px">Друг должен открыть свой конфигуратор и вручную выставить эти цифры в меню.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="tips-box">
+        <h3>💡 Советы</h3>
+        <ul>
+            <li><b>Проблемы с играми:</b> Для CDN и Amazone укажите значение 0 или же вручную отредактируйте файл прописав вместо "--filter-tcp=80,443,1024-65535" - "--filter-tcp=80,443" и вместо "--filter-udp=443,1024-65535" - "--filter-udp=443" убрав порты 1024-65535 используемые игровыми серверами</li>
+            <li><b>Метод тыка:</b> Самый эффективный способ — перебор. Нет "лучшей" цифры, всё зависит от вашего провайдера.</li>
+            <li><b>Индикация:</b> Цифры, подсвеченные зеленым цветом в консоли — это текущее активное значение.</li>
+            <li><b>Диапазоны:</b> Вводите только числа, указанные в скобках (напр. 0-25).</li>
+            <li><b>Значение 0:</b> Это значит, что стратегия обхода для этого применяться не будет.</li>
+        </ul>
+    </div>
+</div>
+</div>
+    <footer style="text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.9em;">
+        GoodbyeZapret © 2026 ALFiX<br>
+        Documentation Design by You
+    </footer>
+</div>
+</body>
+</html>
