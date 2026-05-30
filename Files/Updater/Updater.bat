@@ -55,7 +55,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.8.4"
+set "UpdaterVersion=2.8.5"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -282,7 +282,6 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     call :log INFO "Starting service with configuration %GoodbyeZapret_Config% (!ResolvedConfigExt!)"
     if defined ResolvedConfigRel (
         if /I "!ResolvedConfigExt!"==".txt" (
-            powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\service\BuildGoodbyeZapretService.ps1" -ProjectDir "%ParentDirPath%" >nul 2>&1
             sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\service\GoodbyeZapretService.exe\" --preset \"%ParentDirPath%\configs\!ResolvedConfigRel!\" --project-dir \"%ParentDirPath%\"" >nul 2>&1
         ) else (
             sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
@@ -300,20 +299,20 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
         )
         echo         ^[*^] Обновление завершено
         call :log INFO "Update finished"
-        start "" "%ParentDirPath%\Launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat" am_admin
         timeout /t 1 >nul 2>&1
         exit
     ) else (
         call :log ERROR "Config file not found for base name: %GoodbyeZapret_Config%"
         echo         ^[*^] Файл конфига %GoodbyeZapret_Config% ^(.txt/.bat/.cmd^) не найден
         timeout /t 2 >nul
-        start "" "%ParentDirPath%\Launcher.bat"
+        start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat" am_admin
         timeout /t 1 >nul
         exit
     )
 ) else (
     call :log INFO "Starting Launcher"
-    start "" "%ParentDirPath%\Launcher.bat"
+    start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat" am_admin
     exit
 )
 
