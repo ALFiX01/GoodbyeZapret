@@ -1,2 +1,0 @@
-# Discord Update module domains
-updates.discord.com

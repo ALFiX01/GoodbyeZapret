@@ -1,3 +1,0 @@
-# Discord module domains
-discord.com
-cdn.discordapp.com

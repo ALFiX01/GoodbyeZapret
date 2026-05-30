@@ -1,2 +1,0 @@
-# CDN module domains
-cloudflare.com
