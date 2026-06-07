@@ -15,4 +15,5 @@ i.kym-cdn.com
 doppiocdn.media
 doh.opendns.com
 azureedge.net
+azure.com
 gvt2.com

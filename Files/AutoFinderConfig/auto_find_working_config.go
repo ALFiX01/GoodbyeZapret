@@ -328,8 +328,7 @@ func (f *Finder) checkOncePyLike(urlStr string, client *http.Client, totalTimeou
 	}
 	defer resp.Body.Close()
 
-	// Как в Python: HTTP >= 400 считаем ошибкой (если нужно “любой HTTP = ок”, убери этот блок)
-	if resp.StatusCode >= 400 {
+	if !statusAllowedForURL(urlStr, resp.StatusCode) {
 		return checkRes{
 			statusCode: resp.StatusCode,
 			gotFirst:   true,
@@ -364,6 +363,17 @@ func (f *Finder) checkOncePyLike(urlStr string, client *http.Client, totalTimeou
 		gotFirst:   atomic.LoadInt32(&gotFirst) == 1,
 		err:        nil,
 	}
+}
+
+func statusAllowedForURL(urlStr string, statusCode int) bool {
+	if statusCode >= 200 && statusCode < 400 {
+		return true
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	return strings.EqualFold(u.Hostname(), "updates.discord.com") && statusCode == http.StatusNotFound
 }
 
 func classifyPyLike(r checkRes) string {

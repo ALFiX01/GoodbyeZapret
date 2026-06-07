@@ -121,6 +121,23 @@ local function gz_edgein_order(n)
 	return order
 end
 
+local function gz_chunk_order(n, mode)
+	if mode == "middleout" then
+		return gz_middleout_order(n)
+	elseif mode == "edgein" then
+		return gz_edgein_order(n)
+	elseif mode == "reverse" then
+		local order = {}
+		for i = n, 1, -1 do order[#order + 1] = i end
+		return order
+	elseif mode == "normal" then
+		local order = {}
+		for i = 1, n do order[#order + 1] = i end
+		return order
+	end
+	return gz_shadow_braid_order(n)
+end
+
 -- Experimental: Discord media cascade.
 -- Discord media/CDN traffic is mostly sensitive to early host/SNI inspection.
 -- This sends the real suffix early, poisons the host range with several
@@ -249,12 +266,14 @@ end
 --
 -- standard args: direction, payload, fooling, ip_id, rawsend, reconstruct
 -- arg: blob=<blob>              QUIC Initial fake, default quic_google
--- arg: q_repeats=N              main QUIC fake repeats, default 10
+-- arg: q_repeats=N              main QUIC fake repeats, default payload-aware
 -- arg: ip_autottl=<autottl>     main QUIC fake autottl, default 0,3-20
 -- arg: ip6_autottl=<autottl>    main QUIC fake IPv6 autottl, default 0,3-20
--- arg: satellite_repeats=N      side QUIC fake repeats, default 2
+-- arg: pre_satellite_repeats=N  QUIC fake repeats before main, default payload-aware
+-- arg: post_satellite_repeats=N QUIC fake repeats after shadows, default payload-aware
+-- arg: satellite_repeats=N      legacy fallback for both pre/post satellite repeats
 -- arg: satellite_autottl=<ttl>  side QUIC fake autottl, default -1,3-20
--- arg: shadow_repeats=N         STUN-like shadow packets, default 2
+-- arg: shadow_repeats=N         STUN-like shadow packets, default payload-aware
 -- arg: pad=N                    bytes appended to shadow, default 8
 -- arg: pattern=<blob>           shadow padding pattern, default 0x0F0F0E0F
 function gz_stun_quic_constellation(ctx, desync)
@@ -272,9 +291,28 @@ function gz_stun_quic_constellation(ctx, desync)
 			end
 
 			local quic = blob(desync, qblob)
-			local main_repeats = math.floor(gz_clamp(gz_num(desync, "q_repeats", 10), 1, 32))
-			local satellite_repeats = math.floor(gz_clamp(gz_num(desync, "satellite_repeats", 2), 0, 12))
-			local shadow_repeats = math.floor(gz_clamp(gz_num(desync, "shadow_repeats", 2), 0, 8))
+			local l7payload = desync.l7payload or "unknown"
+			local default_q_repeats = 10
+			local default_pre_satellite_repeats = 2
+			local default_post_satellite_repeats = 1
+			local default_shadow_repeats = 2
+			if l7payload == "discord_ip_discovery" then
+				default_q_repeats = 8
+				default_pre_satellite_repeats = 1
+				default_post_satellite_repeats = 0
+				default_shadow_repeats = 1
+			elseif l7payload == "stun" then
+				default_q_repeats = 10
+				default_pre_satellite_repeats = 1
+				default_post_satellite_repeats = 1
+				default_shadow_repeats = 2
+			end
+
+			local legacy_satellite_repeats = desync.arg and desync.arg.satellite_repeats
+			local main_repeats = math.floor(gz_clamp(gz_num(desync, "q_repeats", default_q_repeats), 1, 32))
+			local pre_satellite_repeats = math.floor(gz_clamp(gz_num(desync, "pre_satellite_repeats", legacy_satellite_repeats and tonumber(legacy_satellite_repeats) or default_pre_satellite_repeats), 0, 12))
+			local post_satellite_repeats = math.floor(gz_clamp(gz_num(desync, "post_satellite_repeats", legacy_satellite_repeats and tonumber(legacy_satellite_repeats) or default_post_satellite_repeats), 0, 12))
+			local shadow_repeats = math.floor(gz_clamp(gz_num(desync, "shadow_repeats", default_shadow_repeats), 0, 8))
 			local pad_len = math.floor(gz_clamp(gz_num(desync, "pad", 8), 0, 64))
 			local main_autottl = gz_str(desync, "ip_autottl", "0,3-20")
 			local main6_autottl = gz_str(desync, "ip6_autottl", main_autottl)
@@ -283,12 +321,12 @@ function gz_stun_quic_constellation(ctx, desync)
 			local pad_pattern = blob(desync, gz_str(desync, "pattern", "0x0F0F0E0F"))
 
 			if b_debug then
-				DLOG("gz_stun_quic_constellation: q_repeats="..main_repeats.." satellite_repeats="..satellite_repeats.." shadow_repeats="..shadow_repeats)
+				DLOG("gz_stun_quic_constellation: payload="..l7payload.." q_repeats="..main_repeats.." pre_satellite_repeats="..pre_satellite_repeats.." post_satellite_repeats="..post_satellite_repeats.." shadow_repeats="..shadow_repeats)
 			end
 
-			if satellite_repeats > 0 then
+			if pre_satellite_repeats > 0 then
 				if not gz_send_payload_with_args(desync, quic, {
-					repeats = satellite_repeats,
+					repeats = pre_satellite_repeats,
 					ip_autottl = satellite_autottl,
 					ip6_autottl = satellite6_autottl,
 					ip_id = "rnd"
@@ -317,9 +355,9 @@ function gz_stun_quic_constellation(ctx, desync)
 				}) then return VERDICT_PASS end
 			end
 
-			if satellite_repeats > 0 then
+			if post_satellite_repeats > 0 then
 				if not gz_send_payload_with_args(desync, quic, {
-					repeats = satellite_repeats,
+					repeats = post_satellite_repeats,
 					ip_autottl = satellite_autottl,
 					ip6_autottl = satellite6_autottl,
 					ip_id = "rnd"
@@ -332,18 +370,21 @@ function gz_stun_quic_constellation(ctx, desync)
 end
 
 -- Experimental: SNI shadow braid.
--- More aggressive than gz_sni_mirror_ladder: it first poisons a small halo
--- around the SNI, then alternates two fake hostnames in layered chunk order,
--- and finally rebuilds the real SNI in a center/edge braid.
+-- More aggressive than gz_sni_mirror_ladder: it sends the real prefix first,
+-- poisons a small halo around the SNI with layered fake hosts, optionally sends
+-- the suffix early, and finally rebuilds the real SNI in a selected chunk order.
 --
 -- standard args: direction, payload, fooling, ip_id, rawsend, reconstruct
 -- arg: host=<str>         first fake host template, default www.google.com
 -- arg: host2=<str>        second fake host template, default cloudflare.com
+-- arg: hosts=<list>       fake host templates, comma separated. overrides host/host2
 -- arg: parts=N            SNI chunk count, default 5
 -- arg: layers=N           fake layered passes, default 3
 -- arg: halo=N             bytes before/after SNI included in fake halo, default 2
 -- arg: fake_tcp_ts=N      default fake-only tcp_ts when no fooling is set
 -- arg: range=<range>      protected range, default host,endhost-1
+-- arg: suffix_first       send the real suffix before rebuilding the real SNI
+-- arg: real_order=<mode>  braid|middleout|edgein|reverse|normal, default braid
 -- arg: nodrop
 function gz_sni_shadow_braid(ctx, desync)
 	if not desync.dis.tcp then
@@ -370,32 +411,17 @@ function gz_sni_shadow_braid(ctx, desync)
 				local parts = math.floor(gz_clamp(gz_num(desync, "parts", 5), 1, host_len))
 				local layers = math.floor(gz_clamp(gz_num(desync, "layers", 3), 0, 8))
 				local halo = math.floor(gz_clamp(gz_num(desync, "halo", 2), 0, 12))
+				local hosts_default = gz_str(desync, "host", "www.google.com")..","..gz_str(desync, "host2", "cloudflare.com")
+				local hosts = gz_parse_hosts(desync.arg and desync.arg.hosts, hosts_default)
 				local real_host = string.sub(data, pos[1], pos[2])
-				local fake_host1 = genhost(host_len, gz_str(desync, "host", "www.google.com"))
-				local fake_host2 = genhost(host_len, gz_str(desync, "host2", "cloudflare.com"))
 				local chunks = gz_host_chunks(host_len, parts)
-				local real_order = gz_shadow_braid_order(#chunks)
+				local real_order = gz_chunk_order(#chunks, gz_str(desync, "real_order", "braid"))
 
 				local opts_orig = {rawsend = rawsend_opts_base(desync), reconstruct = {}, ipfrag = {}, ipid = desync.arg, fooling = {tcp_ts_up = desync.arg.tcp_ts_up}}
 				local opts_fake = gz_fake_opts(desync, gz_num(desync, "fake_tcp_ts", -300000))
 
 				if b_debug then
-					DLOG("gz_sni_shadow_braid: range="..table.concat(zero_based_pos(pos), " ").." parts="..#chunks.." layers="..layers.." halo="..halo)
-				end
-
-				local span_first = gz_clamp(pos[1] - halo, 1, #data)
-				local span_last = gz_clamp(pos[2] + halo, 1, #data)
-				local fake_prefix = string.sub(data, span_first, pos[1] - 1)
-				local fake_suffix = string.sub(data, pos[2] + 1, span_last)
-				local fake_span1 = fake_prefix .. fake_host1 .. fake_suffix
-				local fake_span2 = fake_prefix .. fake_host2 .. fake_suffix
-
-				for layer = 1, layers do
-					local fake_span = layer % 2 == 1 and fake_span1 or fake_span2
-					if #fake_span > 0 then
-						if b_debug then DLOG("gz_sni_shadow_braid: fake halo layer="..layer.." offset="..(span_first - 1).." len="..#fake_span) end
-						if not rawsend_payload_segmented(desync, fake_span, span_first - 1, opts_fake) then return VERDICT_PASS end
-					end
+					DLOG("gz_sni_shadow_braid: range="..table.concat(zero_based_pos(pos), " ").." parts="..#chunks.." layers="..layers.." halo="..halo.." real_order="..gz_str(desync, "real_order", "braid"))
 				end
 
 				local part = string.sub(data, 1, pos[1] - 1)
@@ -404,12 +430,37 @@ function gz_sni_shadow_braid(ctx, desync)
 					if not rawsend_payload_segmented(desync, part, 0, opts_orig) then return VERDICT_PASS end
 				end
 
+				local suffix = string.sub(data, pos[2] + 1)
+				if desync.arg.suffix_first and #suffix > 0 then
+					if b_debug then DLOG("gz_sni_shadow_braid: sending suffix early offset="..pos[2].." len="..#suffix) end
+					if not rawsend_payload_segmented(desync, suffix, pos[2], opts_orig) then return VERDICT_PASS end
+				end
+
+				local span_first = gz_clamp(pos[1] - halo, 1, #data)
+				local span_last = gz_clamp(pos[2] + halo, 1, #data)
+				local fake_prefix = string.sub(data, span_first, pos[1] - 1)
+				local fake_suffix = string.sub(data, pos[2] + 1, span_last)
+
 				for layer = 1, layers do
+					local host = hosts[((layer - 1) % #hosts) + 1]
+					local fake_host = genhost(host_len, host)
+					local fake_span = fake_prefix .. fake_host .. fake_suffix
+					if #fake_span > 0 then
+						if b_debug then DLOG("gz_sni_shadow_braid: fake halo layer="..layer.." host="..host.." offset="..(span_first - 1).." len="..#fake_span) end
+						if not rawsend_payload_segmented(desync, fake_span, span_first - 1, opts_fake) then return VERDICT_PASS end
+					end
+				end
+
+				for layer = 1, layers do
+					local host = hosts[((layer - 1) % #hosts) + 1]
+					local alt_host = hosts[(layer % #hosts) + 1]
+					local fake_host = genhost(host_len, host)
+					local fake_alt_host = genhost(host_len, alt_host)
 					for step = 1, #chunks do
 						local idx = layer % 2 == 1 and (#chunks - step + 1) or step
 						local chunk = chunks[idx]
-						local fake_host = (idx + layer) % 2 == 0 and fake_host1 or fake_host2
-						local chunk_data = string.sub(fake_host, chunk.first, chunk.last)
+						local chunk_host = (idx + layer) % 2 == 0 and fake_host or fake_alt_host
+						local chunk_data = string.sub(chunk_host, chunk.first, chunk.last)
 						local offset = pos[1] + chunk.first - 2
 						if b_debug then DLOG("gz_sni_shadow_braid: fake layer="..layer.." chunk="..idx.." offset="..offset.." len="..#chunk_data) end
 						if not rawsend_payload_segmented(desync, chunk_data, offset, opts_fake) then return VERDICT_PASS end
@@ -424,10 +475,9 @@ function gz_sni_shadow_braid(ctx, desync)
 					if not rawsend_payload_segmented(desync, chunk_data, offset, opts_orig) then return VERDICT_PASS end
 				end
 
-				part = string.sub(data, pos[2] + 1)
-				if #part > 0 then
-					if b_debug then DLOG("gz_sni_shadow_braid: sending suffix offset="..pos[2].." len="..#part) end
-					if not rawsend_payload_segmented(desync, part, pos[2], opts_orig) then return VERDICT_PASS end
+				if not desync.arg.suffix_first and #suffix > 0 then
+					if b_debug then DLOG("gz_sni_shadow_braid: sending suffix offset="..pos[2].." len="..#suffix) end
+					if not rawsend_payload_segmented(desync, suffix, pos[2], opts_orig) then return VERDICT_PASS end
 				end
 
 				replay_drop_set(desync)
@@ -451,8 +501,10 @@ end
 --
 -- standard args: direction, payload, fooling, ip_id, rawsend, reconstruct
 -- arg: host=<str>         fake host template, default www.google.com
+-- arg: hosts=<list>       fake host templates, comma separated
 -- arg: parts=N            SNI chunk count, default 4
 -- arg: fake_passes=N      0 disables fake prelude, default 2
+-- arg: halo=N             bytes before/after SNI included in fake prelude, default 0
 -- arg: fake_tcp_ts=N      default fake-only tcp_ts when no fooling is set
 -- arg: range=<range>      protected range, default host,endhost-1
 -- arg: real_order=normal  send real chunks in normal order instead of middle-out
@@ -480,21 +532,18 @@ function gz_sni_mirror_ladder(ctx, desync)
 				end
 				local parts = math.floor(gz_clamp(gz_num(desync, "parts", 4), 1, host_len))
 				local fake_passes = math.floor(gz_clamp(gz_num(desync, "fake_passes", 2), 0, 8))
+				local halo = math.floor(gz_clamp(gz_num(desync, "halo", 0), 0, 12))
+				local hosts = gz_parse_hosts(desync.arg and desync.arg.hosts, gz_str(desync, "host", "www.google.com"))
 				local real_host = string.sub(data, pos[1], pos[2])
-				local fake_host = genhost(host_len, gz_str(desync, "host", "www.google.com"))
 				local chunks = gz_host_chunks(host_len, parts)
+				local fake_order = gz_edgein_order(#chunks)
 
 				if b_debug then
-					DLOG("gz_sni_mirror_ladder: range="..table.concat(zero_based_pos(pos), " ").." parts="..#chunks.." fake_passes="..fake_passes)
+					DLOG("gz_sni_mirror_ladder: range="..table.concat(zero_based_pos(pos), " ").." parts="..#chunks.." fake_passes="..fake_passes.." halo="..halo)
 				end
 
 				local opts_orig = {rawsend = rawsend_opts_base(desync), reconstruct = {}, ipfrag = {}, ipid = desync.arg, fooling = {tcp_ts_up = desync.arg.tcp_ts_up}}
-				local fake_arg = deepcopy(desync.arg)
-				if fake_arg.tcp_ts == nil and not fake_arg.tcp_ts_up and not fake_arg.tcp_md5 and not fake_arg.badsum and
-				   not fake_arg.ip_ttl and not fake_arg.ip6_ttl and not fake_arg.ip_autottl and not fake_arg.ip6_autottl then
-					fake_arg.tcp_ts = gz_num(desync, "fake_tcp_ts", -300000)
-				end
-				local opts_fake = {rawsend = rawsend_opts(desync), reconstruct = {badsum = fake_arg.badsum}, ipfrag = {}, ipid = fake_arg, fooling = fake_arg}
+				local opts_fake = gz_fake_opts(desync, gz_num(desync, "fake_tcp_ts", -300000))
 
 				local part = string.sub(data, 1, pos[1] - 1)
 				if #part > 0 then
@@ -503,15 +552,23 @@ function gz_sni_mirror_ladder(ctx, desync)
 				end
 
 				for pass = 1, fake_passes do
-					local reverse = pass % 2 == 1
-					local first = reverse and #chunks or 1
-					local last = reverse and 1 or #chunks
-					local step = reverse and -1 or 1
-					for i = first, last, step do
+					local host = hosts[((pass - 1) % #hosts) + 1]
+					local fake_host = genhost(host_len, host)
+					if halo > 0 then
+						local span_first = gz_clamp(pos[1] - halo, 1, #data)
+						local span_last = gz_clamp(pos[2] + halo, 1, #data)
+						local fake_span = string.sub(data, span_first, pos[1] - 1) .. fake_host .. string.sub(data, pos[2] + 1, span_last)
+						if #fake_span > 0 then
+							if b_debug then DLOG("gz_sni_mirror_ladder: fake halo pass="..pass.." host="..host.." offset="..(span_first - 1).." len="..#fake_span) end
+							if not rawsend_payload_segmented(desync, fake_span, span_first - 1, opts_fake) then return VERDICT_PASS end
+						end
+					end
+					for step = 1, #fake_order do
+						local i = pass % 2 == 1 and fake_order[step] or fake_order[#fake_order - step + 1]
 						local chunk = chunks[i]
 						local chunk_data = string.sub(fake_host, chunk.first, chunk.last)
 						local offset = pos[1] + chunk.first - 2
-						if b_debug then DLOG("gz_sni_mirror_ladder: fake pass="..pass.." chunk="..i.." offset="..offset.." len="..#chunk_data) end
+						if b_debug then DLOG("gz_sni_mirror_ladder: fake pass="..pass.." host="..host.." chunk="..i.." offset="..offset.." len="..#chunk_data) end
 						if not rawsend_payload_segmented(desync, chunk_data, offset, opts_fake) then return VERDICT_PASS end
 					end
 				end
@@ -817,6 +874,107 @@ function gz_ytgv_host_stealth(ctx, desync)
 		mode = gz_str(desync, "mode", "soft"),
 		midhost = gz_str(desync, "midhost", "midsld"),
 		repeats = gz_num(desync, "repeats", 2),
+		tcp_ack = gz_num(desync, "tcp_ack", -66000)
+	}))
+end
+
+-- YouTube / GoogleVideo TCP experiment.
+-- Performs a light SYN/data prelude, sends one timestamped fake ClientHello, then
+-- rebuilds the real ClientHello around SNI with either faked disorder or split.
+function gz_yt_sni_resync(ctx, desync)
+	send(ctx, gz_copy_desync(desync, {
+		repeats = gz_num(desync, "send_repeats", 1),
+		ip_id = gz_str(desync, "ip_id", "seq")
+	}))
+
+	syndata(ctx, gz_copy_desync(desync, {
+		blob = gz_str(desync, "blob", "tls_google"),
+		ip_autottl = gz_str(desync, "syn_autottl", "-2,3-20"),
+		ip6_autottl = gz_str(desync, "syn6_autottl", "-2,3-20")
+	}))
+
+	gz_fake_once(ctx, desync, {
+		blob = gz_str(desync, "fake_blob", gz_str(desync, "blob", "tls_google")),
+		repeats = gz_num(desync, "fake_repeats", 6),
+		tcp_ack = gz_num(desync, "tcp_ack", -66000),
+		tcp_ts = gz_num(desync, "fake_tcp_ts", -500000),
+		seqovl = gz_num(desync, "fake_seqovl", 680),
+		seqovl_pattern = gz_str(desync, "fake_seqovl_pattern", gz_str(desync, "blob", "tls_google")),
+		tls_mod = gz_str(desync, "fake_tls_mod", "rnd,dupsid"),
+		sni = gz_str(desync, "fake_sni", "www.google.com")
+	})
+
+	local common = {
+		pattern = gz_str(desync, "pattern", "0x00"),
+		pos = gz_str(desync, "pos", "1,midsld+1,sniext+1"),
+		seqovl = gz_num(desync, "seqovl", 1),
+		seqovl_pattern = gz_str(desync, "seqovl_pattern", gz_str(desync, "pattern", "0x00")),
+		tcp_ack = gz_num(desync, "tcp_ack", -66000),
+		tcp_ts_up = desync.arg.split_tcp_ts_up or desync.arg.tcp_ts_up,
+		ip_autottl = gz_str(desync, "split_autottl", "1,3-20"),
+		ip6_autottl = gz_str(desync, "split6_autottl", "1,3-20")
+	}
+
+	if gz_str(desync, "mode", "disorder") == "split" then
+		return fakedsplit(ctx, gz_copy_desync(desync, common))
+	end
+	return fakeddisorder(ctx, gz_copy_desync(desync, common))
+end
+
+-- Hostlists TCP experiments.
+-- One entry point for several broader hostlist probes: interlaced SNI rebuild,
+-- TLS-record split probe, and a softer hostfakesplit path.
+function gz_bl_tls_probe(ctx, desync)
+	send(ctx, gz_copy_desync(desync, {
+		repeats = gz_num(desync, "send_repeats", 2),
+		ip_id = gz_str(desync, "ip_id", "seq")
+	}))
+
+	syndata(ctx, gz_copy_desync(desync, {
+		blob = gz_str(desync, "blob", "tls_google"),
+		ip_autottl = gz_str(desync, "syn_autottl", "-2,3-20"),
+		ip6_autottl = gz_str(desync, "syn6_autottl", "-2,3-20")
+	}))
+
+	gz_fake_once(ctx, desync, {
+		blob = gz_str(desync, "fake_blob", gz_str(desync, "blob", "tls_google")),
+		repeats = gz_num(desync, "fake_repeats", 5),
+		tcp_ack = gz_num(desync, "tcp_ack", -66000),
+		tcp_ts = gz_num(desync, "fake_tcp_ts", -300000),
+		tls_mod = gz_str(desync, "fake_tls_mod", "rnd,dupsid"),
+		sni = gz_str(desync, "fake_sni", "www.google.com")
+	})
+
+	local action = gz_str(desync, "action", "interlace")
+	if action == "host" then
+		return hostfakesplit_stealth(ctx, gz_copy_desync(desync, {
+			host = gz_str(desync, "host", "www.google.com"),
+			mode = gz_str(desync, "stealth_mode", "soft"),
+			midhost = gz_str(desync, "midhost", "midsld"),
+			repeats = gz_num(desync, "repeats", 2),
+			tcp_ack = gz_num(desync, "tcp_ack", -66000),
+			tcp_ts = gz_num(desync, "split_tcp_ts", -1000)
+		}))
+	end
+
+	if action == "tlsrec" then
+		tlsrec(ctx, gz_copy_desync(desync, {
+			pos = gz_str(desync, "tlsrec_pos", "host")
+		}))
+		return multidisorder(ctx, gz_copy_desync(desync, {
+			pos = gz_str(desync, "pos", "1,midsld,endhost-2"),
+			seqovl = gz_num(desync, "seqovl", 680),
+			seqovl_pattern = gz_str(desync, "seqovl_pattern", gz_str(desync, "blob", "tls_google")),
+			tcp_ack = gz_num(desync, "tcp_ack", -66000),
+			tcp_ts_up = desync.arg.tcp_ts_up
+		}))
+	end
+
+	return multisplitdisorder(ctx, gz_copy_desync(desync, {
+		mode = gz_str(desync, "order", "interlace"),
+		pos = gz_str(desync, "pos", "1,host,midsld,endhost-1"),
+		seqovl = gz_num(desync, "seqovl", 680),
+		seqovl_pattern = gz_str(desync, "seqovl_pattern", gz_str(desync, "blob", "tls_google")),
 		tcp_ack = gz_num(desync, "tcp_ack", -66000)
 	}))
 end

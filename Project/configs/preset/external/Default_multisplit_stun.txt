@@ -126,7 +126,6 @@
 --hostlist=lists/rutracker.txt
 --hostlist=lists/rutor.txt
 --hostlist=lists/roblox.txt
---hostlist=lists/facebook.txt
 --hostlist=lists/instagram.txt
 --out-range=-d10
 --lua-desync=multisplit:pos=1:seqovl=740:seqovl_pattern=stun_pat

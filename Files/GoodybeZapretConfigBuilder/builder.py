@@ -24,7 +24,7 @@ SERVICE_MAP = {
     "discordquic": "DiscordQuic",
     "discord": "Discord",
     "discordmedia": "DiscordMedia",
-    "blacklist": "Blacklist",
+    "blacklist": "Hostlists",
     "cdn": "CDN",
     "amazontcp": "AmazonTCP",
     "amazonudp": "AmazonUDP",
@@ -209,25 +209,34 @@ def normalize_config_structure(data):
 def load_config():
     path = find_existing_file(CONFIG_FILE_Z2)
     if path is None:
-        return {"services": {}, "prefix_rules": []}
+        print(f"[ERROR] {CONFIG_FILE_Z2} not found", file=sys.stderr)
+        sys.exit(1)
 
     file_name = path.name
     try:
         with open(path, "r", encoding="utf-8") as f:
             raw_text = f.read()
         try:
-            return normalize_config_structure(json.loads(raw_text))
+            data = normalize_config_structure(json.loads(raw_text))
         except json.JSONDecodeError:
             sanitized_text = re.sub(r',(\s*[\]}])', r'\1', raw_text)
-            return normalize_config_structure(json.loads(sanitized_text))
+            data = normalize_config_structure(json.loads(sanitized_text))
     except Exception as e:
         print(f"[ERROR] Failed to load {file_name}: {e}", file=sys.stderr)
-        return {"services": {}, "prefix_rules": []}
+        sys.exit(1)
+
+    if not data.get("services"):
+        print(f"[ERROR] {file_name} is empty or has no services", file=sys.stderr)
+        sys.exit(1)
+
+    return data
 
 
 def export_limits(data):
     services = data.get("services", {})
     for svc_name, strategies in services.items():
+        if svc_name == "Blacklist" and "Hostlists" in services:
+            continue
         count = len(strategies)
         print(f'set "MAX_{svc_name}={count}"')
 

@@ -119,7 +119,6 @@
 --hostlist=lists/rutracker.txt
 --hostlist=lists/rutor.txt
 --hostlist=lists/roblox.txt
---hostlist=lists/facebook.txt
 --hostlist=lists/instagram.txt
 --hostlist=lists/twitter.txt
 --out-range=-d8

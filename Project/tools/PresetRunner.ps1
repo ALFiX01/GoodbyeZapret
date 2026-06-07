@@ -132,8 +132,64 @@ function Write-RunnerLog {
         [string]$Level = "INFO"
     )
 
-    $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Add-Content -LiteralPath (Get-RunnerLogPath $ProjectDir) -Encoding UTF8 -Value "[$stamp][$Level] $Message"
+    try {
+        $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        Add-Content -LiteralPath (Get-RunnerLogPath $ProjectDir) -Encoding UTF8 -Value "[$stamp][$Level] $Message" -ErrorAction Stop
+    }
+    catch {
+        # Logging must never prevent the bypass process from starting.
+    }
+}
+
+function ConvertTo-CommandLineArgument {
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value)
+
+    if ($Value -notmatch '[\s"]') {
+        return $Value
+    }
+
+    $builder = New-Object System.Text.StringBuilder
+    [void]$builder.Append('"')
+    $backslashes = 0
+
+    foreach ($char in $Value.ToCharArray()) {
+        if ($char -eq '\') {
+            $backslashes++
+            continue
+        }
+
+        if ($char -eq '"') {
+            [void]$builder.Append('\', ($backslashes * 2) + 1)
+            [void]$builder.Append('"')
+            $backslashes = 0
+            continue
+        }
+
+        if ($backslashes -gt 0) {
+            [void]$builder.Append('\', $backslashes)
+            $backslashes = 0
+        }
+        [void]$builder.Append($char)
+    }
+
+    if ($backslashes -gt 0) {
+        [void]$builder.Append('\', $backslashes * 2)
+    }
+
+    [void]$builder.Append('"')
+    return $builder.ToString()
+}
+
+function Join-CommandLineArguments {
+    param([string[]]$Arguments)
+
+    return (($Arguments | ForEach-Object { ConvertTo-CommandLineArgument -Value $_ }) -join " ")
+}
+
+function Get-ProcessNameFromExe {
+    param([Parameter(Mandatory = $true)][string]$ExeName)
+
+    return [System.IO.Path]::GetFileNameWithoutExtension($ExeName)
 }
 
 function Format-ResolvedPath {
@@ -145,6 +201,10 @@ function Format-ResolvedPath {
     )
 
     $prefix = if ($UseAtPrefix) { "@" } else { "" }
+    if ($UseAtPrefix) {
+        return $prefix + $AbsolutePath
+    }
+
     return $prefix + '"' + $AbsolutePath + '"'
 }
 
@@ -244,6 +304,26 @@ function Resolve-PresetArgument {
         )
     }
 
+    $resolvedValue = [System.Text.RegularExpressions.Regex]::Replace(
+        $resolvedValue,
+        '@"(?<path>[^"]+)"',
+        {
+            param($match)
+
+            return "@" + $match.Groups["path"].Value
+        }
+    )
+
+    $resolvedValue = [System.Text.RegularExpressions.Regex]::Replace(
+        $resolvedValue,
+        '="(?<path>[A-Za-z]:\\[^"]+)"',
+        {
+            param($match)
+
+            return "=" + $match.Groups["path"].Value
+        }
+    )
+
     return $resolvedValue
 }
 
@@ -285,6 +365,13 @@ function Resolve-Preset {
         }
 
         $resolvedArgument = Resolve-PresetArgument -Value $trimmed -ProjectDir $ProjectDir
+        if ($resolvedArgument -match '@"[^"]+"') {
+            throw "Invalid @file argument after path resolution: $resolvedArgument"
+        }
+        if ($resolvedArgument -match '="[A-Za-z]:\\[^"]+"') {
+            throw "Invalid quoted file argument after path resolution: $resolvedArgument"
+        }
+
         if (Test-EmptyPortArgument -Value $resolvedArgument) {
             continue
         }
@@ -354,18 +441,24 @@ function Start-PresetProcess {
     Write-RunnerLog -ProjectDir $ProjectDir -Message ("Engine: " + $ResolvedPreset.EnginePath)
     Write-RunnerLog -ProjectDir $ProjectDir -Message ("Mode: " + $Mode)
 
-    $startParams = @{
-        FilePath = $ResolvedPreset.EnginePath
-        ArgumentList = $ResolvedPreset.Arguments
-        WorkingDirectory = $ResolvedPreset.BinDir
-        PassThru = $true
+    $engineArguments = Join-CommandLineArguments -Arguments ([string[]]$ResolvedPreset.Arguments)
+    $engineCommand = (ConvertTo-CommandLineArgument -Value $ResolvedPreset.EnginePath)
+    if (-not [string]::IsNullOrWhiteSpace($engineArguments)) {
+        $engineCommand += " " + $engineArguments
     }
+    $engineCommand += " >NUL 2>NUL"
 
-    if ($Mode -eq "Interactive" -and [Environment]::UserInteractive) {
-        $startParams.WindowStyle = "Minimized"
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = if ($env:ComSpec) { $env:ComSpec } else { "cmd.exe" }
+    $startInfo.Arguments = "/d /s /c " + (ConvertTo-CommandLineArgument -Value $engineCommand)
+    $startInfo.WorkingDirectory = $ResolvedPreset.BinDir
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    if ($null -eq $process) {
+        throw "Failed to start engine process."
     }
-
-    $process = Start-Process @startParams
     Start-Sleep -Milliseconds 700
 
     if ($process.HasExited) {
@@ -374,7 +467,11 @@ function Start-PresetProcess {
         throw $message
     }
 
-    Write-RunnerLog -ProjectDir $ProjectDir -Message ("Engine started with PID " + $process.Id)
+    $engineProcessName = Get-ProcessNameFromExe -ExeName $ResolvedPreset.EngineName
+    $engineProcess = Get-Process -Name $engineProcessName -ErrorAction SilentlyContinue | Select-Object -First 1
+    $enginePid = if ($engineProcess) { $engineProcess.Id } else { $process.Id }
+
+    Write-RunnerLog -ProjectDir $ProjectDir -Message ("Engine started with PID " + $enginePid)
 
     if (-not $NoTray) {
         $trayPath = Join-Path $ProjectDir "tools\tray\GoodbyeZapretTray.exe"
@@ -387,7 +484,7 @@ function Start-PresetProcess {
         }
     }
 
-    Write-RunnerMessage -Level "OK" -Message ("Started " + $ResolvedPreset.EngineName + " with PID " + $process.Id)
+    Write-RunnerMessage -Level "OK" -Message ("Started " + $ResolvedPreset.EngineName + " with PID " + $enginePid)
 }
 
 function Start-PresetServiceHost {
@@ -587,7 +684,7 @@ public sealed class GoodbyeZapretPresetService : ServiceBase
 "@
 
     [GoodbyeZapretPresetService]::EnginePath = $ResolvedPreset.EnginePath
-    [GoodbyeZapretPresetService]::EngineArguments = [string]::Join(" ", ([string[]]$ResolvedPreset.Arguments))
+    [GoodbyeZapretPresetService]::EngineArguments = Join-CommandLineArguments -Arguments ([string[]]$ResolvedPreset.Arguments)
     [GoodbyeZapretPresetService]::WorkingDirectory = $ResolvedPreset.BinDir
     [GoodbyeZapretPresetService]::LogPath = Get-RunnerLogPath -ProjectDir $ProjectDir
 

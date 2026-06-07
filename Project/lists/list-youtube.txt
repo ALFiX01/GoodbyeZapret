@@ -1,4 +1,9 @@
 www.youtube.com
+studio.youtube.com
+upload.youtube.com
+upload.video.google.com
+rtmp.youtube.com
+rtmps.youtube.com
 accounts.youtube.com
 youtubekids.com
 ggpht.com
@@ -6,14 +11,14 @@ ytimg.com
 yt.be
 youtu.be
 googleadservices.com
-lh3.googleusercontent.com
-yt3.googleusercontent.com
+googleusercontent.com
 gvt1.com
 youtube-nocookie.com
 youtubeembeddedplayer.googleapis.com
 youtube.googleapis.com
 youtubei.googleapis.com
 jnn-pa.googleapis.com
+gstatic.com
 youtube-ui.l.google.com
 yt-video-upload.l.google.com
 wide-youtube.l.google.com

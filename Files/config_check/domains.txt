@@ -1,0 +1,14 @@
+# List of domains to test (one per line). Lines starting with # are ignored.
+rr1---sn-jvhnu5g-n8vk.googlevideo.com
+rr2---sn-jvhnu5g-n8vy.googlevideo.com
+rr3---sn-jvhnu5g-n8vr.googlevideo.com
+rr4---sn-jvhnu5g-n8vy.googlevideo.com
+rr5---sn-jvhnu5g-n8vk.googlevideo.com
+rr6---sn-jvhnu5g-n8vy.googlevideo.com
+www.youtube.com
+i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg
+discord.com
+updates.discord.com
+cloudflare.com
+aws.amazon.com
+goodbyezapret.crabdance.com/GoodbyeZapret_Version

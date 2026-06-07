@@ -1,5 +1,6 @@
 param(
-    [string]$LauncherPath
+    [string]$LauncherPath,
+    [switch]$Quiet
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,7 +21,9 @@ function Add-CheckWarn {
     param([string]$Message)
 
     $script:warningCount++
-    Write-Host ("  [WARN] " + $Message) -ForegroundColor Yellow
+    if (-not $Quiet) {
+        Write-Host ("  [WARN] " + $Message) -ForegroundColor Yellow
+    }
 }
 
 function Add-CheckFixed {
@@ -33,13 +36,17 @@ function Add-CheckFixed {
 function Add-CheckInfo {
     param([string]$Message)
 
-    Write-Host ("  [INFO] " + $Message) -ForegroundColor Yellow
+    if (-not $Quiet) {
+        Write-Host ("  [INFO] " + $Message) -ForegroundColor Yellow
+    }
 }
 
 function Add-CheckOk {
     param([string]$Message)
 
-    Write-Host ("  [OK] " + $Message) -ForegroundColor Green
+    if (-not $Quiet) {
+        Write-Host ("  [OK] " + $Message) -ForegroundColor Green
+    }
 }
 
 function Test-RequiredFile {
@@ -599,9 +606,11 @@ function Test-ConfigFileNames {
     }
 }
 
-Write-Host ''
-Write-Host ' GoodbyeZapret startup diagnostics' -ForegroundColor Cyan
-Write-Host ''
+if (-not $Quiet) {
+    Write-Host ''
+    Write-Host ' GoodbyeZapret startup diagnostics' -ForegroundColor Cyan
+    Write-Host ''
+}
 
 if ([string]::IsNullOrWhiteSpace($LauncherPath)) {
     $LauncherPath = Join-Path $PSScriptRoot 'Launcher.bat'
@@ -742,17 +751,19 @@ if ($errorCount -gt 0) {
     exit 1
 }
 
-Write-Host ''
-if ($warningCount -gt 0) {
+if ($warningCount -gt 0 -and -not $Quiet) {
+    Write-Host ''
     Write-Host (" Diagnostics completed with warnings: " + $warningCount) -ForegroundColor Yellow
     if ($fixedCount -gt 0) {
         Write-Host (" Diagnostics fixes applied: " + $fixedCount) -ForegroundColor Green
     }
 }
 elseif ($fixedCount -gt 0) {
+    Write-Host ''
     Write-Host (" Diagnostics completed successfully. Fixes applied: " + $fixedCount) -ForegroundColor Green
 }
-else {
+elseif (-not $Quiet) {
+    Write-Host ''
     Write-Host ' Diagnostics completed successfully.' -ForegroundColor Green
 }
 
