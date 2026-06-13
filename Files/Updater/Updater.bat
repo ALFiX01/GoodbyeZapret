@@ -55,7 +55,7 @@ chcp 65001 >nul 2>&1
 
 mode con: cols=80 lines=25 >nul 2>&1
 
-set "UpdaterVersion=2.8.6"
+set "UpdaterVersion=2.8.7"
 
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
@@ -201,6 +201,12 @@ if not exist "%ParentDirPath%\GoodbyeZapret.zip" (
     if exist "%ParentDirPath%\tools\tray-runtime" (
         rd /s /q "%ParentDirPath%\tools\tray-runtime" >nul 2>&1
         call :log INFO "Removed obsolete tray-runtime"
+    )
+
+    if exist "!ExtractRoot!\tools\service" (
+        mkdir "%ParentDirPath%\tools\service" >nul 2>&1
+        robocopy "!ExtractRoot!\tools\service" "%ParentDirPath%\tools\service" *.* /NFL /NDL /NJH /NJS /NC /R:0 /W:0 >nul
+        call :log INFO "Copied service"
     )
 
     if exist "!ExtractRoot!\tools\curl" (
