@@ -8,10 +8,13 @@
       "--lua-init=@\"%BIN%lua\\goodbyezapret-presets.lua\""
     ],
     [
-      "--ipcache-hostname"
+      "--ctrack-disable=0"
     ],
     [
-      "--ipcache-lifetime=0"
+      "--ipcache-lifetime=8400"
+    ],
+    [
+      "--ipcache-hostname=1"
     ],
     [
       "--wf-tcp-out=%tcp_ports%",
@@ -4567,9 +4570,11 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d9",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google",
@@ -4613,9 +4618,11 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--payload=tls_client_hello",
           "--out-range=-d10",
           "--lua-desync=multisplit:seqovl=211:seqovl_pattern=tls5"
@@ -4652,9 +4659,11 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--payload=tls_client_hello",
           "--out-range=-d10",
           "--lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_md5:tls_mod=rnd,dupsid,sni=www.google.com"
@@ -4694,9 +4703,11 @@
           "--blob=quic_vk:@\"%FAKE%quic_initial_vk_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--payload=tls_client_hello",
           "--out-range=-d10",
           "--lua-desync=tls_fake_flood:fakes=11:md5sig"
@@ -4736,9 +4747,11 @@
           "--blob=quic2:@\"%FAKE%quic_2.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--payload=tls_client_hello",
           "--out-range=-d10",
           "--lua-desync=fake:blob=fake_default_tls:repeats=6:ip_ttl=3:ip6_ttl=3:tls_mod=rnd,dupsid,sni=www.google.com"
@@ -4776,10 +4789,11 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
-          "--ipset-exclude=\"%LISTS%list-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--payload=tls_client_hello",
           "--out-range=-d10",
           "--lua-desync=tls_fake_split:fakes=4:ttl=2:pos=midsld"
@@ -4820,9 +4834,11 @@
           "--blob=tls7:@\"%FAKE%fake_tls_7.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d9",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls7"
@@ -4866,10 +4882,11 @@
           "--blob=quic_google:@\"%FAKE%quic_initial_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n5",
           "--payload=tls_client_hello",
           "--lua-desync=fake:blob=0x0F0F0F0F:tcp_ack=-66000:tcp_ts_up",
@@ -4911,9 +4928,11 @@
           "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d7",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_max",
@@ -4959,9 +4978,11 @@
           "--blob=quic_test:@\"%FAKE%quic_test_00.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n6",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5006,9 +5027,11 @@
           "--blob=quic_test:@\"%FAKE%quic_test_00.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--lua-desync=fake:blob=fake_default_tls:repeats=6:ip_ttl=1:ip6_ttl=1:tcp_ack=-66000:tls_mod=rnd,dupsid,sni=www.google.com",
           "--lua-desync=tls_multisplit_sni:seqovl=211"
         ],
@@ -5054,9 +5077,11 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n6",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5104,9 +5129,11 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--lua-desync=fake:blob=fake_default_tls:repeats=8:tcp_ack=-10000000:tcp_ts_up:tls_mod=rnd,dupsid,sni=www.google.com",
           "--lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:tcp_ack=-10000000:tcp_ts_up"
         ],
@@ -5162,9 +5189,11 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5210,25 +5239,43 @@
       ],
       "15": [
         [
-          "--filter-tcp=80,443,1024-65535",
+          "--filter-tcp=80,443-65535",
           "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
           "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--payload=tls_client_hello",
           "--lua-desync=gz_sni_mirror_ladder:parts=4:fake_passes=2:halo=2:hosts=www.google.com,cdn.jsdelivr.net:fake_tcp_ts=-300000"
+        ]
+      ],
+      "16": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare-%CDN_BypassLevel%.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-dns.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-amazon.txt\"",
+          "--ipset-exclude=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ]
     },
-    "AmazonTCP": {
+    "CloudflareCDNTCP": {
       "1": [
         [
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--out-range=-n7",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
           "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ],
@@ -5237,10 +5284,10 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--out-range=-n6",
-          "--lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n7",
+          "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ],
       "3": [
@@ -5248,21 +5295,21 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--out-range=-n8",
-          "--lua-desync=multidisorder:seqovl=1000:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n6",
+          "--lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ],
       "4": [
         [
-          "--blob=fake_tls_3:@\"%FAKE%fake_tls_3.bin\""
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--lua-desync=multisplit:pos=midsld"
+          "--lua-desync=multidisorder:seqovl=1000:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ],
       "5": [
@@ -5270,21 +5317,21 @@
           "--blob=fake_tls_3:@\"%FAKE%fake_tls_3.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-1000:tcp_md5:repeats=4"
+          "--lua-desync=multisplit:pos=midsld"
         ]
       ],
       "6": [
         [
-          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+          "--blob=fake_tls_3:@\"%FAKE%fake_tls_3.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
+          "--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-1000:tcp_md5:repeats=4"
         ]
       ],
       "7": [
@@ -5292,10 +5339,10 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000"
+          "--lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
         ]
       ],
       "8": [
@@ -5303,23 +5350,21 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google"
+          "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000"
         ]
       ],
       "9": [
         [
-          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
-          "--lua-desync=send:repeats=2",
-          "--lua-desync=syndata:blob=tls_max",
-          "--lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max"
+          "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google"
         ]
       ],
       "10": [
@@ -5327,12 +5372,12 @@
           "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_max",
-          "--lua-desync=fake:blob=tls_max:badsum:repeats=8",
-          "--lua-desync=multidisorder:pos=1:seqovl=681:seqovl_pattern=tls_max"
+          "--lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max"
         ]
       ],
       "11": [
@@ -5340,87 +5385,82 @@
           "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "-out-range=-d10",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=syndata:blob=tls_max",
+          "--lua-desync=fake:blob=tls_max:badsum:repeats=8",
+          "--lua-desync=multidisorder:pos=1:seqovl=681:seqovl_pattern=tls_max"
+        ]
+      ],
+      "12": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-d10",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_max",
           "--lua-desync=multisplit:pos=midsld"
         ]
       ],
-      "12": [
+      "13": [
         [
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d10",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google",
           "--lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ],
-      "13": [
+      "14": [
         [
           "--blob=tls7:@\"%FAKE%fake_tls_7.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d10",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls7"
         ]
       ],
-      "14": [
+      "15": [
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--payload=tls_client_hello",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d10",
           "--lua-desync=tls_fake_split:fakes=4:ttl=2:pos=midsld"
         ]
       ],
-      "15": [
+      "16": [
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--payload=tls_client_hello",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d10",
           "--lua-desync=fake:blob=fake_default_tls:repeats=6:ip_ttl=3:ip6_ttl=3:tls_mod=rnd,dupsid,sni=www.google.com"
         ]
       ],
-      "16": [
+      "17": [
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--payload=tls_client_hello",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-d10",
           "--lua-desync=tls_fake_flood:fakes=11:md5sig"
         ]
       ],
-      "17": [
-        [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--payload=tls_client_hello",
-          "--out-range=-d10",
-          "--lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_md5:tls_mod=rnd,dupsid,sni=www.google.com"
-        ]
-      ],
       "18": [
         [
-          "--blob=tls4:@\"%FAKE%fake_tls_4.bin\""
-        ],
-        [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--out-range=-n5",
-          "--payload=http_req",
-          "--lua-desync=fake:blob=0x1603:blob=!+2:tls_mod=rnd,dupsid,sni=fonts.google.com:ip_id=seq",
-          "--lua-desync=fakedsplit:pos=method+2:tcp_ack=-66000:tcp_ts_up",
-          "--lua-desync=multisplit:seqovl_pattern=tls4:pos=1"
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_md5:tls_mod=rnd,dupsid,sni=www.google.com"
         ]
       ],
       "19": [
@@ -5428,29 +5468,28 @@
           "--blob=tls4:@\"%FAKE%fake_tls_4.bin\""
         ],
         [
-          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
-        ],
-        [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n5",
-          "--payload=tls_client_hello",
-          "--lua-desync=fake:blob=0x1603:tls_mod=rnd,dupsid,sni=fonts.google.com",
-          "--lua-desync=fake:blob=tls_google:tls_mod=rnd,dupsid,sni=fonts.google.com",
-          "--lua-desync=multisplit:seqovl_pattern=tls4:pos=1:seqovl=314"
+          "--lua-desync=fake:blob=0x1603:blob=!+2:tls_mod=rnd,dupsid,sni=fonts.google.com:ip_id=seq",
+          "--lua-desync=fakedsplit:pos=method+2:tcp_ack=-66000:tcp_ts_up",
+          "--lua-desync=multisplit:seqovl_pattern=tls4:pos=1"
         ]
       ],
       "20": [
         [
+          "--blob=tls4:@\"%FAKE%fake_tls_4.bin\""
+        ],
+        [
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
-          "--out-range=-n8",
-          "--lua-desync=send:repeats=2",
-          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
-          "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=0x1603:tls_mod=rnd,dupsid,sni=fonts.google.com",
+          "--lua-desync=fake:blob=tls_google:tls_mod=rnd,dupsid,sni=fonts.google.com",
+          "--lua-desync=multisplit:seqovl_pattern=tls4:pos=1:seqovl=314"
         ]
       ],
       "21": [
@@ -5458,8 +5497,8 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5474,8 +5513,8 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
           "--out-range=-n8",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5491,8 +5530,328 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=fake:blob=tls_max:tcp_ts=1:repeats=6",
+          "--lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_max:payload=tls_client_hello"
+        ]
+      ],
+      "24": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        ]
+      ],
+      "25": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=gz_sni_mirror_ladder:parts=4:fake_passes=2:halo=2:hosts=www.google.com,cdn.jsdelivr.net:fake_tcp_ts=-300000"
+        ]
+      ],
+      "26": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=multidisorder:pos=1,host+2,sld+2,sld+5,sniext+1,sniext+2,endhost-2:seqovl=1"
+        ]
+      ],
+      "27": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=fake_default_tls:ip_ttl=1:ip6_ttl=1:ip_autottl=4,3-20:ip6_autottl=4,3-20:tls_mod=rnd,rndsni,padencap"
+        ]
+      ],
+      "28": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-cloudflare.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=tls_multisplit_sni:seqovl=211"
+        ]
+      ]
+    },
+    "AmazonTCP": {
+      "1": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n7",
+          "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        ]
+      ],
+      "2": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n6",
+          "--lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        ]
+      ],
+      "3": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=multidisorder:seqovl=1000:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        ]
+      ],
+      "4": [
+        [
+          "--blob=fake_tls_3:@\"%FAKE%fake_tls_3.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=multisplit:pos=midsld"
+        ]
+      ],
+      "5": [
+        [
+          "--blob=fake_tls_3:@\"%FAKE%fake_tls_3.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-1000:tcp_md5:repeats=4"
+        ]
+      ],
+      "6": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=multidisorder:pos=1,midsld:seqovl=680:seqovl_pattern=tls_google:tls_mod=rnd,rndsni,dupsid:tcp_ack=-66000:ip_ttl=-1,3-20:ip6_ttl=-1,3-20"
+        ]
+      ],
+      "7": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000"
+        ]
+      ],
+      "8": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=tls_google:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_google"
+        ]
+      ],
+      "9": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_max",
+          "--lua-desync=fake:blob=tls_max:ip_autottl=-1,3-20:ip6_autottl=-1,3-20:repeats=6:tcp_ack=-66000:seqovl=680:seqovl_pattern=tls_max"
+        ]
+      ],
+      "10": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=syndata:blob=tls_max",
+          "--lua-desync=fake:blob=tls_max:badsum:repeats=8",
+          "--lua-desync=multidisorder:pos=1:seqovl=681:seqovl_pattern=tls_max"
+        ]
+      ],
+      "11": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "-out-range=-d10",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_max",
+          "--lua-desync=multisplit:pos=midsld"
+        ]
+      ],
+      "12": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google",
+          "--lua-desync=multidisorder:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        ]
+      ],
+      "13": [
+        [
+          "--blob=tls7:@\"%FAKE%fake_tls_7.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls7"
+        ]
+      ],
+      "14": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=tls_fake_split:fakes=4:ttl=2:pos=midsld"
+        ]
+      ],
+      "15": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=fake:blob=fake_default_tls:repeats=6:ip_ttl=3:ip6_ttl=3:tls_mod=rnd,dupsid,sni=www.google.com"
+        ]
+      ],
+      "16": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=tls_fake_flood:fakes=11:md5sig"
+        ]
+      ],
+      "17": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-d10",
+          "--lua-desync=fake:blob=fake_default_tls:repeats=6:tcp_md5:tls_mod=rnd,dupsid,sni=www.google.com"
+        ]
+      ],
+      "18": [
+        [
+          "--blob=tls4:@\"%FAKE%fake_tls_4.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=0x1603:blob=!+2:tls_mod=rnd,dupsid,sni=fonts.google.com:ip_id=seq",
+          "--lua-desync=fakedsplit:pos=method+2:tcp_ack=-66000:tcp_ts_up",
+          "--lua-desync=multisplit:seqovl_pattern=tls4:pos=1"
+        ]
+      ],
+      "19": [
+        [
+          "--blob=tls4:@\"%FAKE%fake_tls_4.bin\""
+        ],
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n5",
+          "--lua-desync=fake:blob=0x1603:tls_mod=rnd,dupsid,sni=fonts.google.com",
+          "--lua-desync=fake:blob=tls_google:tls_mod=rnd,dupsid,sni=fonts.google.com",
+          "--lua-desync=multisplit:seqovl_pattern=tls4:pos=1:seqovl=314"
+        ]
+      ],
+      "20": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
+        ]
+      ],
+      "21": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=hostfakesplit:host=ozon.ru:tcp_ts=-1000:tcp_md5:repeats=4"
+        ]
+      ],
+      "22": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=fake:blob=tls_max:badsum:repeats=8",
+          "--lua-desync=multidisorder:pos=1:seqovl=681:seqovl_pattern=tls_max"
+        ]
+      ],
+      "23": [
+        [
+          "--blob=tls_max:@\"%FAKE%tls_clienthello_max_ru.bin\""
+        ],
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
           "--out-range=-n8",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5508,8 +5867,8 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
           "--out-range=-n8",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5522,8 +5881,8 @@
           "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
         ],
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
           "--out-range=-n8",
           "--lua-desync=send:repeats=2",
           "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
@@ -5532,11 +5891,47 @@
       ],
       "26": [
         [
-          "--filter-tcp=80,443,1024-65535",
-          "--hostlist=\"%LISTS%list-amazon.txt\"",
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
           "--out-range=-n8",
-          "--payload=tls_client_hello",
           "--lua-desync=gz_sni_mirror_ladder:parts=4:fake_passes=2:halo=2:hosts=www.google.com,cdn.jsdelivr.net:fake_tcp_ts=-300000"
+        ]
+      ],
+      "27": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=multidisorder:pos=1,host+2,sld+2,sld+5,sniext+1,sniext+2,endhost-2:seqovl=1"
+        ]
+      ],
+      "28": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=fake:blob=fake_default_tls:ip_ttl=1:ip6_ttl=1:ip_autottl=4,3-20:ip6_autottl=4,3-20:tls_mod=rnd,rndsni,padencap"
+        ]
+      ],
+      "29": [
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=tls_multisplit_sni:seqovl=211"
+        ]
+      ],
+      "30": [
+        [
+          "--blob=tls_google:@\"%FAKE%tls_clienthello_www_google_com.bin\""
+        ],
+        [
+          "--filter-tcp=80,443-65535",
+          "--ipset=\"%LISTS%ipset-amazon.txt\"",
+          "--out-range=-n8",
+          "--lua-desync=send:repeats=2",
+          "--lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20",
+          "--lua-desync=multisplit:seqovl=700:seqovl_pattern=tls_google:tcp_flags_unset=ack"
         ]
       ]
     },

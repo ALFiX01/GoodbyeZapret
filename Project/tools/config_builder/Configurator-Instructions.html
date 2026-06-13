@@ -386,24 +386,28 @@
                 <div class="param-desc">Настройки для Cloudflare и прочих облачных провайдеров, кроме Amazon. Также влияет на подключение к голосовым каналам в Discord.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>11</kbd> CDN Amazon TCP</div>
+                <div class="param-title"><kbd>11</kbd> CloudflareCDN TCP</div>
+                <div class="param-desc">Отдельный TCP-модуль для IP-диапазонов Cloudflare CDN. Используйте, если общий CDN слишком широкий или нужен отдельный подбор Cloudflare.</div>
+            </div>
+            <div class="param-card">
+                <div class="param-title"><kbd>12</kbd> CDN Amazon TCP</div>
                 <div class="param-desc">Также частично может влиять на Twitch и загрузку изображений в Discord и подключение к голосовым каналам.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>12</kbd> CDN Amazon UDP</div>
+                <div class="param-title"><kbd>13</kbd> CDN Amazon UDP</div>
                 <div class="param-desc">То же самое что и CDN Amazon TCP но работает через UDP.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>13</kbd> Hostlists</div>
+                <div class="param-title"><kbd>14</kbd> Hostlists</div>
                 <div class="param-desc">Instagram, Twitter и др. Из-за новых блокировок РКН практически бесполезно. Рекомендуется <kbd>0</kbd>.</div>
             </div>
             <div class="param-card">
-                <div class="param-title"><kbd>14</kbd> Личные списки</div>
+                <div class="param-title"><kbd>15</kbd> Личные списки</div>
                 <div class="param-desc">Пресет для персональных списков. Обходит ip из ipset-custom.txt и домены из list-custom.txt. Если не добавляли туда ничего, то используйте <kbd>0</kbd>.</div>
             </div>
             <div class="param-card">
                 <div class="param-title"><kbd>L</kbd> Уровень CDN</div>
-                <div class="param-desc">Количество доменов CDN. Обычно <b>base</b> достаточно. Если вылетают игры — ставьте <b>off</b>.</div>
+                <div class="param-desc">Количество доменов CDN. Нажатие <kbd>L</kbd> переключает по кругу: <b>off</b> → <b>base</b> → <b>full</b>. Обычно <b>base</b> достаточно. Если вылетают игры — ставьте <b>off</b>.</div>
             </div>
             <div class="param-card">
                 <div class="param-title">Движок</div>

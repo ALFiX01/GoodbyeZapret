@@ -1,0 +1,4 @@
+# Cloudflare CDN TCP module domains
+cloudflare.com
+challenges.cloudflare.com
+cdnjs.cloudflare.com

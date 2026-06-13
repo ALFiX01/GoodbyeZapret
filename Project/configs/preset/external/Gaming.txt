@@ -114,7 +114,6 @@
 --hostlist=lists/soundcloud.txt
 --hostlist=lists/rutracker.txt
 --hostlist=lists/rutor.txt
---hostlist=lists/roblox.txt
 --hostlist=lists/instagram.txt
 --out-range=-d10
 --lua-desync=hostfakesplit_multi:hosts=google.com,vimeo.com:tcp_ts=-1000:tcp_md5:repeats=2
@@ -151,24 +150,6 @@
 
 --new
 
---filter-tcp=80,443
---hostlist=lists/roblox.txt
---out-range=-n8
---lua-desync=send:repeats=2
---lua-desync=syndata:blob=tls_google:ip_autottl=-2,3-20
---lua-desync=fake:blob=tls_google:tcp_ts=1:repeats=8:payload=tls_client_hello
---lua-desync=multisplit:pos=1:seqovl=681:seqovl_pattern=tls_google:payload=tls_client_hello
-
---new
-
---filter-udp=443,49152-65535
---ipset=lists/ipset-roblox.txt
---out-range=-n8
---payload=all
---lua-desync=fake:blob=quic_google:ip_autottl=-2,3-20:ip6_autottl=-2,3-20:payload=all:repeats=10
-
---new
-
 --filter-tcp=443
 --hostlist-exclude=lists/netrogat.txt
 --hostlist=lists/other.txt
@@ -185,7 +166,6 @@
 --ipset=lists/ipset-cloudflare.txt
 --ipset=lists/ipset-cloudflare1.txt
 --ipset=lists/ipset-amazon.txt
---ipset=lists/ipset-roblox.txt
 --ipset=lists/ipset-ovh.txt
 --ipset-exclude=lists/ipset-dns.txt
 --ipset-exclude=lists/ipset-ru.txt

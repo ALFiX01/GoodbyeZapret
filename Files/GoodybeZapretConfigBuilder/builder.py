@@ -26,6 +26,7 @@ SERVICE_MAP = {
     "discordmedia": "DiscordMedia",
     "blacklist": "Hostlists",
     "cdn": "CDN",
+    "cloudflarecdntcp": "CloudflareCDNTCP",
     "amazontcp": "AmazonTCP",
     "amazonudp": "AmazonUDP",
     "custom": "Custom",
@@ -288,6 +289,7 @@ def save_user_config(args, tcp_ports_value="", udp_ports_value=""):
         "DSMEDIA": args.discordmedia,
         "BL": args.blacklist,
         "CDN": args.cdn,
+        "CFTCP": args.cloudflarecdntcp,
         "AMZTCP": args.amazontcp,
         "AMZUDP": args.amazonudp,
         "CUSTOM": args.custom,
@@ -645,6 +647,7 @@ def main():
     parser.add_argument("--discordmedia", default="0")
     parser.add_argument("--blacklist", default="0")
     parser.add_argument("--cdn", default="0")
+    parser.add_argument("--cloudflarecdntcp", default="0")
     parser.add_argument("--amazontcp", default="0")
     parser.add_argument("--amazonudp", default="0")
     parser.add_argument("--custom", default="0")

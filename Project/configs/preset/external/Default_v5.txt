@@ -179,7 +179,6 @@
 --ipset=lists/cloudflare-ipset_v6.txt
 --ipset=lists/ipset-cloudflare1.txt
 --ipset=lists/ipset-amazon.txt
---ipset=lists/ipset-roblox.txt
 --ipset=lists/ipset-ovh.txt
 --ipset=lists/ipset-warp.txt
 --out-range=-n8
@@ -198,7 +197,6 @@
 --ipset=lists/cloudflare-ipset_v6.txt
 --ipset=lists/ipset-cloudflare1.txt
 --ipset=lists/ipset-amazon.txt
---ipset=lists/ipset-roblox.txt
 --ipset=lists/ipset-ovh.txt
 --ipset=lists/ipset-warp.txt
 --out-range=-n8

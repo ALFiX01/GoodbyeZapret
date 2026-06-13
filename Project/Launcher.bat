@@ -32,8 +32,8 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=4.2.0"
-set "Current_GoodbyeZapret_version_code=4A2F0"
+set "Current_GoodbyeZapret_version=4.2.1"
+set "Current_GoodbyeZapret_version_code=4A2F1"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -792,6 +792,7 @@ if /i "%choice%"=="4" goto MenuBypassSettings
 if /i "%choice%"=="5" Start https://hyperion-cs.github.io/dpi-checkers/ru/tcp-16-20
 if /i "%choice%"=="6" goto OpenInstructions
 if /i "%choice%"=="7" goto TgWsProxyMenu
+if /i "%choice%"=="net" start "" "%ParentDirPath%\tools\network_analyzer\netprobe.exe"
 goto MainMenu
 
 :MenuBypassSettings
@@ -3117,13 +3118,13 @@ if %errorlevel% equ 0 (
 
 if errorlevel 1 (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_DiscordMedia=0" & set "MAX_Hostlists=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_DiscordMedia=0" & set "MAX_Hostlists=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_CloudflareCDNTCP=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
 ) else if exist "%ParentDirPath%\tools\config_builder\config_builder_limits.bat" (
     call "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
     del "%ParentDirPath%\tools\config_builder\config_builder_limits.bat"
 ) else (
     echo [ERROR] Could not load limits
-    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_DiscordMedia=0" & set "MAX_Hostlists=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
+    set "MAX_YouTube=0" & set "MAX_YouTubeGoogleVideo=0" & set "MAX_YouTubeQuic=0" & set "MAX_Twitch=0" & set "MAX_Discord=0" & set "MAX_DiscordUpdate=0" & set "MAX_DiscordQuic=0" & set "MAX_DiscordMedia=0" & set "MAX_Hostlists=0" & set "MAX_STUN=0" & set "MAX_CDN=0" & set "MAX_CloudflareCDNTCP=0" & set "MAX_AmazonTCP=0" & set "MAX_AmazonUDP=0" & set "MAX_Custom=0"
 )
 
 set "Configurator=1" & call :ReadConfig YT 1
@@ -3137,6 +3138,7 @@ set "Configurator=1" & call :ReadConfig DSMEDIA 1
 set "Configurator=1" & call :ReadConfig BL 0
 set "Configurator=1" & call :ReadConfig STUN 1
 set "Configurator=1" & call :ReadConfig CDN 1
+set "Configurator=1" & call :ReadConfig CFTCP 1
 set "Configurator=1" & call :ReadConfig AMZTCP 1
 set "Configurator=1" & call :ReadConfig AMZUDP 1
 set "Configurator=1" & call :ReadConfig CUSTOM 0
@@ -3147,7 +3149,7 @@ cls
 title GoodbyeZapret - Конфигуратор стратегий
 
 :: Список всех переменных для проверки
-set "CHECK_LIST=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA BL STUN CDN AMZTCP AMZUDP CUSTOM"
+set "CHECK_LIST=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA BL STUN CDN CFTCP AMZTCP AMZUDP CUSTOM"
 
 :: Цикл по каждой переменной из списка
 for %%V in (%CHECK_LIST%) do (
@@ -3177,17 +3179,18 @@ echo    %COL%[36m║   %COL%[96m[  8 ]%COL%[37m  Discord.media              %COL
 echo    %COL%[36m║   %COL%[96m[  9 ]%COL%[37m  Discord STUN-VOICE         %COL%[92m!STUN!          !STUN_sp!%COL%[90m(0-!MAX_STUN!)
 echo    %COL%[36m║
 echo    %COL%[36m║   %COL%[96m[ 10 ]%COL%[37m  CDN                        %COL%[92m!CDN!          !CDN_sp!%COL%[90m(0-!MAX_CDN!)
-echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
-echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
+echo    %COL%[36m║   %COL%[96m[ 11 ]%COL%[37m  Cloudflare CDN TCP         %COL%[92m!CFTCP!          !CFTCP_sp!%COL%[90m(0-!MAX_CloudflareCDNTCP!)
+echo    %COL%[36m║   %COL%[96m[ 12 ]%COL%[37m  Amazon CDN TCP             %COL%[92m!AMZTCP!          !AMZTCP_sp!%COL%[90m(0-!MAX_AmazonTCP!)
+echo    %COL%[36m║   %COL%[96m[ 13 ]%COL%[37m  Amazon CDN UDP             %COL%[92m!AMZUDP!          !AMZUDP_sp!%COL%[90m(0-!MAX_AmazonUDP!)
 echo    %COL%[36m║
-echo    %COL%[36m║   %COL%[96m[ 13 ]%COL%[37m  Hostlists                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_Hostlists!)
-echo    %COL%[36m║   %COL%[96m[ 14 ]%COL%[37m  Личные списки              %COL%[92m!CUSTOM!          !CUSTOM_sp!%COL%[90m(0-!MAX_Custom!)
+echo    %COL%[36m║   %COL%[96m[ 14 ]%COL%[37m  Hostlists                  %COL%[92m!BL!          !BL_sp!%COL%[90m(0-!MAX_Hostlists!)
+echo    %COL%[36m║   %COL%[96m[ 15 ]%COL%[37m  Личные списки              %COL%[92m!CUSTOM!          !CUSTOM_sp!%COL%[90m(0-!MAX_Custom!)
 
 echo    %COL%[36m╠════════════════════════════════════════════════════════════════════════════════════
-echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень CDN              %COL%[92m!CDN_LVL!       %COL%[90m(off/base/full)
+echo    %COL%[36m║   %COL%[96m[ L ]%COL%[37m   Уровень модуля CDN        %COL%[92m!CDN_LVL!        %COL%[90m(off/base/full)
 echo    %COL%[36m╚════════════════════════════════════════════════════════════════════════════════════╝
 echo.
-echo    %COL%[92m[ S ] Запустить обход
+echo    %COL%[92m[ S ] Применить и Запустить обход
 echo    %COL%[94m[ A ] Автоподбор стратегии
 echo    %COL%[94m[ W ] Рабочие стратегии
 echo    %COL%[92m[ С ] Быстро проверить обход
@@ -3251,10 +3254,11 @@ if "%opt%"=="7" goto ConfiguratorSetDiscordQuic
 if "%opt%"=="8" goto ConfiguratorSetDiscordMedia
 if "%opt%"=="9" goto ConfiguratorSetSTUN
 if "%opt%"=="10" goto ConfiguratorSetCDN
-if "%opt%"=="11" goto ConfiguratorSetAmazonTCP
-if "%opt%"=="12" goto ConfiguratorSetAmazonUDP
-if "%opt%"=="13" goto ConfiguratorSetHostlists
-if "%opt%"=="14" goto ConfiguratorSetCustom
+if "%opt%"=="11" goto ConfiguratorSetCloudflareCDNTCP
+if "%opt%"=="12" goto ConfiguratorSetAmazonTCP
+if "%opt%"=="13" goto ConfiguratorSetAmazonUDP
+if "%opt%"=="14" goto ConfiguratorSetHostlists
+if "%opt%"=="15" goto ConfiguratorSetCustom
 
 if /i "%opt%"=="L" goto ConfiguratorSetCDNLevel
 if /i "%opt%"=="д" goto ConfiguratorSetCDNLevel
@@ -3364,6 +3368,12 @@ goto MENU
 
 :ConfiguratorSetCDN
 call :ConfiguratorSetStrategy CDN "CDN" "!MAX_CDN!"
+if "!CDN!"=="0" set "CDN_LVL=off"
+if !CDN! gtr 0 if /i "!CDN_LVL!"=="off" set "CDN_LVL=base"
+goto MENU
+
+:ConfiguratorSetCloudflareCDNTCP
+call :ConfiguratorSetStrategy CFTCP "CloudflareCDN TCP" "!MAX_CloudflareCDNTCP!"
 goto MENU
 
 :ConfiguratorSetAmazonTCP
@@ -3383,24 +3393,13 @@ call :ConfiguratorSetStrategy CUSTOM "личных списков" "!MAX_Custom!
 goto MENU
 
 :ConfiguratorSetCDNLevel
-set "CDN_LVL_INPUT="
-set /p "CDN_LVL_INPUT=%DEL%   Задайте CDN [off/base/full]: "
-if /i "!CDN_LVL_INPUT!"=="off" (
-    set "CDN_LVL=off"
-    goto MENU
-)
-if /i "!CDN_LVL_INPUT!"=="base" (
+if /i "!CDN_LVL!"=="off" (
     set "CDN_LVL=base"
-    goto MENU
-)
-if /i "!CDN_LVL_INPUT!"=="full" (
+) else if /i "!CDN_LVL!"=="base" (
     set "CDN_LVL=full"
-    goto MENU
+) else (
+    set "CDN_LVL=off"
 )
-echo    Неверное значение. Доступно: off, base, full.
-echo.
-echo    %COL%[90mНажмите любую клавишу чтобы вернуться назад.
-pause >nul
 goto MENU
 
 :ConfiguratorSetStrategy
@@ -3447,10 +3446,11 @@ echo    %COL%[96m[ 4 ]%COL%[37m  Discord Update
 echo    %COL%[96m[ 5 ]%COL%[37m  Discord
 echo.
 echo    %COL%[96m[ 6 ]%COL%[37m  CDN
-echo    %COL%[96m[ 7 ]%COL%[37m  Amazon CDN TCP
+echo    %COL%[96m[ 7 ]%COL%[37m  CloudflareCDN TCP
+echo    %COL%[96m[ 8 ]%COL%[37m  Amazon CDN TCP
 echo.
-echo    %COL%[96m[ 8 ]%COL%[37m  Hostlists
-echo    %COL%[96m[ 9 ]%COL%[37m  Личные списки
+echo    %COL%[96m[ 9 ]%COL%[37m  Hostlists
+echo    %COL%[96m[ 10 ]%COL%[37m  Личные списки
 echo.
 echo    %COL%[90m[ B ] Назад
 echo.
@@ -3459,7 +3459,7 @@ set /p "AutoChoice=%DEL%   %COL%[90m:> "
 set "AutoVar="
 set "AutoMaxVar="
 set "AutoName="
-set "AutoTrackedVars=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA STUN CDN AMZTCP AMZUDP BL CUSTOM"
+set "AutoTrackedVars=YT YTGV YTQ TW DSUPD DS DSQ DSMEDIA STUN CDN CFTCP AMZTCP AMZUDP BL CUSTOM"
 
 if /i "%AutoChoice%"=="B" goto MENU
 if /i "%AutoChoice%"=="и" goto MENU
@@ -3620,9 +3620,10 @@ if "%~1"=="3" (set "AutoVar=TW"     & set "AutoMaxVar=MAX_Twitch"             & 
 if "%~1"=="4" (set "AutoVar=DSUPD"  & set "AutoMaxVar=MAX_DiscordUpdate"      & set "AutoName=Discord Update")
 if "%~1"=="5" (set "AutoVar=DS"     & set "AutoMaxVar=MAX_Discord"            & set "AutoName=Discord")
 if "%~1"=="6" (set "AutoVar=CDN"    & set "AutoMaxVar=MAX_CDN"                & set "AutoName=CDN")
-if "%~1"=="7" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
-if "%~1"=="8" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_Hostlists"          & set "AutoName=Hostlists")
-if "%~1"=="9" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"             & set "AutoName=Личные списки")
+if "%~1"=="7" (set "AutoVar=CFTCP"  & set "AutoMaxVar=MAX_CloudflareCDNTCP"   & set "AutoName=CloudflareCDN TCP")
+if "%~1"=="8" (set "AutoVar=AMZTCP" & set "AutoMaxVar=MAX_AmazonTCP"          & set "AutoName=Amazon CDN TCP")
+if "%~1"=="9" (set "AutoVar=BL"     & set "AutoMaxVar=MAX_Hostlists"          & set "AutoName=Hostlists")
+if "%~1"=="10" (set "AutoVar=CUSTOM" & set "AutoMaxVar=MAX_Custom"            & set "AutoName=Личные списки")
 exit /b
 
 :ConfiguratorAutoStopRunning
@@ -3655,6 +3656,7 @@ if not exist "%USERPROFILE%\AppData\Roaming\GoodbyeZapret" md "%USERPROFILE%\App
 >>"%AutoBackupFile%" echo DSMEDIA="!DSMEDIA!"
 >>"%AutoBackupFile%" echo STUN="!STUN!"
 >>"%AutoBackupFile%" echo CDN="!CDN!"
+>>"%AutoBackupFile%" echo CFTCP="!CFTCP!"
 >>"%AutoBackupFile%" echo AMZTCP="!AMZTCP!"
 >>"%AutoBackupFile%" echo AMZUDP="!AMZUDP!"
 >>"%AutoBackupFile%" echo BL="!BL!"
@@ -3849,13 +3851,14 @@ if /i "!AutoVar!"=="TW"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Ch
 if /i "!AutoVar!"=="DSUPD"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord_update.txt"
 if /i "!AutoVar!"=="DS"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\discord.txt"
 if /i "!AutoVar!"=="CDN"     set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\cdn.txt"
+if /i "!AutoVar!"=="CFTCP"   set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\cloudflare_tcp.txt"
 if /i "!AutoVar!"=="AMZTCP"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\amazon_tcp.txt"
 if /i "!AutoVar!"=="BL"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\blacklist.txt"
 if /i "!AutoVar!"=="CUSTOM"  set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\custom.txt"
 exit /b
 
 :BuildConfiguratorFix
-"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --cloudflarecdntcp !CFTCP! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
 exit /b %ERRORLEVEL%
 
 :START

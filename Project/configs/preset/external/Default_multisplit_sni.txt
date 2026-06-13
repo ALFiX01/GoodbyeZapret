@@ -125,7 +125,6 @@
 --hostlist=lists/soundcloud.txt
 --hostlist=lists/rutracker.txt
 --hostlist=lists/rutor.txt
---hostlist=lists/roblox.txt
 --hostlist=lists/instagram.txt
 --out-range=-d10
 --lua-desync=tls_multisplit_sni:seqovl=652:seqovl_pattern=tls_google
