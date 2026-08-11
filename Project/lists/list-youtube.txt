@@ -1,10 +1,5 @@
-www.youtube.com
-studio.youtube.com
-upload.youtube.com
+youtube.com
 upload.video.google.com
-rtmp.youtube.com
-rtmps.youtube.com
-accounts.youtube.com
 youtubekids.com
 ggpht.com
 ytimg.com
@@ -28,3 +23,4 @@ ytimg.l.google.com
 7tv.app
 7tv.io
 10tv.app
+doubleclick.net

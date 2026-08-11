@@ -32,7 +32,7 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=4.2.1"
+set "Current_GoodbyeZapret_version=4.2.2"
 set "Current_GoodbyeZapret_version_code=4A2F1"
 set "branch=Stable"
 set "beta_code=0"
@@ -159,7 +159,7 @@ if defined UPDATED (
 
 
 set "WiFi=Off"
-set "CheckURL=https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
+set "CheckURL=https://nordlinepro.xyz/files/GoodbyeZapret_Version"
 set "CheckURL_BACKUP=https://mail.ru"
 set "DNS_TEST=google.com"
 
@@ -353,7 +353,7 @@ if /i "!WiFi!"=="On" (
 
         REM Download Updater.exe if not present
         if not exist "%ParentDirPath%\tools\Updater.exe" (
-            %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://goodbyezapret.crabdance.com/Updater.exe" >nul 2>&1
+            %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://nordlinepro.xyz/files/Updater.exe" >nul 2>&1
             if not exist "%ParentDirPath%\tools\Updater.exe" (
                 echo  Error: Failed to download Updater.exe
                 echo  Please check your internet connection and try again.
@@ -390,7 +390,7 @@ if not defined CURL (
     set "CURL=curl"
 )
 
-%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 1 -o nul "https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
+%CURL% -4 -s -I --fail --connect-timeout 1 --max-time 1 -o nul "https://nordlinepro.xyz/files/GoodbyeZapret_Version"
 
 IF !ERRORLEVEL! NEQ 0 (
     set "CheckStatus=FileCheckError"
@@ -398,7 +398,7 @@ IF !ERRORLEVEL! NEQ 0 (
 )
 
 REM Скачать файл обновления версии
-%CURL% -s -o "%TEMP%\GZ_Updater.bat" "https://goodbyezapret.crabdance.com/GoodbyeZapret_Version"
+%CURL% -s -o "%TEMP%\GZ_Updater.bat" "https://nordlinepro.xyz/files/GoodbyeZapret_Version"
 if errorlevel 1 (
     echo Error 04: Server error. Failed to connect to GoodbyeZapret update check server
     set "CheckStatus=NoChecked"
@@ -426,7 +426,7 @@ if not exist "%ParentDirPath%\tools\Updater.exe" (
         set CURL=curl
         )
     )
-    %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://goodbyezapret.crabdance.com/Updater.exe"
+    %CURL% -g -L -s -o "%ParentDirPath%\tools\Updater.exe" "https://nordlinepro.xyz/files/Updater.exe"
     if not exist "%ParentDirPath%\tools\Updater.exe" (
         echo Error: Failed to download Updater.exe
         set "CheckStatus=NoChecked"
@@ -792,7 +792,10 @@ if /i "%choice%"=="4" goto MenuBypassSettings
 if /i "%choice%"=="5" Start https://hyperion-cs.github.io/dpi-checkers/ru/tcp-16-20
 if /i "%choice%"=="6" goto OpenInstructions
 if /i "%choice%"=="7" goto TgWsProxyMenu
-if /i "%choice%"=="net" start "" "%ParentDirPath%\tools\network_analyzer\netprobe.exe"
+if /i "%choice%"=="net" ( chcp 850 >nul 2>&1
+    powershell -Command "Start-Process '%ParentDirPath%\tools\network_analyzer\netprobe.exe' -Verb RunAs"
+    chcp 65001 >nul 2>&1
+)
 goto MainMenu
 
 :MenuBypassSettings
@@ -1451,18 +1454,33 @@ if /I "!CfgExt!"==".txt" (
         sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\service\GoodbyeZapretService.exe\" --preset \"%ParentDirPath%\configs\!batRel!\" --project-dir \"%ParentDirPath%\"" >nul 2>&1
         set "ServiceCreateError=!errorlevel!"
     )
-    sc config "GoodbyeZapret" start= auto >nul 2>&1
-    if errorlevel 1 set "ServiceCreateError=1"
 ) else (
     sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!batRel!\"\"" >nul 2>&1
     set "ServiceCreateError=!errorlevel!"
-    sc config "GoodbyeZapret" start= auto >nul 2>&1
-    if errorlevel 1 set "ServiceCreateError=1"
 )
 
-if "!ServiceCreateError!"=="1" (
-    call :ui_err "Не удалось создать службу GoodbyeZapret. Возможно, старая служба ещё удаляется."
-    call :ui_warn "Попробуйте повторить установку через несколько секунд, если Windows держит службу в marked for deletion."
+if not "!ServiceCreateError!"=="0" (
+    call :ui_err "Не удалось создать службу GoodbyeZapret ^(код !ServiceCreateError!^)."
+    call :ui_warn "Проверьте права администратора; старая служба также может быть в состоянии marked for deletion."
+    set /a ErrorCount+=1
+    goto :end
+)
+
+sc config "GoodbyeZapret" start= auto >nul 2>&1
+if errorlevel 1 (
+    call :ui_err "Служба создана, но не удалось настроить автоматический запуск."
+    set /a ErrorCount+=1
+    goto :end
+)
+sc failure "GoodbyeZapret" reset= 86400 actions= restart/5000/restart/15000/restart/60000 >nul 2>&1
+if errorlevel 1 (
+    call :ui_err "Не удалось настроить восстановление службы после сбоя."
+    set /a ErrorCount+=1
+    goto :end
+)
+sc failureflag "GoodbyeZapret" 1 >nul 2>&1
+if errorlevel 1 (
+    call :ui_err "Не удалось включить восстановление службы после штатного кода завершения."
     set /a ErrorCount+=1
     goto :end
 )
@@ -2150,7 +2168,7 @@ if exist "%ParentDirPath%\tools\curl\curl.exe" (
     set "CURL=curl"
     )
 )
-%CURL% -g -L -s -o "%UpdaterPath%" "https://goodbyezapret.crabdance.com/Updater.exe"
+%CURL% -g -L -s -o "%UpdaterPath%" "https://nordlinepro.xyz/files/Updater.exe"
 
 if exist "%UpdaterPath%" (
     echo [INFO ] %TIME% - Updater.exe downloaded successfully
@@ -2221,13 +2239,13 @@ if not exist "%ParentDirPath%" (
 )
 echo        [*] Скачивание файлов GoodbyeZapret...
 
-%CURL% -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://goodbyezapret.crabdance.com/GoodbyeZapret.zip"
+%CURL% -g -L -# -o %TEMP%\GoodbyeZapret.zip "https://nordlinepro.xyz/files/GoodbyeZapret.zip"
 if errorlevel 1 (
     echo       %COL%[91m [ERR] Ошибка: Не удалось скачать GoodbyeZapret.zip ^(Код: %errorlevel%^) %COL%[90m
 )
 
 echo        ^[*^] Скачивание Updater.exe...
-%CURL% -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://goodbyezapret.crabdance.com/Updater.exe"
+%CURL% -g -L -# -o "%ParentDirPath%\tools\Updater.exe" "https://nordlinepro.xyz/files/Updater.exe"
  if errorlevel 1 (
     echo       %COL%[91m [ERR] Ошибка: Не удалось скачать Updater.exe ^(Код: %errorlevel%^) %COL%[90m
     echo       %COL%[93m [*] Установка продолжится, но обновление может не работать.%COL%[90m
@@ -2264,18 +2282,7 @@ goto RR
 
 
 :Update_Need_screen
-set "PatchNoteLines=0"
-if not defined CURL (
-if exist "%ParentDirPath%\tools\curl\curl.exe" (
-    set CURL="%ParentDirPath%\tools\curl\curl.exe"
-) else (
-    set "CURL=curl"
-    )
-)
-%CURL% -g -L -o "%ParentDirPath%\bin\PatchNote.txt" "https://goodbyezapret.crabdance.com/PatchNote.txt"
-for /f %%A in ('type "%ParentDirPath%\bin\PatchNote.txt" ^| find /c /v ""') do set "PatchNoteLines=%%A"
-set /a PatchNoteLines=PatchNoteLines+21
-mode con: cols=80 lines=%PatchNoteLines% >nul 2>&1
+mode con: cols=80 lines=22 >nul 2>&1
 REM Цветной текст
 for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
 cls
@@ -2296,7 +2303,7 @@ echo.
 echo  %COL%[36m Доступно обновление %COL%[92mv!Current_GoodbyeZapret_version! → v!Actual_GoodbyeZapret_version!
 echo  %COL%[90m ──────────────────────────────────────────────────────────────────────────── %COL%[36m
 echo   Описание обновления: %COL%[37m
-type "%ParentDirPath%\bin\PatchNote.txt"
+echo   - Внесены некоторые изменения
 echo.
 echo.
 echo  %COL%[90m ────────────────────────────────────────────────────────────────────────────
@@ -2540,81 +2547,32 @@ if "%TgWsProxyLinkState%"=="Ready" (
 echo.
 echo  %COL%[90m────────────────────────────────────────────────────────────────────────────────────%COL%[37m
 echo.
-echo  %COL%[96m^[ 1 ^]%COL%[37m Скачать / обновить
+echo  %COL%[96m^[ 1 ^]%COL%[37m Запустить
 echo.
-echo  %COL%[96m^[ 2 ^]%COL%[37m Запустить
+echo  %COL%[96m^[ 2 ^]%COL%[37m Открыть папку данных
 echo.
-echo  %COL%[96m^[ 3 ^]%COL%[37m Открыть папку данных
+echo  %COL%[96m^[ 3 ^]%COL%[37m Добавить прокси в Telegram
 echo.
-echo  %COL%[96m^[ 4 ^]%COL%[37m Открыть страницу версии TG
-echo.
-echo  %COL%[96m^[ 5 ^]%COL%[37m Добавить прокси в Telegram
-echo.
-echo  %COL%[96m^[ 6 ^]%COL%[37m Скопировать ссылку в буфер обмена
+echo  %COL%[96m^[ 4 ^]%COL%[37m Скопировать ссылку в буфер обмена
 echo.
 if "%TgWsProxyAutostart%"=="On" (
-    echo  %COL%[96m^[ 7 ^]%COL%[37m Убрать прокси из автозапуска
+    echo  %COL%[96m^[ 5 ^]%COL%[37m Убрать прокси из автозапуска
 ) else (
-    echo  %COL%[96m^[ 7 ^]%COL%[37m Добавить прокси в автозапуск
+    echo  %COL%[96m^[ 5 ^]%COL%[37m Добавить прокси в автозапуск
 )
 echo.
 echo  %COL%[91m^[ B ^]%COL%[37m Вернуться в главное меню
 echo.
 set /p "choice=%DEL%                                           %COL%[90m:> "
 
-if /i "%choice%"=="1" goto TgWsProxyInstallOrUpdate
-if /i "%choice%"=="2" goto TgWsProxyStart
-if /i "%choice%"=="3" goto TgWsProxyOpenData
-if /i "%choice%"=="4" goto TgWsProxyOpenRelease
-if /i "%choice%"=="5" goto TgWsProxyOpenLink
-if /i "%choice%"=="6" goto TgWsProxyCopyLink
-if /i "%choice%"=="7" goto TgWsProxyToggleAutostart
+if /i "%choice%"=="1" goto TgWsProxyStart
+if /i "%choice%"=="2" goto TgWsProxyOpenData
+if /i "%choice%"=="3" goto TgWsProxyOpenLink
+if /i "%choice%"=="4" goto TgWsProxyCopyLink
+if /i "%choice%"=="5" goto TgWsProxyToggleAutostart
 if /i "%choice%"=="B" goto MainMenu_without_ui_info
 if /i "%choice%"=="и" goto MainMenu_without_ui_info
 goto TgWsProxyMenu
-
-
-:TgWsProxyInstallOrUpdate
-set "TgWsProxyDir=%ParentDirPath%\tools\tg-ws-proxy"
-set "TgWsProxyExe=%TgWsProxyDir%\TgWsProxy_windows.exe"
-set "TgWsProxyTagFile=%TEMP%\tgws_release_tag.txt"
-
-tasklist /FI "IMAGENAME eq TgWsProxy_windows.exe" 2>nul | find /I "TgWsProxy_windows.exe" >nul
-if not errorlevel 1 (
-    call :ui_warn "TG WS Proxy уже запущен. Закройте его перед обновлением."
-    timeout /t 2 >nul
-    goto TgWsProxyMenu
-)
-
-if exist "%TgWsProxyTagFile%" del /q "%TgWsProxyTagFile%" >nul 2>&1
-set "TGWS_DEST=%TgWsProxyExe%"
-set "TGWS_TAG_FILE=%TgWsProxyTagFile%"
-
-call :ui_info "Скачиваю TG WS Proxy..."
-chcp 850 >nul 2>&1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ProgressPreference='SilentlyContinue'; [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($env:TGWS_DEST)) | Out-Null; Invoke-WebRequest -Uri 'https://goodbyezapret.crabdance.com/tg-ws-proxy/TgWsProxy_windows.exe' -OutFile $env:TGWS_DEST -UseBasicParsing; try { $tag = (Invoke-WebRequest -Uri 'https://goodbyezapret.crabdance.com/tg-ws-proxy/version.txt' -UseBasicParsing).Content.Trim() } catch { $tag = 'Unknown' }; [System.IO.File]::WriteAllText($env:TGWS_TAG_FILE, $tag)" >nul 2>&1
-chcp 65001 >nul 2>&1
-
-if errorlevel 1 (
-    call :ui_err "Не удалось скачать TG WS Proxy."
-    timeout /t 2 >nul
-    goto TgWsProxyMenu
-)
-
-if not exist "%TgWsProxyExe%" (
-    call :ui_err "Файл TG WS Proxy не найден после загрузки."
-    timeout /t 2 >nul
-    goto TgWsProxyMenu
-)
-
-set "TgWsProxyTag="
-if exist "%TgWsProxyTagFile%" set /p "TgWsProxyTag="<"%TgWsProxyTagFile%"
-if not defined TgWsProxyTag set "TgWsProxyTag=Неизвестно"
-call :WriteConfig TgWsProxy_Version "%TgWsProxyTag%"
-call :ui_ok "TG WS Proxy %TgWsProxyTag% установлен."
-timeout /t 2 >nul
-goto TgWsProxyMenu
-
 
 :TgWsProxyStart
 set "TgWsProxyExe=%ParentDirPath%\tools\tg-ws-proxy\TgWsProxy_windows.exe"
@@ -2647,12 +2605,6 @@ if exist "%TgWsProxyDataDir%" (
 call :ui_warn "Папка данных ещё не создана. Сначала запустите TG WS Proxy."
 timeout /t 2 >nul
 goto TgWsProxyMenu
-
-
-:TgWsProxyOpenRelease
-start "" "https://goodbyezapret.crabdance.com/tg-ws-proxy/version.txt"
-goto TgWsProxyMenu
-
 
 :TgWsProxyOpenLink
 call :LoadTgWsProxyLink
@@ -3480,10 +3432,12 @@ call :ConfiguratorAutoBackup
 
 set "AutoZeroOthers=1"
 echo.
-echo  %COL%[36mОбнулить остальные стратегии на время автоподбора?%COL%[90m [Enter=Да / N=Нет]
+echo  %COL%[36mОбнулить остальные стратегии на время автоподбора?%COL%[90m [Y / N]
 set /p "AutoZeroChoice=%DEL%   %COL%[90m:> "
+if /i "!AutoZeroChoice!"=="Y" set "AutoZeroOthers=1"
+if /i "!AutoZeroChoice!"=="Н" set "AutoZeroOthers=1"
 if /i "!AutoZeroChoice!"=="N" set "AutoZeroOthers=0"
-if /i "!AutoZeroChoice!"=="Н" set "AutoZeroOthers=0"
+if /i "!AutoZeroChoice!"=="Т" set "AutoZeroOthers=0"
 set /a AutoIndex=0
 set "AutoAlmostList="
 set /a AutoAlmostCount=0

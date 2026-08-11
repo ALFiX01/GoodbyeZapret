@@ -244,23 +244,55 @@ if "%GoodbyeZapret_Config%" NEQ "None" (
     call :ResolveServiceConfig "%GoodbyeZapret_Config%"
     call :log INFO "Starting service with configuration %GoodbyeZapret_Config% (!ResolvedConfigExt!)"
     if defined ResolvedConfigRel (
+        set "ServiceInstallError=0"
         if /I "!ResolvedConfigExt!"==".txt" (
             powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\service\BuildGoodbyeZapretService.ps1" -ProjectDir "%ParentDirPath%" >nul 2>&1
-            sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\service\GoodbyeZapretService.exe\" --preset \"%ParentDirPath%\configs\!ResolvedConfigRel!\" --project-dir \"%ParentDirPath%\"" >nul 2>&1
+            if errorlevel 1 (
+                set "ServiceInstallError=1"
+                call :log ERROR "Failed to build GoodbyeZapret service host"
+            ) else (
+                sc create "GoodbyeZapret" binPath= "\"%ParentDirPath%\tools\service\GoodbyeZapretService.exe\" --preset \"%ParentDirPath%\configs\!ResolvedConfigRel!\" --project-dir \"%ParentDirPath%\"" >nul 2>&1
+                if errorlevel 1 set "ServiceInstallError=1"
+            )
         ) else (
             sc create "GoodbyeZapret" binPath= "cmd.exe /c \"\"%ParentDirPath%\configs\!ResolvedConfigRel!\"\"" >nul 2>&1
+            if errorlevel 1 set "ServiceInstallError=1"
         )
-        sc config "GoodbyeZapret" start= auto >nul 2>&1
+        if "!ServiceInstallError!"=="0" (
+            sc config "GoodbyeZapret" start= auto >nul 2>&1
+            if errorlevel 1 set "ServiceInstallError=1"
+        )
+        if "!ServiceInstallError!"=="0" (
+            sc failure "GoodbyeZapret" reset= 86400 actions= restart/5000/restart/15000/restart/60000 >nul 2>&1
+            if errorlevel 1 set "ServiceInstallError=1"
+        )
+        if "!ServiceInstallError!"=="0" (
+            sc failureflag "GoodbyeZapret" 1 >nul 2>&1
+            if errorlevel 1 set "ServiceInstallError=1"
+        )
+        if not "!ServiceInstallError!"=="0" (
+            echo         ^[ERR^] Не удалось установить или настроить службу GoodbyeZapret
+            call :log ERROR "Failed to install or configure GoodbyeZapret service"
+            start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
+            timeout /t 1 >nul 2>&1
+            exit /b 1
+        )
         if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
             schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
             if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
         )
         sc description GoodbyeZapret "%GoodbyeZapret_Config%" >nul 2>&1
         sc start "GoodbyeZapret" >nul 2>&1
-        if %errorlevel% equ 0 (
-            echo         ^[*^] Служба GoodbyeZapret успешно запущена
-            call :log INFO "GoodbyeZapret service started"
+        set "ServiceStartError=!errorlevel!"
+        if not "!ServiceStartError!"=="0" (
+            echo         ^[ERR^] Служба GoodbyeZapret установлена, но не запустилась ^(код !ServiceStartError!^)
+            call :log ERROR "GoodbyeZapret service failed to start with code !ServiceStartError!"
+            start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"
+            timeout /t 1 >nul 2>&1
+            exit /b 1
         )
+        echo         ^[*^] Служба GoodbyeZapret успешно запущена
+        call :log INFO "GoodbyeZapret service started"
         echo         ^[*^] Обновление завершено
         call :log INFO "Update finished"
         start "" /d "%ParentDirPath%" "%ParentDirPath%\Launcher.bat"

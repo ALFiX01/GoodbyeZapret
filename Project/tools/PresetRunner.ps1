@@ -398,21 +398,6 @@ function Resolve-Preset {
     }
 }
 
-function Stop-ExistingEngineProcesses {
-    param([string]$ProjectDir)
-
-    if ($PreserveExistingProcess) {
-        return
-    }
-
-    foreach ($processName in @("winws", "winws2")) {
-        Get-Process -Name $processName -ErrorAction SilentlyContinue | ForEach-Object {
-            Write-RunnerLog -ProjectDir $ProjectDir -Message "Stopping existing process $($_.ProcessName) PID $($_.Id)"
-            Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        }
-    }
-}
-
 function Invoke-DnsFlush {
     param([string]$ProjectDir)
 
@@ -425,6 +410,35 @@ function Invoke-DnsFlush {
     }
 }
 
+function Stop-ProjectEngineProcesses {
+    param([Parameter(Mandatory = $true)][string]$ProjectDir)
+
+    if ($PreserveExistingProcess) {
+        return
+    }
+
+    $binDir = [System.IO.Path]::GetFullPath((Join-Path $ProjectDir "bin")).TrimEnd('\') + '\'
+    foreach ($processName in @("winws", "winws2")) {
+        Get-Process -Name $processName -ErrorAction SilentlyContinue | ForEach-Object {
+            $process = $_
+            try {
+                $processPath = [System.IO.Path]::GetFullPath($process.Path)
+                if (-not $processPath.StartsWith($binDir, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    Write-RunnerLog -ProjectDir $ProjectDir -Message "Leaving external process $($process.ProcessName) PID $($process.Id) untouched"
+                    return
+                }
+
+                Write-RunnerLog -ProjectDir $ProjectDir -Message "Stopping project process $($process.ProcessName) PID $($process.Id)"
+                Stop-Process -Id $process.Id -Force -ErrorAction Stop
+                $process.WaitForExit(3000) | Out-Null
+            }
+            catch {
+                Write-RunnerLog -ProjectDir $ProjectDir -Level "WARN" -Message "Failed to inspect or stop $($process.ProcessName) PID $($process.Id): $($_.Exception.Message)"
+            }
+        }
+    }
+}
+
 function Start-PresetProcess {
     param(
         [Parameter(Mandatory = $true)]
@@ -434,7 +448,7 @@ function Start-PresetProcess {
         [string]$ProjectDir
     )
 
-    Stop-ExistingEngineProcesses -ProjectDir $ProjectDir
+    Stop-ProjectEngineProcesses -ProjectDir $ProjectDir
     Invoke-DnsFlush -ProjectDir $ProjectDir
 
     Write-RunnerLog -ProjectDir $ProjectDir -Message ("Starting preset: " + $ResolvedPreset.PresetPath)
@@ -446,7 +460,8 @@ function Start-PresetProcess {
     if (-not [string]::IsNullOrWhiteSpace($engineArguments)) {
         $engineCommand += " " + $engineArguments
     }
-    $engineCommand += " >NUL 2>NUL"
+    $engineOutputLog = Join-Path (Split-Path -Parent (Get-RunnerLogPath $ProjectDir)) "engine.log"
+    $engineCommand += " >>" + (ConvertTo-CommandLineArgument -Value $engineOutputLog) + " 2>&1"
 
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = if ($env:ComSpec) { $env:ComSpec } else { "cmd.exe" }
@@ -527,7 +542,6 @@ public sealed class GoodbyeZapretPresetService : ServiceBase
         Log("Service start requested");
         stopping = false;
 
-        StopExistingEngineProcesses();
         FlushDns();
         StartEngineProcess();
     }
@@ -614,30 +628,6 @@ public sealed class GoodbyeZapretPresetService : ServiceBase
         catch (Exception ex)
         {
             Log("Failed to stop engine: " + ex.Message);
-        }
-    }
-
-    private static void StopExistingEngineProcesses()
-    {
-        foreach (var processName in new[] { "winws", "winws2" })
-        {
-            foreach (var process in Process.GetProcessesByName(processName))
-            {
-                try
-                {
-                    Log("Stopping existing process " + process.ProcessName + " PID " + process.Id);
-                    process.Kill();
-                    process.WaitForExit(3000);
-                }
-                catch (Exception ex)
-                {
-                    Log("Failed to stop existing process " + process.ProcessName + " PID " + process.Id + ": " + ex.Message);
-                }
-                finally
-                {
-                    process.Dispose();
-                }
-            }
         }
     }
 

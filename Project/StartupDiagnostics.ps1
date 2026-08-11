@@ -726,6 +726,8 @@ Test-RequiredFile $projectRoot 'tools\config_builder\builder.exe' 1024
 Test-RequiredFile $projectRoot 'tools\PresetRunner.ps1' 1
 Test-RequiredFile $projectRoot 'tools\Updater.exe' 1024
 Test-RequiredFile $projectRoot 'tools\service\GoodbyeZapretService.exe' 1024
+Test-RequiredFile $projectRoot 'tools\service\GoodbyeZapretService.cs' 1024
+Test-RequiredFile $projectRoot 'tools\service\BuildGoodbyeZapretService.ps1' 256
 if ($errorCount -eq $requiredFileErrorCountBefore) {
     Add-CheckOk 'Required executable and driver files are present'
 }
