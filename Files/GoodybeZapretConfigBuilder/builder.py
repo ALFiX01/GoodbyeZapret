@@ -621,8 +621,12 @@ def generate_preset_file(args, data):
             if not is_empty_port_argument(normalized_token):
                 preset_lines.append(normalized_token)
 
-    output_dir = resolve_output_dir()
-    out_path = output_dir / OUTPUT_PRESET
+    if args.output:
+        out_path = Path(args.output).expanduser().resolve()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        output_dir = resolve_output_dir()
+        out_path = output_dir / OUTPUT_PRESET
 
     try:
         with open(out_path, "w", encoding="utf-8") as f:
@@ -636,6 +640,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--engine", default="2", choices=["2"])
     parser.add_argument("--get-limits", action="store_true")
+    parser.add_argument("--output", help="write the generated preset to this path")
+    parser.add_argument("--no-save", action="store_true", help="do not update persistent user settings")
 
     parser.add_argument("--youtube", default="0")
     parser.add_argument("--youtubegooglevideo", default="0")
@@ -664,7 +670,8 @@ def main():
         export_limits(data)
     else:
         tcp_ports_value, udp_ports_value = generate_preset_file(args, data)
-        save_user_config(args, tcp_ports_value, udp_ports_value)
+        if not args.no_save:
+            save_user_config(args, tcp_ports_value, udp_ports_value)
 
 
 if __name__ == "__main__":

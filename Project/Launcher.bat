@@ -32,8 +32,8 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=4.2.2"
-set "Current_GoodbyeZapret_version_code=4A2F1"
+set "Current_GoodbyeZapret_version=4.2.3"
+set "Current_GoodbyeZapret_version_code=4A3F1"
 set "branch=Stable"
 set "beta_code=0"
 
@@ -3429,6 +3429,8 @@ if not defined AutoMax set "AutoMax=0"
 call set "AutoPrev=%%%AutoVar%%%"
 for %%V in (!AutoTrackedVars!) do set "AutoPrev_%%V=!%%V!"
 call :ConfiguratorAutoBackup
+set "AutoCandidateDir=%TEMP%\GoodbyeZapret"
+set "AutoCandidatePreset=!AutoCandidateDir!\ConfiguratorAutoCandidate_!RANDOM!_!RANDOM!.txt"
 
 set "AutoZeroOthers=1"
 echo.
@@ -3446,11 +3448,20 @@ set "AutoFirstFound="
 set /a AutoFoundCount=0
 call :ConfiguratorAutoUpdateTitle
 
+call :ConfiguratorAutoBaseline
+if not errorlevel 1 goto ConfiguratorAutoBaselinePassed
+set /a AutoIndex=1
+
 :ConfiguratorAutoLoop
 if !AutoIndex! gtr !AutoMax! goto ConfiguratorAutoComplete
 call :ConfiguratorAutoSetTestVars
 call :ConfiguratorAutoApply
-call :ConfiguratorAutoCheck
+if errorlevel 1 (
+    set "AutoCheckResult=2"
+    echo  [FAIL] Кандидат не запущен и исключен из результатов.
+) else (
+    call :ConfiguratorAutoCheck
+)
 
 if "!AutoCheckResult!"=="0" call :ConfiguratorAutoRegisterFound
 if "!AutoCheckResult!"=="1" (
@@ -3468,7 +3479,7 @@ goto ConfiguratorAutoNotFound
 call :ConfiguratorAutoRestoreAll
 for %%V in (!AutoVar!) do set "%%V=!AutoFirstFound!"
 set /a AutoIndex=AutoFirstFound
-call :ConfiguratorAutoApply
+call :ConfiguratorAutoCommitCurrent
 call :ConfiguratorAutoUpdateTitle
 call :ConfiguratorAutoSaveFoundResults
 echo.
@@ -3478,10 +3489,35 @@ echo  %COL%[93m[INFO]%COL%[37m Применена первая найденна�
 pause >nul
 goto MENU
 
+:ConfiguratorAutoBaseline
+echo.
+echo  [*] Baseline: проверка без стратегии для !AutoName!...
+set /a AutoIndex=0
+call :ConfiguratorAutoSetTestVars
+call :ConfiguratorAutoApply
+if errorlevel 1 (
+    echo  [WARN] Baseline не удалось запустить. Переходим к проверке стратегий.
+    exit /b 1
+)
+call :ConfiguratorAutoCheck
+if "!AutoCheckResult!"=="0" exit /b 0
+echo  [INFO] Без стратегии модуль не прошел проверку. Начинаем подбор с стратегии 1.
+exit /b 1
+
+:ConfiguratorAutoBaselinePassed
+call :ConfiguratorAutoRestoreAll
+set /a AutoIndex=AutoPrev
+call :ConfiguratorAutoCommitCurrent
+echo.
+echo  %COL%[92m[OK]%COL%[37m Для %COL%[92m!AutoName!%COL%[37m обход не требуется: baseline без стратегии прошел проверку.
+echo  %COL%[90mПредыдущее значение %COL%[92m!AutoPrev!%COL%[90m восстановлено; стратегия 0 не сохранена как найденная.
+pause >nul
+goto MENU
+
 :ConfiguratorAutoCancel
 call :ConfiguratorAutoRestoreAll
 set /a AutoIndex=AutoPrev
-call :ConfiguratorAutoApply
+call :ConfiguratorAutoCommitCurrent
 echo.
 echo  %COL%[90mВозвращено предыдущее значение %COL%[92m!AutoPrev!%COL%[90m для %COL%[92m!AutoName!%COL%[90m.
 pause >nul
@@ -3490,9 +3526,9 @@ goto MENU
 :ConfiguratorAutoNotFound
 call :ConfiguratorAutoRestoreAll
 set /a AutoIndex=AutoPrev
-call :ConfiguratorAutoApply
+call :ConfiguratorAutoCommitCurrent
 echo.
-echo  %COL%[91m[WARN]%COL%[37m Подходящая стратегия не найдена (0-!AutoMax!).
+echo  %COL%[91m[WARN]%COL%[37m Подходящая стратегия не найдена (1-!AutoMax!).
 if !AutoAlmostCount! gtr 0 (
     echo  %COL%[93m[INFO]%COL%[37m Почти рабочие стратегии: %COL%[92m!AutoAlmostList!%COL%[37m
 )
@@ -3505,30 +3541,53 @@ cls
 call :ConfiguratorAutoUpdateTitle
 echo.
 echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!)
-echo  [*] Сборка стратегий в конфиг на Zapret2 / winws2.exe...
-call :BuildConfiguratorFix
+echo  [*] Сборка временного конфига на Zapret2 / winws2.exe...
+call :BuildConfiguratorFixTemporary
+if errorlevel 1 (
+    echo  [FAIL] Не удалось собрать временный конфиг.
+    exit /b 1
+)
 
 call :ConfiguratorAutoStopRunning
-call :ResolveConfiguratorFixConfig
-if defined ConfiguratorFixRel (
-    echo  [*] Запуск...
-    if /I "!ConfiguratorFixExt!"==".txt" (
-        call :StartTextPreset "%ParentDirPath%\configs\Custom\ConfiguratorFix.txt"
+if exist "!AutoCandidatePreset!" (
+    echo  [*] Запуск временного конфига...
+    call :StartTextPreset "!AutoCandidatePreset!"
+    if errorlevel 1 exit /b 1
     ) else (
-        start "" "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
-    )
+    echo  [FAIL] Временный конфиг не создан: !AutoCandidatePreset!
+    exit /b 1
 )
 echo  [*] Проверяем процесс обхода...
 set "AutoProcessName=Winws2.exe"
+set "AutoApplyResult=0"
 call :WaitForProcessByName "!AutoProcessName!" 3
 if errorlevel 1 (
+    set "AutoApplyResult=1"
     echo.
     echo %COL%[91m ОШИБКА: Процесс обхода ^(!AutoProcessName!^) НЕ ЗАПУЩЕН. %COL%[37m
     echo.
 ) else (
     echo  [*] Процесс обхода работает, ошибки не обнаружены
 )
-exit /b
+exit /b !AutoApplyResult!
+
+:ConfiguratorAutoCommitCurrent
+echo  [*] Сохранение выбранной конфигурации...
+call :BuildConfiguratorFix
+if errorlevel 1 exit /b 1
+call :ConfiguratorAutoStopRunning
+call :ResolveConfiguratorFixConfig
+if not defined ConfiguratorFixRel exit /b 1
+if /I "!ConfiguratorFixExt!"==".txt" (
+    call :StartTextPreset "%ParentDirPath%\configs\Custom\ConfiguratorFix.txt"
+    if errorlevel 1 exit /b 1
+) else (
+    start "" "%ParentDirPath%\Configs\Custom\ConfiguratorFix.bat"
+)
+call :WaitForProcessByName "Winws2.exe" 3
+if errorlevel 1 exit /b 1
+if defined AutoCandidatePreset if exist "!AutoCandidatePreset!" del /q "!AutoCandidatePreset!" >nul 2>&1
+exit /b 0
 
 :ConfiguratorAutoRegisterFound
 if not defined AutoFirstFound set "AutoFirstFound=!AutoIndex!"
@@ -3813,6 +3872,12 @@ exit /b
 
 :BuildConfiguratorFix
 "%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --cloudflarecdntcp !CFTCP! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL!
+exit /b %ERRORLEVEL%
+
+:BuildConfiguratorFixTemporary
+if not exist "!AutoCandidateDir!" md "!AutoCandidateDir!" >nul 2>&1
+if exist "!AutoCandidatePreset!" del /q "!AutoCandidatePreset!" >nul 2>&1
+"%ParentDirPath%\tools\config_builder\builder.exe" --youtube !YT! --youtubegooglevideo !YTGV! --youtubequic !YTQ! --twitch !TW! --discordupdate !DSUPD! --discord !DS! --discordquic !DSQ! --discordmedia !DSMEDIA! --blacklist !BL! --stun !STUN! --cdn !CDN! --cloudflarecdntcp !CFTCP! --amazontcp !AMZTCP! --amazonudp !AMZUDP! --custom !CUSTOM! --cdn-level !CDN_LVL! --no-save --output "!AutoCandidatePreset!"
 exit /b %ERRORLEVEL%
 
 :START
