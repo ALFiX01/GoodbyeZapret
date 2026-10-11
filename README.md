@@ -245,6 +245,17 @@ GoodbyeZapretTray.exe, а также закройте консоль, связа
    ```
    Если проблемы будут обнаружены, программа сообщит вам о них в открывшемся меню.
 
+Автоподбор сохраняет отчёт по каждому кандидату в `%APPDATA%\GoodbyeZapret\autopick_reports`. В отчёте указаны HTTP-код, число прочитанных байт, время, версия TLS и причина сбоя.
+
+Для ручной проверки конкретного HTTPS-адреса из папки установки:
+
+```bat
+tools\config_check\config_check.exe -diagnose https://example.com/file
+tools\config_check\config_check.exe -diagnose-upload https://example.com/upload
+```
+
+Вторая команда отправляет 64 КБ: используйте адрес, принимающий POST. `POSSIBLE_STALL` означает лишь возможное зависание передачи; сравните результат с запуском без обхода.
+
 
 ---
 

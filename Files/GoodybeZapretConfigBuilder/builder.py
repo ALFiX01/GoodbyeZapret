@@ -246,7 +246,7 @@ def save_user_config(args, tcp_ports_value="", udp_ports_value=""):
     r"""
     Сохраняет настройки:
     1. Параметры CLI -> %USERPROFILE%\AppData\Roaming\GoodbyeZapret\configurator.txt
-    2. GoodbyeZapret_Config -> %USERPROFILE%\AppData\Roaming\GoodbyeZapret\config.txt
+    2. Порты -> %USERPROFILE%\AppData\Roaming\GoodbyeZapret\ports.bat
     """
     appdata = os.getenv('APPDATA')
     if not appdata:
@@ -307,7 +307,7 @@ def save_user_config(args, tcp_ports_value="", udp_ports_value=""):
     if "udp_ports" in config_data:
         del config_data["udp_ports"]
 
-    # УБИРАЕМ GoodbyeZapret_Config из configurator.txt, если он там был (переезд на config.txt)
+    # УБИРАЕМ GoodbyeZapret_Config из configurator.txt, если он там был
     if "GoodbyeZapret_Config" in config_data:
         del config_data["GoodbyeZapret_Config"]
 
@@ -319,34 +319,7 @@ def save_user_config(args, tcp_ports_value="", udp_ports_value=""):
     except Exception as e:
         print(f"REM [ERROR] Failed to save configurator.txt: {e}")
 
-    # === 2. Работа с config.txt (Только GoodbyeZapret_Config) ===
-    file_config = config_dir / "config.txt"
-    main_config_data = {}
-
-    # Читаем существующий config.txt (чтобы не затереть другие настройки пользователя, если есть)
-    if file_config.exists():
-        try:
-            with open(file_config, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if "=" in line:
-                        key, value = line.split("=", 1)
-                        main_config_data[key.strip()] = value.strip()
-        except Exception as e:
-            print(f"REM [WARNING] Failed to read config.txt: {e}")
-
-    # Устанавливаем нужное значение
-    main_config_data["GoodbyeZapret_Config"] = '"ConfiguratorFix"'
-
-    # Записываем config.txt
-    try:
-        with open(file_config, "w", encoding="utf-8") as f:
-            for key, value in main_config_data.items():
-                f.write(f"{key}={value}\n")
-    except Exception as e:
-        print(f"REM [ERROR] Failed to save config.txt: {e}")
-
-    # === 3. ports.bat (tcp/udp) ===
+    # === 2. ports.bat (tcp/udp) ===
     file_ports = config_dir / PORTS_BAT
     try:
         with open(file_ports, "w", encoding="utf-8") as f:
@@ -633,6 +606,7 @@ def generate_preset_file(args, data):
             f.write("\n".join(preset_lines) + "\n")
     except Exception as e:
         print(f"[ERROR] Could not write preset file: {e}", file=sys.stderr)
+        raise SystemExit(1) from e
 
     return tcp_ports_value, udp_ports_value
 

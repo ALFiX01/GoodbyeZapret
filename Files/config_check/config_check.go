@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	cryptorand "crypto/rand"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -139,9 +141,22 @@ type probeProfile struct {
 }
 
 type domainResult struct {
-	domain string
-	ok     bool
-	reason string
+	domain     string
+	ok         bool
+	reason     string
+	statusCode int
+	downloaded int
+	tlsVersion string
+	elapsed    time.Duration
+}
+
+type uploadResult struct {
+	statusCode   int
+	wroteRequest bool
+	gotResponse  bool
+	downloaded   int64
+	elapsed      time.Duration
+	err          error
 }
 
 type resultGroup struct {
@@ -163,37 +178,38 @@ func NewChecker(updateURL string, strict bool, ipMode string) *Checker {
 	}
 }
 
-func (c *Checker) Check(domainOrURL string) (bool, string) {
+func (c *Checker) CheckDetailed(domainOrURL string) domainResult {
+	started := time.Now()
 	rawURL := c.buildURL(domainOrURL)
 	rawURL = bypassURL(rawURL)
+	var r checkRes
 
 	if !c.strict {
-		r := c.checkOncePyLike(rawURL, c.clientFast, probeTotalTimeout, false)
-		if r.err == nil {
-			return true, ""
+		r = c.checkOncePyLike(rawURL, c.clientFast, probeTotalTimeout, false)
+		if r.err != nil && shouldFallbackToStrict(r) {
+			r = c.checkStrict(rawURL)
 		}
-		if !shouldFallbackToStrict(r) {
-			return false, classifyPyLike(r)
-		}
+	} else {
+		r = c.checkStrict(rawURL)
 	}
-
-	return c.checkStrict(rawURL)
+	return domainResult{
+		domain: domainOrURL, ok: r.err == nil, reason: classifyPyLike(r),
+		statusCode: r.statusCode, downloaded: r.downloaded,
+		tlsVersion: r.tlsVersion, elapsed: time.Since(started),
+	}
 }
 
-func (c *Checker) checkStrict(rawURL string) (bool, string) {
+func (c *Checker) checkStrict(rawURL string) checkRes {
 	r := c.checkOncePyLike(rawURL, c.clientFast, fastTotalTimeout, true)
 	if r.err == nil {
-		return true, ""
+		return r
 	}
 
 	if shouldRetry(r.err) {
 		r = c.checkOncePyLike(rawURL, c.clientSlow, slowTotalTimeout, true)
-		if r.err == nil {
-			return true, ""
-		}
 	}
 
-	return false, classifyPyLike(r)
+	return r
 }
 
 func (c *Checker) buildURL(domainOrURL string) string {
@@ -305,6 +321,7 @@ type checkRes struct {
 	statusCode  int
 	contentType string
 	gotFirst    bool
+	tlsVersion  string
 	err         error
 }
 
@@ -336,10 +353,15 @@ func (c *Checker) checkOncePyLike(urlStr string, client *http.Client, totalTimeo
 		return checkRes{gotFirst: atomic.LoadInt32(&gotFirst) == 1, err: err}
 	}
 	defer resp.Body.Close()
+	tlsVersion := ""
+	if resp.TLS != nil {
+		tlsVersion = tls.VersionName(resp.TLS.Version)
+	}
 
 	if !statusAllowed(resp.StatusCode, profile.allowedStatuses) {
 		return checkRes{
 			statusCode:  resp.StatusCode,
+			tlsVersion:  tlsVersion,
 			contentType: resp.Header.Get("Content-Type"),
 			gotFirst:    true,
 			err:         fmt.Errorf("http %d", resp.StatusCode),
@@ -361,6 +383,7 @@ func (c *Checker) checkOncePyLike(urlStr string, client *http.Client, totalTimeo
 			return checkRes{
 				downloaded:  downloaded,
 				statusCode:  resp.StatusCode,
+				tlsVersion:  tlsVersion,
 				contentType: resp.Header.Get("Content-Type"),
 				gotFirst:    atomic.LoadInt32(&gotFirst) == 1,
 				err:         rerr,
@@ -373,6 +396,7 @@ func (c *Checker) checkOncePyLike(urlStr string, client *http.Client, totalTimeo
 		return checkRes{
 			downloaded:  downloaded,
 			statusCode:  resp.StatusCode,
+			tlsVersion:  tlsVersion,
 			contentType: contentType,
 			gotFirst:    atomic.LoadInt32(&gotFirst) == 1,
 			err:         err,
@@ -382,6 +406,7 @@ func (c *Checker) checkOncePyLike(urlStr string, client *http.Client, totalTimeo
 	return checkRes{
 		downloaded:  downloaded,
 		statusCode:  resp.StatusCode,
+		tlsVersion:  tlsVersion,
 		contentType: contentType,
 		gotFirst:    atomic.LoadInt32(&gotFirst) == 1,
 		err:         nil,
@@ -603,7 +628,50 @@ func main() {
 	quick := flag.Bool("quick", false, "быстрая проверка для авто-подбора конфигов")
 	ipMode := flag.String("ip", "4", "режим IP: 4, 6 или auto")
 	domainsFile := flag.String("domains", "", "путь к файлу доменов (по умолчанию domains.txt рядом с exe)")
+	reportFile := flag.String("report", "", "путь к отчёту по доменам и итогам проверки")
+	diagnoseURL := flag.String("diagnose", "", "отдельная проверка HTTPS с TLS 1.2 и 1.3 и чтением до 64 КБ")
+	diagnoseUploadURL := flag.String("diagnose-upload", "", "отдельная проба POST 64 КБ для диагностики зависания передачи")
 	flag.Parse()
+	if *diagnoseUploadURL != "" {
+		if !strings.HasPrefix(strings.ToLower(*diagnoseUploadURL), "https://") {
+			fmt.Fprintln(os.Stderr, "Для диагностики укажите полный HTTPS URL")
+			os.Exit(2)
+		}
+		for _, version := range []uint16{0, tls.VersionTLS12, tls.VersionTLS13} {
+			r := diagnoseUploadOnce(*diagnoseUploadURL, version)
+			status := "RESPONSE"
+			if r.err != nil {
+				status = "ERROR"
+				if r.wroteRequest && !r.gotResponse && isTimeoutErr(r.err) {
+					status = "POSSIBLE_STALL"
+				}
+			} else if r.statusCode == http.StatusMethodNotAllowed || r.statusCode == http.StatusNotImplemented {
+				status = "UNSUPPORTED"
+			}
+			fmt.Printf("%s: sent=%t down=%d response=%t http=%d time=%dms result=%s\n",
+				diagnosisLabel(version), r.wroteRequest, r.downloaded,
+				r.gotResponse, r.statusCode, r.elapsed.Milliseconds(), status)
+		}
+		fmt.Println("POSSIBLE_STALL — повод сравнить с контрольным запуском без обхода, не доказательство блокировки DPI.")
+		return
+	}
+	if *diagnoseURL != "" {
+		if !strings.HasPrefix(strings.ToLower(*diagnoseURL), "https://") {
+			fmt.Fprintln(os.Stderr, "Для диагностики укажите полный HTTPS URL")
+			os.Exit(2)
+		}
+		for _, version := range []uint16{0, tls.VersionTLS12, tls.VersionTLS13} {
+			r := diagnoseOnce(*diagnoseURL, version)
+			status := r.reason
+			if r.ok {
+				status = "OK"
+			}
+			fmt.Printf("%s: status=%d bytes=%d time=%dms result=%s\n",
+				diagnosisLabel(version), r.statusCode, r.downloaded, r.elapsed.Milliseconds(), status)
+		}
+		fmt.Println("Тайм-аут после частичного ответа — диагностический признак, не доказательство блокировки DPI.")
+		return
+	}
 
 	if *quick {
 		applyQuickProfile()
@@ -649,12 +717,7 @@ func main() {
 			defer wg.Done()
 			defer func() { <-sem }()
 
-			ok, reason := checker.Check(domainOrURL)
-			results[idx] = domainResult{
-				domain: domainOrURL,
-				ok:     ok,
-				reason: reason,
-			}
+			results[idx] = checker.CheckDetailed(domainOrURL)
 		}(i, d)
 	}
 
@@ -666,6 +729,12 @@ func main() {
 	}
 
 	success, total := summarizeGroups(groups)
+	if *reportFile != "" {
+		if err := writeReport(*reportFile, results, success, total); err != nil {
+			fmt.Fprintln(os.Stderr, "Ошибка записи отчёта:", err)
+			os.Exit(2)
+		}
+	}
 	msg := fmt.Sprintf("Доступно обязательных проверок: %d/%d", success, total)
 
 	if success == total {
@@ -680,6 +749,90 @@ func main() {
 		time.Sleep(failPause)
 		os.Exit(1)
 	}
+}
+
+func diagnosisLabel(version uint16) string {
+	if version == 0 {
+		return "HTTP/1.1 (TLS auto)"
+	}
+	return tls.VersionName(version)
+}
+
+func diagnoseUploadOnce(target string, version uint16) uploadResult {
+	started := time.Now()
+	result := uploadResult{}
+	ctx, cancel := context.WithTimeout(context.Background(), slowTotalTimeout)
+	defer cancel()
+	trace := &httptrace.ClientTrace{
+		WroteRequest:         func(info httptrace.WroteRequestInfo) { result.wroteRequest = info.Err == nil },
+		GotFirstResponseByte: func() { result.gotResponse = true },
+	}
+	ctx = httptrace.WithClientTrace(ctx, trace)
+	payload := make([]byte, 65536)
+	if _, err := cryptorand.Read(payload); err != nil {
+		result.err = err
+		return result
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(payload))
+	if err != nil {
+		result.err = err
+		return result
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	transport := buildHTTPTransport(slowReadTimeout, "auto")
+	transport.ForceAttemptHTTP2 = false
+	if version != 0 {
+		transport.TLSClientConfig.MinVersion = version
+		transport.TLSClientConfig.MaxVersion = version
+	}
+	defer transport.CloseIdleConnections()
+	resp, err := (&http.Client{Transport: transport}).Do(req)
+	if err != nil {
+		result.err = err
+	} else {
+		result.statusCode = resp.StatusCode
+		result.downloaded, result.err = io.CopyN(io.Discard, resp.Body, 65536)
+		if result.err == io.EOF {
+			result.err = nil
+		}
+		resp.Body.Close()
+	}
+	result.elapsed = time.Since(started)
+	return result
+}
+
+func diagnoseOnce(target string, version uint16) domainResult {
+	started := time.Now()
+	transport := buildHTTPTransport(slowReadTimeout, "auto")
+	transport.ForceAttemptHTTP2 = false
+	if version != 0 {
+		transport.TLSClientConfig.MinVersion = version
+		transport.TLSClientConfig.MaxVersion = version
+	}
+	defer transport.CloseIdleConnections()
+	checker := &Checker{}
+	r := checker.checkOncePyLike(target, &http.Client{Transport: transport}, slowTotalTimeout, true)
+	return domainResult{
+		domain: target, ok: r.err == nil, reason: classifyPyLike(r),
+		statusCode: r.statusCode, downloaded: r.downloaded,
+		tlsVersion: r.tlsVersion, elapsed: time.Since(started),
+	}
+}
+
+func writeReport(path string, results []domainResult, success, total int) error {
+	var b strings.Builder
+	fmt.Fprintf(&b, "SUMMARY|%d|%d\n", success, total)
+	clean := strings.NewReplacer("|", "_", "\r", " ", "\n", " ")
+	for _, r := range results {
+		status := "FAIL"
+		if r.ok {
+			status = "OK"
+		}
+		fmt.Fprintf(&b, "CHECK|%s|%s|%s|%d|%d|%d|%s\n",
+			clean.Replace(r.domain), status, clean.Replace(r.reason),
+			r.statusCode, r.downloaded, r.elapsed.Milliseconds(), r.tlsVersion)
+	}
+	return os.WriteFile(path, []byte(b.String()), 0600)
 }
 
 const (

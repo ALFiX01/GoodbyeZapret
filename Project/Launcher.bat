@@ -32,7 +32,7 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 
 :: Version information   Stable / Beta / Alpha
-set "Current_GoodbyeZapret_version=4.2.3"
+set "Current_GoodbyeZapret_version=4.3.0"
 set "Current_GoodbyeZapret_version_code=4A3F1"
 set "branch=Stable"
 set "beta_code=0"
@@ -70,7 +70,6 @@ if "%FirstLaunch%"=="0" (
 )
 
 call :ui_info "Первый запуск, выполняю проверку и настройку..."
-
 
 call :ReadConfig WinVer
 
@@ -593,14 +592,16 @@ if not defined Current_GoodbyeZapret_version (
 )
 
 REM Проверьте сервис GoodbyeZapret и получите текущую конфигурацию
-reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v Description >nul 2>&1
-if %errorlevel% equ 0 (
+set "GoodbyeZapret_Current="
+sc query "GoodbyeZapret" | find /I "RUNNING" >nul 2>&1
+if not errorlevel 1 reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v Description >nul 2>&1
+if not errorlevel 1 (
     for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\GoodbyeZapret" /v "Description" 2^>nul ^| find /i "Description"') do (
         set "GoodbyeZapret_Current=%%b"
     )
 )
 
-if /i "%GoodbyeZapret_Config%" neq "NotFound" if /i not "%GoodbyeZapret_Config%"=="%GoodbyeZapret_Current%" call :WriteConfig GoodbyeZapret_Config "%GoodbyeZapret_Current%"
+if defined GoodbyeZapret_Current if /i "%GoodbyeZapret_Config%" neq "NotFound" if /i not "%GoodbyeZapret_Config%"=="%GoodbyeZapret_Current%" call :WriteConfig GoodbyeZapret_Config "%GoodbyeZapret_Current%"
 
 REM Update version in registry if defined
  if defined Current_GoodbyeZapret_version (
@@ -1304,7 +1305,7 @@ for /f "usebackq tokens=1* delims=|" %%A in ("%ConfigListFile%") do (
 
         set "ReadyAutoWait=8"
         if /I "!ReadyAutoExt!"==".txt" set "ReadyAutoWait=15"
-        call :WaitForBypassProcess !ReadyAutoWait!
+        call :WaitForBypassProcess !ReadyAutoWait! Interactive
         if errorlevel 1 (
             echo  %COL%[91m[FAIL]%COL%[37m Процесс обхода не запустился.
         ) else (
@@ -1485,7 +1486,6 @@ if errorlevel 1 (
     goto :end
 )
 
-call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
 sc description GoodbyeZapret "!BaseCfg!" >nul
 sc start "GoodbyeZapret" >nul 2>&1
 set "ServiceStartError=!errorlevel!"
@@ -1503,6 +1503,7 @@ if errorlevel 1 (
     set /a ErrorCount+=1
     goto :end
 )
+call :WriteConfig GoodbyeZapret_Config "!BaseCfg!"
 if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
     tasklist /FI "IMAGENAME eq GoodbyeZapretTray.exe" 2>NUL | find /I /N "GoodbyeZapretTray.exe" >NUL
     if errorlevel 1 (
@@ -1522,13 +1523,13 @@ if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
         echo.
         REM Цветной текст
         for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-        "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
+        call :RunConfigCheckInSeparateCmd "!batFile!"
 )
 
 if /I not "!batfile!"=="ConfiguratorFix.txt" (
     set "BypassWaitSeconds=8"
     if /I "!CfgExt!"==".txt" set "BypassWaitSeconds=15"
-    call :WaitForBypassProcess !BypassWaitSeconds!
+    call :WaitForBypassProcess !BypassWaitSeconds! Service
     if errorlevel 1 (
         echo.
         echo ОШИБКА: Процесс обхода ^(Winws.exe или Winws2.exe^) не запущен.
@@ -2136,12 +2137,20 @@ goto CurrentStatus
 
     echo   %COL%[90m[*] Запуск службы GoodbyeZapret%COL%[37m
     sc start "GoodbyeZapret" >nul 2>&1
+    set "QuickRestartStartError=!errorlevel!"
     timeout /t 1 >nul 2>&1
+    if defined QuickRestartFromConfigurator (
+        if not "!QuickRestartStartError!"=="0" goto QuickRestartConfiguratorFailed
+        sc query "GoodbyeZapret" | find /I "RUNNING" >nul 2>&1
+        if errorlevel 1 goto QuickRestartConfiguratorFailed
+        call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
+    )
     echo   %COL%[90m[*] Запуск процесса GoodbyeZapretTray.exe    ...%COL%[37m
     if exist "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe" (
         schtasks /run /tn "GoodbyeZapretTray" >nul 2>&1
         if errorlevel 1 start "" "%ParentDirPath%\tools\tray\GoodbyeZapretTray.exe"
     )
+
     if defined QuickRestartFromConfigurator (
         set "QuickRestartFromConfigurator="
         goto ConfiguratorMenu
@@ -2151,6 +2160,13 @@ goto CurrentStatus
     ) else (
         goto CurrentStatus
     )
+
+:QuickRestartConfiguratorFailed
+    call :ui_err "Служба GoodbyeZapret не запустилась после сборки ConfiguratorFix."
+    call :ui_warn "Проверьте лог: %ProgramData%\GoodbyeZapret\logs\preset-runner.log"
+    set "QuickRestartFromConfigurator="
+    pause >nul
+    goto ConfiguratorMenu
 
 :FullUpdate
 REM === Update Updater.exe ===
@@ -2429,12 +2445,16 @@ exit /b 0
 
 :WaitForBypassProcess
 set "WaitBypassSeconds=%~1"
+set "WaitBypassMode=%~2"
 if not defined WaitBypassSeconds set "WaitBypassSeconds=3"
+if /I not "!WaitBypassMode!"=="Interactive" set "WaitBypassMode=Service"
 if %WaitBypassSeconds% lss 1 set "WaitBypassSeconds=1"
 for /L %%S in (1,1,%WaitBypassSeconds%) do (
-    tasklist /FI "IMAGENAME eq winws.exe" 2>nul | find /I "winws.exe" >nul
-    if not errorlevel 1 exit /b 0
-    tasklist /FI "IMAGENAME eq winws2.exe" 2>nul | find /I "winws2.exe" >nul
+    if /I "!WaitBypassMode!"=="Interactive" (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\service\TestGoodbyeZapretEngine.ps1" -ProjectDir "%ParentDirPath%" -Interactive >nul 2>&1
+    ) else (
+        powershell -NoProfile -ExecutionPolicy Bypass -File "%ParentDirPath%\tools\service\TestGoodbyeZapretEngine.ps1" -ProjectDir "%ParentDirPath%" >nul 2>&1
+    )
     if not errorlevel 1 exit /b 0
     if %%S lss %WaitBypassSeconds% timeout /t 1 >nul 2>&1
 )
@@ -3222,16 +3242,23 @@ cls
 echo.
 echo  [*] Сборка стратегий в конфиг на Zapret2 / winws2.exe...
 call :BuildConfiguratorFix
-call :ResolveConfiguratorFixConfig
-if defined ConfiguratorFixRel (
-    set "batFile=!ConfiguratorFixFile!"
-    set "batRel=!ConfiguratorFixRel!"
+if errorlevel 1 (
+    call :ui_err "Не удалось собрать стратегии. Автозапуск не изменён."
+    pause >nul
+    goto MENU
 )
+call :ResolveConfiguratorFixConfig
+if /I not "!ConfiguratorFixExt!"==".txt" (
+    call :ui_err "ConfiguratorFix.txt не найден после сборки. Автозапуск не изменён."
+    pause >nul
+    goto MENU
+)
+set "batFile=!ConfiguratorFixFile!"
+set "batRel=!ConfiguratorFixRel!"
 set "PanelBack=Configurator"
 call :remove_service_before_installing
 if errorlevel 1 goto MENU
 call :install_GZ_service
-call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
 goto MENU
 
 :ConfiguratorRebuildRestart
@@ -3273,7 +3300,6 @@ if errorlevel 1 (
     goto MENU
 )
 
-call :WriteConfig GoodbyeZapret_Config "ConfiguratorFix"
 set "QuickRestartFromConfigurator=1"
 goto QuickRestart
 
@@ -3431,7 +3457,10 @@ for %%V in (!AutoTrackedVars!) do set "AutoPrev_%%V=!%%V!"
 call :ConfiguratorAutoBackup
 set "AutoCandidateDir=%TEMP%\GoodbyeZapret"
 set "AutoCandidatePreset=!AutoCandidateDir!\ConfiguratorAutoCandidate_!RANDOM!_!RANDOM!.txt"
-
+set "AutoReportDir=%USERPROFILE%\AppData\Roaming\GoodbyeZapret\autopick_reports\!RANDOM!_!RANDOM!"
+if not exist "!AutoReportDir!" md "!AutoReportDir!" >nul 2>&1
+echo  [INFO] Отчеты проверки будет находиться тут:
+echo  !AutoReportDir!
 set "AutoZeroOthers=1"
 echo.
 echo  %COL%[36mОбнулить остальные стратегии на время автоподбора?%COL%[90m [Y / N]
@@ -3446,18 +3475,31 @@ set /a AutoAlmostCount=0
 set "AutoFoundList="
 set "AutoFirstFound="
 set /a AutoFoundCount=0
+set /a AutoCompleted=0
+set /a AutoTotalCandidates=AutoMax+1
+chcp 850 >nul 2>&1
+for /f %%T in ('powershell -NoProfile -Command "[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()"') do set "AutoStartedAt=%%T"
+chcp 65001 >nul 2>&1
 call :ConfiguratorAutoUpdateTitle
 
 call :ConfiguratorAutoBaseline
 if not errorlevel 1 goto ConfiguratorAutoBaselinePassed
+set /a AutoCompleted+=1
+call :ConfiguratorAutoCancelCheckpoint
+if errorlevel 1 goto ConfiguratorAutoCancel
 set /a AutoIndex=1
 
 :ConfiguratorAutoLoop
 if !AutoIndex! gtr !AutoMax! goto ConfiguratorAutoComplete
+call :ConfiguratorAutoShowProgress
 call :ConfiguratorAutoSetTestVars
 call :ConfiguratorAutoApply
+if errorlevel 2 goto ConfiguratorAutoCancel
 if errorlevel 1 (
     set "AutoCheckResult=2"
+    call :ConfiguratorAutoRecordStartFailure
+    set "AutoReportFile=!AutoReportDir!\!AutoVar!_!AutoIndex!.txt"
+    call :ConfiguratorAutoShowCandidateResult
     echo  [FAIL] Кандидат не запущен и исключен из результатов.
 ) else (
     call :ConfiguratorAutoCheck
@@ -3468,34 +3510,77 @@ if "!AutoCheckResult!"=="1" (
     set /a AutoAlmostCount+=1
     set "AutoAlmostList=!AutoAlmostList!!AutoIndex! "
 )
+set /a AutoCompleted+=1
+call :ConfiguratorAutoCancelCheckpoint
+if errorlevel 1 goto ConfiguratorAutoCancel
 set /a AutoIndex+=1
 goto ConfiguratorAutoLoop
 
 :ConfiguratorAutoComplete
-if !AutoFoundCount! gtr 0 goto ConfiguratorAutoSave
+if !AutoFoundCount! gtr 0 (
+    set "AutoSelected="
+    call :ConfiguratorAutoSaveFoundResults
+    goto ConfiguratorAutoSelectResult
+)
 goto ConfiguratorAutoNotFound
+
+:ConfiguratorAutoSelectResult
+call :ConfiguratorAutoStopRunning
+set "AutoSelected="
+:ConfiguratorAutoSelectResultMenu
+set "AutoSelected="
+echo.
+echo  %COL%[92m[OK]%COL%[37m Рабочие стратегии для !AutoName!: !AutoFoundList!
+for %%S in (!AutoFoundList:,= !) do (
+    set "AutoReportFile=!AutoReportDir!\!AutoVar!_%%S.txt"
+    call :ConfiguratorAutoShowCandidateResult %%S
+)
+if !AutoAlmostCount! gtr 0 echo  %COL%[93m[INFO]%COL%[37m Почти рабочие: !AutoAlmostList!
+echo  %COL%[90mОтчеты: !AutoReportDir!
+echo  %COL%[90mВведите номер стратегии, O - открыть отчеты, Q - отменить.
+set "AutoSelectChoice="
+set /p "AutoSelectChoice=%DEL%   %COL%[90m:> "
+if /i "!AutoSelectChoice!"=="O" (
+    start "" "!AutoReportDir!"
+    goto ConfiguratorAutoSelectResultMenu
+)
+if /i "!AutoSelectChoice!"=="Q" goto ConfiguratorAutoCancel
+for %%S in (!AutoFoundList:,= !) do if "!AutoSelectChoice!"=="%%S" set "AutoSelected=%%S"
+if not defined AutoSelected (
+    echo  %COL%[91m[WARN]%COL%[37m Выберите номер из списка.
+    goto ConfiguratorAutoSelectResultMenu
+)
+goto ConfiguratorAutoSave
 
 :ConfiguratorAutoSave
 call :ConfiguratorAutoRestoreAll
-for %%V in (!AutoVar!) do set "%%V=!AutoFirstFound!"
-set /a AutoIndex=AutoFirstFound
+for %%V in (!AutoVar!) do set "%%V=!AutoSelected!"
+set /a AutoIndex=AutoSelected
 call :ConfiguratorAutoCommitCurrent
+if errorlevel 1 goto ConfiguratorAutoCommitFailed
 call :ConfiguratorAutoUpdateTitle
 call :ConfiguratorAutoSaveFoundResults
 echo.
 echo  %COL%[92m[OK]%COL%[37m Найдены рабочие стратегии для %COL%[92m!AutoName!%COL%[37m: %COL%[92m!AutoFoundList!%COL%[37m.
 echo  %COL%[93m[INFO]%COL%[37m Список сохранен для быстрого просмотра.
-echo  %COL%[93m[INFO]%COL%[37m Применена первая найденная стратегия: %COL%[92m!AutoFirstFound!%COL%[37m.
+echo  %COL%[93m[INFO]%COL%[37m Применена выбранная стратегия: %COL%[92m!AutoSelected!%COL%[37m.
 pause >nul
 goto MENU
 
+:ConfiguratorAutoCommitFailed
+echo  %COL%[91m[FAIL]%COL%[37m Выбранную стратегию не удалось применить.
+echo  %COL%[90mПробуем восстановить предыдущую конфигурацию.
+goto ConfiguratorAutoCancel
+
 :ConfiguratorAutoBaseline
+cls
 echo.
 echo  [*] Baseline: проверка без стратегии для !AutoName!...
 set /a AutoIndex=0
 call :ConfiguratorAutoSetTestVars
 call :ConfiguratorAutoApply
 if errorlevel 1 (
+    call :ConfiguratorAutoRecordStartFailure
     echo  [WARN] Baseline не удалось запустить. Переходим к проверке стратегий.
     exit /b 1
 )
@@ -3508,6 +3593,7 @@ exit /b 1
 call :ConfiguratorAutoRestoreAll
 set /a AutoIndex=AutoPrev
 call :ConfiguratorAutoCommitCurrent
+if errorlevel 1 goto ConfiguratorAutoRestoreFailed
 echo.
 echo  %COL%[92m[OK]%COL%[37m Для %COL%[92m!AutoName!%COL%[37m обход не требуется: baseline без стратегии прошел проверку.
 echo  %COL%[90mПредыдущее значение %COL%[92m!AutoPrev!%COL%[90m восстановлено; стратегия 0 не сохранена как найденная.
@@ -3518,8 +3604,16 @@ goto MENU
 call :ConfiguratorAutoRestoreAll
 set /a AutoIndex=AutoPrev
 call :ConfiguratorAutoCommitCurrent
+if errorlevel 1 goto ConfiguratorAutoRestoreFailed
 echo.
 echo  %COL%[90mВозвращено предыдущее значение %COL%[92m!AutoPrev!%COL%[90m для %COL%[92m!AutoName!%COL%[90m.
+pause >nul
+goto MENU
+
+:ConfiguratorAutoRestoreFailed
+echo.
+echo  %COL%[91m[FAIL]%COL%[37m Не удалось запустить предыдущую конфигурацию.
+echo  %COL%[90mРезервная копия значений: !AutoBackupFile!
 pause >nul
 goto MENU
 
@@ -3527,17 +3621,21 @@ goto MENU
 call :ConfiguratorAutoRestoreAll
 set /a AutoIndex=AutoPrev
 call :ConfiguratorAutoCommitCurrent
+if errorlevel 1 goto ConfiguratorAutoRestoreFailed
 echo.
 echo  %COL%[91m[WARN]%COL%[37m Подходящая стратегия не найдена (1-!AutoMax!).
 if !AutoAlmostCount! gtr 0 (
     echo  %COL%[93m[INFO]%COL%[37m Почти рабочие стратегии: %COL%[92m!AutoAlmostList!%COL%[37m
+    for %%S in (!AutoAlmostList!) do (
+        set "AutoReportFile=!AutoReportDir!\!AutoVar!_%%S.txt"
+        call :ConfiguratorAutoShowCandidateResult %%S
+    )
 )
 echo  %COL%[90mВозвращено значение %COL%[92m!AutoPrev!%COL%[90m для %COL%[92m!AutoName!%COL%[90m.
 pause >nul
 goto MENU
 
 :ConfiguratorAutoApply
-cls
 call :ConfiguratorAutoUpdateTitle
 echo.
 echo  [*] Модуль: !AutoName!  Стратегия: !AutoIndex! (0-!AutoMax!)
@@ -3561,6 +3659,10 @@ echo  [*] Проверяем процесс обхода...
 set "AutoProcessName=Winws2.exe"
 set "AutoApplyResult=0"
 call :WaitForProcessByName "!AutoProcessName!" 3
+if errorlevel 2 (
+    set "AutoCancelRequested=1"
+    exit /b 2
+)
 if errorlevel 1 (
     set "AutoApplyResult=1"
     echo.
@@ -3572,6 +3674,7 @@ if errorlevel 1 (
 exit /b !AutoApplyResult!
 
 :ConfiguratorAutoCommitCurrent
+set "AutoStartedAt="
 echo  [*] Сохранение выбранной конфигурации...
 call :BuildConfiguratorFix
 if errorlevel 1 exit /b 1
@@ -3602,6 +3705,48 @@ echo.
 echo  %COL%[92m[OK]%COL%[37m Найдена рабочая стратегия %COL%[92m!AutoIndex!%COL%[37m для %COL%[92m!AutoName!%COL%[37m.
 exit /b
 
+:ConfiguratorAutoShowProgress
+set /a AutoElapsed=0
+set /a AutoRemaining=0
+if defined AutoStartedAt (
+    chcp 850 >nul 2>&1
+    for /f %%T in ('powershell -NoProfile -Command "[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()"') do set /a AutoElapsed=%%T-AutoStartedAt
+    chcp 65001 >nul 2>&1
+    if !AutoElapsed! lss 0 set /a AutoElapsed=0
+    if !AutoCompleted! gtr 0 (
+        set /a AutoRemainingCandidates=AutoMax+1-AutoCompleted
+        set /a AutoRemaining=AutoElapsed*AutoRemainingCandidates/AutoCompleted
+    )
+)
+echo.
+cls
+echo  %COL%[96m[ВЫПОЛНЯЕТСЯ]%COL%[37m !AutoName!: стратегия !AutoIndex! из !AutoMax!; проверено !AutoCompleted! из !AutoTotalCandidates!
+echo  %COL%[90mПрошло !AutoElapsed!с; осталось примерно !AutoRemaining!с. Нажмите Q после текущей проверки для отмены.
+exit /b
+
+:ConfiguratorAutoCancelCheckpoint
+call :ConfiguratorAutoPollCancel
+if errorlevel 1 exit /b 1
+exit /b 0
+
+:ConfiguratorAutoShowCandidateResult
+if not exist "!AutoReportFile!" exit /b
+set "AutoDisplayIndex=%~1"
+if not defined AutoDisplayIndex set "AutoDisplayIndex=!AutoIndex!"
+set "AutoDisplaySuccess="
+set "AutoDisplayTotal="
+for /f "usebackq tokens=1-3 delims=|" %%A in ("!AutoReportFile!") do if "%%A"=="SUMMARY" (
+    set "AutoDisplaySuccess=%%B"
+    set "AutoDisplayTotal=%%C"
+)
+echo  [!AutoDisplayIndex!] Проверки: !AutoDisplaySuccess!/!AutoDisplayTotal!
+if not "!AutoDisplaySuccess!"=="!AutoDisplayTotal!" (
+    for /f "usebackq tokens=1-5 delims=|" %%A in ("!AutoReportFile!") do if "%%A"=="CHECK" if "%%C"=="FAIL" (
+        echo      %%B: %%D ^(HTTP %%E^)
+    )
+)
+exit /b
+
 :ConfiguratorAutoUpdateTitle
 if defined AutoFoundList (
     title GoodbyeZapret - Автоподбор - рабочие: !AutoFoundList!
@@ -3616,12 +3761,24 @@ set "WaitProcessLimit=%~2"
 if not defined WaitProcessLimit set "WaitProcessLimit=3"
 set /a WaitProcessAttempts=0
 :WaitForProcessByNameLoop
+if defined AutoStartedAt (
+    call :ConfiguratorAutoPollCancel
+    if errorlevel 1 exit /b 2
+)
 tasklist /FI "IMAGENAME eq !WaitProcessName!" 2>nul | find /I "!WaitProcessName!" >nul
 if not errorlevel 1 exit /b 0
 if !WaitProcessAttempts! GEQ !WaitProcessLimit! exit /b 1
 timeout /t 1 /nobreak >nul 2>&1
 set /a WaitProcessAttempts+=1
 goto WaitForProcessByNameLoop
+
+:ConfiguratorAutoPollCancel
+set "AutoCancelKey="
+chcp 850 >nul 2>&1
+for /f "delims=" %%K in ('powershell -NoProfile -Command "try { if ([Console]::KeyAvailable) { $k=[Console]::ReadKey($true); if ($k.Key -eq 'Escape' -or $k.KeyChar -eq 'q' -or $k.KeyChar -eq 'Q') { '1' } } } catch { }"') do set "AutoCancelKey=%%K"
+chcp 65001 >nul 2>&1
+if defined AutoCancelKey exit /b 1
+exit /b 0
 
 :ConfiguratorAutoResolveChoice
 set "AutoVar="
@@ -3696,7 +3853,7 @@ if exist "!AutoResultsFile!" (
     )
 )
 
->>"!AutoResultsTemp!" echo(!AutoVar!^|!AutoName!^|%DATE% %TIME%^|!AutoFoundList!^|!AutoFirstFound!
+>>"!AutoResultsTemp!" echo(!AutoVar!^|!AutoName!^|%DATE% %TIME%^|!AutoFoundList!^|!AutoSelected!
 move /y "!AutoResultsTemp!" "!AutoResultsFile!" >nul 2>&1
 exit /b
 
@@ -3736,126 +3893,68 @@ goto MENU
 
 :ConfiguratorAutoCheck
 set "AutoCheckResult=2"
-set "AutoGitPath=/ALFiX01/GoodbyeZapret/main/GoodbyeZapret_Version"
 set "AutoDomainFileDefault=%ParentDirPath%\tools\Config_Check\domains.txt"
 set "AutoDomainFile=%AutoDomainFileDefault%"
 set "AutoModuleFile="
 set "AutoDomainUsedModule=0"
-
 call :ConfiguratorAutoResolveDomainFile
-
 if defined AutoModuleFile if exist "!AutoModuleFile!" (
     set "AutoDomainFile=!AutoModuleFile!"
     set "AutoDomainUsedModule=1"
 )
 
-if not defined CURL (
-    if exist "%ParentDirPath%\tools\curl\curl.exe" (
-        set CURL="%ParentDirPath%\tools\curl\curl.exe"
-    ) else (
-        set "CURL=curl"
-    )
-)
-
-:ConfiguratorAutoCheck_ReadDomains
-set "AutoFailed=0"
-set "AutoTotal=0"
-set "AutoFailedDomains="
-set "AutoSuccessCount=0"
+:ConfiguratorAutoCheck_Run
+set "AutoReportFile=!AutoReportDir!\!AutoVar!_!AutoIndex!.txt"
+if exist "!AutoReportFile!" del /q "!AutoReportFile!" >nul 2>&1
 echo.
 if "!AutoDomainUsedModule!"=="1" (
     echo  [*] Автопроверка доменов ^(модульный список^)...
 ) else (
     echo  [*] Автопроверка доменов...
 )
-
-if exist "!AutoDomainFile!" (
-    for /f "usebackq delims=" %%D in ("!AutoDomainFile!") do (
-        set "AutoLine=%%D"
-        if defined AutoLine (
-            for /f "tokens=* delims= " %%L in ("!AutoLine!") do set "AutoLine=%%L"
-            if "!AutoLine:~0,3!"=="ï»¿" set "AutoLine=!AutoLine:~3!"
-            if defined AutoLine if not "!AutoLine:~0,1!"=="#" call :ConfiguratorAutoCheckOne "!AutoLine!"
-        )
-    )
-) else (
-    for %%D in (rr6---sn-jvhnu5g-n8vy.googlevideo.com i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg discord.com cloudflare.com aws.amazon.com goodbyezapret.crabdance.com/GoodbyeZapret_Version) do (
-        call :ConfiguratorAutoCheckOne "%%D"
-    )
+if not exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
+    echo  [FAIL] config_check.exe не найден.
+    exit /b
 )
-
-if !AutoTotal! LEQ 0 (
+"%ParentDirPath%\tools\Config_Check\config_check.exe" -quick -domains "!AutoDomainFile!" -report "!AutoReportFile!"
+if not exist "!AutoReportFile!" (
     if "!AutoDomainUsedModule!"=="1" (
         set "AutoDomainFile=!AutoDomainFileDefault!"
         set "AutoDomainUsedModule=0"
-        goto ConfiguratorAutoCheck_ReadDomains
+        goto ConfiguratorAutoCheck_Run
     )
-    set "AutoCheckResult=2"
-    echo  ^[WARN^] Список доменов пуст.
+    echo  [FAIL] Не удалось получить отчет проверки.
     exit /b
 )
-
-set /a AutoSuccessCount=AutoTotal-AutoFailed
-
-if /i "!AutoVar!"=="YTGV" (
-    if !AutoSuccessCount! GEQ 1 (
-        set "AutoCheckResult=0"
-        echo  ^[OK^] Для YouTube GoogleVideo доступен хотя бы один домен ^(!AutoSuccessCount!/!AutoTotal!^).
-        exit /b
-    )
+set "AutoSuccessCount="
+set "AutoTotal="
+for /f "usebackq tokens=1-3 delims=|" %%A in ("!AutoReportFile!") do if "%%A"=="SUMMARY" (
+    set "AutoSuccessCount=%%B"
+    set "AutoTotal=%%C"
 )
-
+if not defined AutoTotal (
+    echo  [FAIL] Отчет проверки поврежден.
+    exit /b
+)
+if !AutoTotal! LEQ 0 exit /b
+set /a AutoFailed=AutoTotal-AutoSuccessCount
+call :ConfiguratorAutoShowCandidateResult
 if !AutoFailed! EQU 0 (
     set "AutoCheckResult=0"
-    echo  ^[OK^] Все домены доступны.
+    echo  [OK] Обязательные проверки пройдены ^(!AutoSuccessCount!/!AutoTotal!^).
     exit /b
 )
-
 if !AutoFailed! EQU 1 (
     set "AutoCheckResult=1"
-    echo  ^[WARN^] Недоступен 1 домен: !AutoFailedDomains!
+    echo  [WARN] Не пройдена 1 обязательная проверка. Подробности сохранены в папке отчетов.
     exit /b
 )
-
-set "AutoCheckResult=2"
-echo  ^[FAIL^] Недоступно доменов: !AutoFailed!
+echo  [FAIL] Не пройдено обязательных проверок: !AutoFailed!. Подробности сохранены в папке отчетов.
 exit /b
-
-:ConfiguratorAutoCheckOne
-set "AutoUrlRaw=%~1"
-if /i "!AutoUrlRaw!"=="raw.githubusercontent.com" set "AutoUrlRaw=goodbyezapret.crabdance.com/GoodbyeZapret_Version"
-set "AutoUrl=!AutoUrlRaw!"
-if /i not "!AutoUrl:~0,7!"=="http://" if /i not "!AutoUrl:~0,8!"=="https://" set "AutoUrl=https://!AutoUrl!"
-set /a AutoTotal+=1
-
-set "AutoCode="
-set "AutoCodeFile=%TEMP%\gz_autocode.tmp"
-if exist "!AutoCodeFile!" del /q "!AutoCodeFile!" >nul 2>&1
-%CURL% -L -k --connect-timeout 1 -m 3 -s -o NUL -w "%%{http_code}" "!AutoUrl!" > "!AutoCodeFile!"
-if exist "!AutoCodeFile!" (
-    set /p "AutoCode="<"!AutoCodeFile!"
-    del /q "!AutoCodeFile!" >nul 2>&1
-)
-
-if not defined AutoCode (
-    set /a AutoFailed+=1
-    set "AutoFailedDomains=!AutoFailedDomains!!AutoUrlRaw! "
-    exit /b
-)
-
-REM Если AutoCode остался 000 или пустой — значит связи нет вообще (ошибка curl)
-if "!AutoCode!"=="000" goto :AutoCheckFail
-if not defined AutoCode goto :AutoCheckFail
-
-REM Если сервер ответил ЛЮБЫМ кодом (200, 302, 403, 404, 500) — домен жив.
-REM Выходим как "успех"
+:ConfiguratorAutoRecordStartFailure
+>"!AutoReportDir!\!AutoVar!_!AutoIndex!.txt" echo SUMMARY^|0^|1
+>>"!AutoReportDir!\!AutoVar!_!AutoIndex!.txt" echo CHECK^|STARTUP^|FAIL^|ENGINE^|0^|0^|0^|
 exit /b
-
-:AutoCheckFail
-set /a AutoFailed+=1
-set "AutoFailedDomains=!AutoFailedDomains!!AutoUrlRaw! "
-exit /b
-
 :ConfiguratorAutoResolveDomainFile
 set "AutoModuleFile="
 if /i "!AutoVar!"=="YT"      set "AutoModuleFile=%ParentDirPath%\tools\Config_Check\domains\youtube.txt"
@@ -3941,7 +4040,7 @@ if exist "%ParentDirPath%\tools\Config_Check\config_check.exe" (
     echo %COL%[37m
     REM Цветной текст
     for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (set "DEL=%%a" & set "COL=%%b")
-    "%ParentDirPath%\tools\Config_Check\config_check.exe" "!batFile!"
+    call :RunConfigCheckInSeparateCmd "!batFile!"
 )
 goto MENU
 
@@ -4086,6 +4185,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "$p='%HOSTS%'; if(-not (T
 
 chcp 65001 >nul 2>&1
 goto :eof
+
+:RunConfigCheckInSeparateCmd
+set "ConfigCheckOutput=%TEMP%\GoodbyeZapret_ConfigCheck_%RANDOM%_%RANDOM%.log"
+"%ParentDirPath%\tools\Config_Check\config_check.exe" %* >"!ConfigCheckOutput!" 2>&1
+set "ConfigCheckResult=!ERRORLEVEL!"
+start "GoodbyeZapret: результат проверки" "%ComSpec%" /k type "!ConfigCheckOutput!"
+exit /b !ConfigCheckResult!
 
 :timer_start
 set start_time=%time%
