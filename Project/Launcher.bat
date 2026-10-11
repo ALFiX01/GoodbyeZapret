@@ -33,7 +33,7 @@ set "ParentDirPath=%ParentDirPathForCheck%"
 
 :: Version information   Stable / Beta / Alpha
 set "Current_GoodbyeZapret_version=4.3.0"
-set "Current_GoodbyeZapret_version_code=4A3F1"
+set "Current_GoodbyeZapret_version_code=4A3F2"
 set "branch=Stable"
 set "beta_code=0"
 
